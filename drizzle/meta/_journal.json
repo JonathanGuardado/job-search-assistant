@@ -1,0 +1,27 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1790343354915,
+      "tag": "0000_tenancy-foundation",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1790343408361,
+      "tag": "0001_users-and-jobs",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1790384898301,
+      "tag": "0002_job-seeker-role",
+      "breakpoints": true
+    }
+  ]
+}

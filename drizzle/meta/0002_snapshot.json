@@ -1,0 +1,349 @@
+{
+  "id": "c6164b90-5643-499f-a679-e0ffe52f6d4d",
+  "prevId": "a8fe157f-6484-4412-9a72-b65f7c6aeb3e",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.job_user_states": {
+      "name": "job_user_states",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "job_id": {
+          "name": "job_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "state": {
+          "name": "state",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "job_user_states_user_id_users_id_fk": {
+          "name": "job_user_states_user_id_users_id_fk",
+          "tableFrom": "job_user_states",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "job_user_states_job_id_jobs_id_fk": {
+          "name": "job_user_states_job_id_jobs_id_fk",
+          "tableFrom": "job_user_states",
+          "tableTo": "jobs",
+          "columnsFrom": [
+            "job_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "job_user_states_user_job_key": {
+          "name": "job_user_states_user_job_key",
+          "nullsNotDistinct": false,
+          "columns": [
+            "user_id",
+            "job_id"
+          ]
+        }
+      },
+      "policies": {
+        "tenant_isolation": {
+          "name": "tenant_isolation",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": [
+            "job_seeker_app"
+          ],
+          "using": "user_id = (select app.current_user_id())",
+          "withCheck": "user_id = (select app.current_user_id())"
+        }
+      },
+      "checkConstraints": {
+        "job_user_states_state_check": {
+          "name": "job_user_states_state_check",
+          "value": "\"job_user_states\".\"state\" in ('new', 'saved', 'ignored', 'applied')"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.jobs": {
+      "name": "jobs",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "company_name": {
+          "name": "company_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "company_normalized": {
+          "name": "company_normalized",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "title": {
+          "name": "title",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "title_normalized": {
+          "name": "title_normalized",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "location_policy": {
+          "name": "location_policy",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "location_text": {
+          "name": "location_text",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "remote_scope": {
+          "name": "remote_scope",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "employment_type": {
+          "name": "employment_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "salary_min_minor": {
+          "name": "salary_min_minor",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "salary_max_minor": {
+          "name": "salary_max_minor",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "salary_currency": {
+          "name": "salary_currency",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "salary_source": {
+          "name": "salary_source",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "apply_url": {
+          "name": "apply_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "fingerprint": {
+          "name": "fingerprint",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "canonical_job_id": {
+          "name": "canonical_job_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "first_seen_at": {
+          "name": "first_seen_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "last_seen_at": {
+          "name": "last_seen_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "closed_at": {
+          "name": "closed_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "jobs_fingerprint_idx": {
+          "name": "jobs_fingerprint_idx",
+          "columns": [
+            {
+              "expression": "fingerprint",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "jobs_company_normalized_idx": {
+          "name": "jobs_company_normalized_idx",
+          "columns": [
+            {
+              "expression": "company_normalized",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "jobs_canonical_job_id_jobs_id_fk": {
+          "name": "jobs_canonical_job_id_jobs_id_fk",
+          "tableFrom": "jobs",
+          "tableTo": "jobs",
+          "columnsFrom": [
+            "canonical_job_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "jobs_location_policy_check": {
+          "name": "jobs_location_policy_check",
+          "value": "\"jobs\".\"location_policy\" in ('onsite', 'hybrid', 'remote', 'unknown')"
+        },
+        "jobs_employment_type_check": {
+          "name": "jobs_employment_type_check",
+          "value": "\"jobs\".\"employment_type\" in ('employee', 'contractor', 'eor', 'unknown')"
+        },
+        "jobs_salary_check": {
+          "name": "jobs_salary_check",
+          "value": "(\"jobs\".\"salary_source\" = 'unknown'\n            and \"jobs\".\"salary_min_minor\" is null and \"jobs\".\"salary_max_minor\" is null and \"jobs\".\"salary_currency\" is null)\n          or (\"jobs\".\"salary_source\" = 'posted'\n            and \"jobs\".\"salary_currency\" is not null\n            and (\"jobs\".\"salary_min_minor\" is not null or \"jobs\".\"salary_max_minor\" is not null)\n            and (\"jobs\".\"salary_min_minor\" is null or \"jobs\".\"salary_max_minor\" is null\n                 or \"jobs\".\"salary_min_minor\" <= \"jobs\".\"salary_max_minor\"))"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.users": {
+      "name": "users",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "email": {
+          "name": "email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "users_email_unique": {
+          "name": "users_email_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "email"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {},
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}

@@ -1,0 +1,20 @@
+# Local dependencies. `docker compose -p job-seeker-assistant up -d` starts both; start only `postgres`
+# if Redis already runs on the host.
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - job-seeker-pg:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7
+    ports:
+      - "6379:6379"
+
+volumes:
+  job-seeker-pg:
