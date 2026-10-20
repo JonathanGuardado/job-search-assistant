@@ -3,7 +3,7 @@
 Phase 1 only. Later phases are listed at the bottom so their scope stays visible, but
 nothing from them gets built yet.
 
-**Active milestone: 1.1** — update this line when you move on.
+**Active milestone: 1.3** — update this line when you move on. (1.1 done; 1.2 runs via Codex in parallel.)
 
 Each milestone is shippable. Nothing downstream is built until what it depends on is
 trustworthy.

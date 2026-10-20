@@ -1,7 +1,7 @@
 import type { PgDatabase } from 'drizzle-orm/pg-core'
 import { drizzle, type PostgresJsQueryResultHKT } from 'drizzle-orm/postgres-js'
 import postgres from 'postgres'
-import { env } from '@/lib/env'
+import { getEnv } from '@/lib/env'
 
 /**
  * The executor every service function takes as its first argument. Both the
@@ -22,7 +22,7 @@ const cache = globalThis as typeof globalThis & { __jobSeekerPool?: Pool }
 
 /** The app-role pool. RLS applies to every connection it hands out. */
 export function getDb(): Db {
-  cache.__jobSeekerPool ??= connect(env.DATABASE_URL, env.DATABASE_POOL_MAX)
+  cache.__jobSeekerPool ??= connect(getEnv().DATABASE_URL, getEnv().DATABASE_POOL_MAX)
   return cache.__jobSeekerPool.db
 }
 

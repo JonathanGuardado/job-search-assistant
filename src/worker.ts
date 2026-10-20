@@ -1,8 +1,9 @@
 import type { Worker } from 'bullmq'
 import { closeDb, getDb } from '@/lib/db/client'
-import { env } from '@/lib/env'
+import { getEnv } from '@/lib/env'
 import { logEvent } from '@/lib/log'
 import { connectRedis } from '@/lib/queue'
+import { resumeParseQueue, runResumeParse } from '@/modules/career-knowledge'
 import { jobSeenQueue, markJobSeen } from '@/modules/jobs'
 
 /**
@@ -10,11 +11,12 @@ import { jobSeenQueue, markJobSeen } from '@/modules/jobs'
  * are recorded by BullMQ; domain code below it returns results.
  */
 
-const connection = connectRedis(env.REDIS_URL)
+const connection = connectRedis(getEnv().REDIS_URL)
 const db = getDb()
 
 const workers: Worker[] = [
   jobSeenQueue.work({ connection }, (payload) => markJobSeen(db, payload)),
+  resumeParseQueue.work({ connection }, (payload) => runResumeParse(db, payload)),
 ]
 
 for (const worker of workers) {

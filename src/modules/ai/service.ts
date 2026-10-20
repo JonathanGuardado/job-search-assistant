@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { env } from '@/lib/env'
+import { getEnv } from '@/lib/env'
 import { logEvent } from '@/lib/log'
 import { err, ok, type Result } from '@/lib/result'
 import { configuredProvider } from './configured-provider.js'
@@ -123,9 +123,9 @@ let defaultCaller: CallModel | undefined
 export const callModel: CallModel = (args) => {
   if (!defaultCaller) {
     defaultCaller = createModelCaller({
-      provider: configuredProvider(env),
-      models: { extraction: env.MODEL_EXTRACTION, reasoning: env.MODEL_REASONING },
-      prices: env.AI_MODEL_PRICING,
+      provider: configuredProvider(getEnv()),
+      models: { extraction: getEnv().MODEL_EXTRACTION, reasoning: getEnv().MODEL_REASONING },
+      prices: getEnv().AI_MODEL_PRICING,
     })
   }
   return defaultCaller(args)

@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto'
 import { QueueEvents, type Worker } from 'bullmq'
 import { afterEach, describe, expect } from 'vitest'
 import { dbTest as test } from '@/lib/db/testing'
-import { env } from '@/lib/env'
+import { getEnv } from '@/lib/env'
 import { connectRedis } from '@/lib/queue'
 import { domainError, err, unwrap, type DomainError, type Result } from '@/lib/result'
 import { jobSeenQueue } from './queues.js'
@@ -21,8 +21,8 @@ afterEach(async () => {
 })
 
 function harness(handler: (p: JobSeenPayload) => Promise<Result<unknown, DomainError>>) {
-  const connection = connectRedis(env.REDIS_URL)
-  const eventsConnection = connectRedis(env.REDIS_URL)
+  const connection = connectRedis(getEnv().REDIS_URL)
+  const eventsConnection = connectRedis(getEnv().REDIS_URL)
   const options = { connection, prefix: `test-${randomUUID()}`, attempts: 3, backoffMs: 10 }
   const opened = jobSeenQueue.open(options)
   const worker: Worker = jobSeenQueue.work(options, handler)

@@ -1,6 +1,6 @@
 import { sql } from 'drizzle-orm'
 import { getDb } from '@/lib/db/client'
-import { env } from '@/lib/env'
+import { getEnv } from '@/lib/env'
 import { connectRedis } from '@/lib/queue'
 
 export const dynamic = 'force-dynamic'
@@ -21,7 +21,7 @@ async function checkPostgres(): Promise<string> {
 }
 
 async function checkRedis(): Promise<string> {
-  const redis = connectRedis(env.REDIS_URL)
+  const redis = connectRedis(getEnv().REDIS_URL)
   try {
     return await redis.ping()
   } finally {

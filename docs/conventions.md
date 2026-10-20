@@ -35,8 +35,10 @@ Every external input is parsed with Zod at the boundary it enters: HTTP response
 outputs, form bodies, env vars, queue payloads. Inside a module, data is already typed
 and is not re-validated.
 
-Env vars are parsed once in `src/lib/env.ts` and imported from there. Never
-`process.env.X` outside that file.
+Env vars are parsed once in `src/lib/env.ts`, on first use, and read through
+`getEnv()`. Never `process.env.X` outside that file. Parsing on first use rather than on
+import means importing a module never requires the runtime configuration (drizzle-kit,
+pure unit tests, `next build`).
 
 ## Naming
 

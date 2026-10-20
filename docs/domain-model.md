@@ -49,23 +49,59 @@ hardcoded. A field marked `hard` can produce `not_eligible`; a field marked `pre
 can only lower a match dimension.
 
 ### `resumes`
-Immutable versions. `is_master` marks the base; tailored versions reference `parent_id`.
+Owned by `resumes`. Immutable versions: the app role has no UPDATE privilege on this
+table, so an edit in place is refused by the database.
 
-`id`, `user_id`, `version`, `parent_id`, `is_master`, `storage_key`, `filename`,
-`parsed_payload` (jsonb), `parse_status`, `parse_reviewed_at`, `created_at`.
+`id`, `user_id`, `version` (unique per user), `parent_id`, `is_master`, `storage_key`,
+`filename`, `content_type` (PDF or DOCX, detected from the bytes), `byte_size` (≤ 5 MB),
+`content_sha256`, `extracted_text`, `text_extractor`, `created_at`.
 
-Never edit in place. A tailored resume is a new row.
+- `is_master` is set at insert and never flipped. Every upload is a master; the current
+  resume is the highest version. Tailored versions (phase 2) have `is_master = false` and
+  reference `parent_id`, and a CHECK keeps the two consistent.
+- `extracted_text` is stored here because it is a pure function of the file. Every quote
+  a model returns is validated against it.
+- `storage_key` is `resumes/<user_id>/<sha256>`: content-addressed, never overwritten
+  (decision 0006).
+- Users may delete a version after parsing finishes. Deletion removes its parse history
+  and unconfirmed career items, but preserves confirmed items and their original evidence.
+  Their source references become null. A master with derived versions cannot be deleted.
+  Stored files are removed after commit only when no remaining version uses them.
+
+### `resume_parses`
+Owned by `resumes`. One run of a parse task over one version, and the audit record of
+the model call. It replaces the `parsed_payload` / `parse_status` / `parse_reviewed_at`
+columns once planned for `resumes`, which kept a mutable status on an immutable row.
+
+`id`, `user_id`, `resume_id`, `task`, `task_version`, `status` (`running` | `succeeded`
+| `failed`), `result` (jsonb, shaped by the task), `traces` (jsonb, every attempt),
+`model`, `cost_micro_usd`, `error_code`, `error_message`, `started_at`, `completed_at`.
+
+Unique on `(resume_id, task, task_version)`. A retry resumes the same row, and traces and
+cost accumulate across attempts. An improved prompt version is a new row, which is how a
+resume is re-parsed without touching the original run.
 
 ### `career_items`
 The grounding source for every piece of generated text. If a claim is not here, it may
 not appear in a cover letter or application answer.
 
-`id`, `user_id`, `type` (`role` | `project` | `education` | `achievement` | `story`),
-`organization`, `title`, `started_at`, `ended_at`, `summary`, `achievements` (text[]),
-`technologies` (text[]), `metrics` (jsonb), `source_resume_id`, `verified_by_user`.
+Owned by `career-knowledge`.
 
-`verified_by_user` matters: parsed items start false and are confirmed in the review
-step. Unverified items may be used for matching but not for generation.
+`id`, `user_id`, `type` (`role` | `project` | `education` | `achievement` | `story`),
+`organization`, `title`, `started_on`, `ended_on`, `is_current`, `summary`,
+`achievements` (text[]), `technologies` (text[]), `metrics` (jsonb, not extracted yet),
+`evidence` (jsonb), `source_resume_id`, `source_parse_id`, `verified_by_user`,
+`verified_at`, `created_at`, `updated_at`.
+
+- **Dates are partial.** `started_on` and `ended_on` are `YYYY` or `YYYY-MM` text, not
+  timestamps: a resume that says "2020" must not become 2020-01-01. `is_current` records
+  "Present", and CHECKs forbid an end date on a current entry.
+- **`evidence`** holds the parse-time source spans (quote plus offsets into
+  `resumes.extracted_text`) for each value. User corrections don't rewrite it.
+- **`verified_by_user`** matters: parsed items start false and are confirmed in the review
+  step. Unverified items may be used for matching but not for generation. The service
+  enforces this with `listGroundingItems()`, which returns `VerifiedCareerItem`, and a
+  CHECK ties `verified_by_user` to `verified_at`.
 
 ### `job_sources`
 `id`, `adapter_key` (`greenhouse` | `lever` | `ashby` | ...), `config` (jsonb, e.g. board

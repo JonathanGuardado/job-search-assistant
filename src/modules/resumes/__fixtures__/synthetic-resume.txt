@@ -1,0 +1,18 @@
+Ana Ejemplo
+Remote, Mexico City - ana.ejemplo@example.com
+
+EXPERIENCE
+
+Senior Backend Engineer - Acme Corp
+Mar 2020 - Present
+- Reduced p99 latency by 40% across the checkout service
+- Led the migration from Heroku to AWS
+Stack: Node.js, TypeScript, PostgreSQL
+
+Backend Developer - Globex S.A. de C.V.
+2017 - ene 2020
+- Built the billing API in Go
+
+EDUCATION
+
+Universidad Nacional - B.Sc. Computer Science, 2016

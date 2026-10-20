@@ -70,7 +70,7 @@ export function geminiProvider(apiKey: string, fetcher: typeof fetch = fetch): P
           generationConfig: {
             maxOutputTokens: request.maxTokens,
             responseFormat: {
-              text: { mimeType: 'application/json', schema: z.toJSONSchema(request.outputSchema) },
+              text: { mimeType: 'APPLICATION_JSON', schema: z.toJSONSchema(request.outputSchema) },
             },
           },
         },

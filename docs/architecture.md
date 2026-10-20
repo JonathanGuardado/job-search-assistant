@@ -29,8 +29,8 @@ must survive restarts and run on a schedule; application work is latency-sensiti
 | Module | Owns | Calls a model |
 | --- | --- | --- |
 | `profiles` | Candidate constraints, hard vs preferred | No |
-| `resumes` | File storage, versioning, parse orchestration | Parsing only |
-| `career-knowledge` | Structured achievements, projects, metrics | Extraction only |
+| `resumes` | File storage, immutable versions, text extraction, parse run records | No |
+| `career-knowledge` | Structured career record; the resume extraction task | Extraction only |
 | `job-sources` | Adapters, polling cursors, raw capture | No |
 | `jobs` | Normalization, dedupe, canonical model | Field extraction only |
 | `eligibility` | Rules, extraction, three-state verdicts | Extraction only |
@@ -75,6 +75,7 @@ exported from that module's `index.ts`. Queues:
 | `job-normalize` | Raw → canonical, dedupe | On raw insert |
 | `assess-eligibility` | One candidate × one job | On new job, on profile change |
 | `assess-match` | One candidate × one eligible job | After eligibility |
+| `resume-parse` | One resume version → draft career items | On upload |
 
 Every job is idempotent and keyed so a retry cannot double-write. Workflows are state
 machines with persisted state: a crash resumes at the last committed step.

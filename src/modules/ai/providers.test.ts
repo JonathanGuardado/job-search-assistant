@@ -90,7 +90,7 @@ describe('Gemini adapter', () => {
       systemInstruction: { parts: [{ text: 'Extract a country.' }] },
       contents: [{ role: 'user' }, { role: 'model' }, { role: 'user' }],
       generationConfig: { maxOutputTokens: 256, responseFormat: {
-        text: { mimeType: 'application/json', schema: { properties: { country: { type: 'string' } } } },
+        text: { mimeType: 'APPLICATION_JSON', schema: { properties: { country: { type: 'string' } } } },
       } },
     })
     expect(result).toMatchObject({ ok: true, value: {

@@ -1,7 +1,10 @@
 import { z } from 'zod'
 
 /**
- * The only place that reads process.env. Everything else imports `env`.
+ * The only place that reads process.env. Everything else calls getEnv().
+ *
+ * Parsed on first use, not on import: importing a module (drizzle-kit loading
+ * schemas, a pure unit test, `next build`) must not require the runtime config.
  */
 
 // `KEY=` in a .env file yields '' — treat that as unset, not as a value.
@@ -36,8 +39,15 @@ export const EnvSchema = z.object({
   AI_MODEL_PRICING: pricingJson,
   MODEL_EXTRACTION: z.string().min(1),
   MODEL_REASONING: z.string().min(1),
+  /** Resume files (decision 0006). Relative paths resolve from the process's working directory. */
+  STORAGE_DIR: z.string().min(1).default('.data/storage'),
 })
 
 export type Env = z.infer<typeof EnvSchema>
 
-export const env: Env = EnvSchema.parse(process.env)
+let parsed: Env | undefined
+
+export function getEnv(): Env {
+  parsed ??= EnvSchema.parse(process.env)
+  return parsed
+}
