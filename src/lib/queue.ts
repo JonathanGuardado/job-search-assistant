@@ -24,8 +24,10 @@ export type QueueConnectionOptions = {
 }
 
 /** BullMQ requires `maxRetriesPerRequest: null` on connections used by workers. */
-export function connectRedis(url: string): Redis {
-  return new Redis(url, { maxRetriesPerRequest: null })
+export function connectRedis(url: string, mode: 'worker' | 'producer' = 'worker'): Redis {
+  return new Redis(url, mode === 'worker'
+    ? { maxRetriesPerRequest: null }
+    : { maxRetriesPerRequest: 1, connectTimeout: 5_000, retryStrategy: () => null })
 }
 
 export function defineQueue<S extends z.ZodType>(name: string, payloadSchema: S) {

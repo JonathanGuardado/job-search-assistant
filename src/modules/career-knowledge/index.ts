@@ -17,7 +17,7 @@ export {
 } from './service.js'
 export { getParseReport, runResumeParse } from './parse-resume.js'
 export type { ExtractCareerItems, ParseReport } from './parse-resume.js'
-export { resumeParseKey, resumeParseQueue } from './queues.js'
+export { enqueueResumeParse, resumeParseKey, resumeParseQueue } from './queues.js'
 
 export {
   CAREER_ITEM_TYPES,

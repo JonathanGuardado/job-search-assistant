@@ -25,7 +25,10 @@ In a separate terminal, start the background worker:
 pnpm worker
 ```
 
-Open http://localhost:3000/resumes. Both processes must share the same database, Redis,
+Open http://localhost:3000/resumes. Candidate constraints can be configured at
+http://localhost:3000/settings, including hard/preferred modes and salary currency.
+Only enter facts and preferences you want saved; no candidate profile is prefilled.
+Both processes must share the same database, Redis,
 and `STORAGE_DIR`. Restart them after changing `.env.local`. Authentication is not yet
 implemented; local pages use a seeded development user.
 

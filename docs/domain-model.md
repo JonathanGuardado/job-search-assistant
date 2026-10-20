@@ -44,6 +44,14 @@ One per user. The constraint set that drives every decision.
 | `excluded_companies`, `excluded_industries` | text[] | |
 | `constraint_modes` | jsonb | Maps each field above to `hard` or `preferred` |
 
+The profile is unique per `user_id`, protected by RLS, and configured at `/settings`.
+All constraint keys use the camelCase service field names. Work authorization and
+relocation willingness are always `hard`, enforced by the Zod type and a database CHECK.
+Other fields independently accept `hard` or `preferred`. An unstated salary floor is
+null; amounts use the selected currency’s minor units. This table follows the specified
+Postgres integer salary column, so values above 2,147,483,647 minor units are rejected.
+No salary period or automatic currency conversion is inferred.
+
 `constraint_modes` is what makes the hard/soft split configurable per user rather than
 hardcoded. A field marked `hard` can produce `not_eligible`; a field marked `preferred`
 can only lower a match dimension.

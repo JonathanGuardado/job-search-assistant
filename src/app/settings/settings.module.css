@@ -1,0 +1,35 @@
+.page { min-height: 100vh; padding: 32px max(20px, calc((100vw - 1100px) / 2)) 64px; background: #f6f8fc; color: #202b3e; font: 14px/1.6 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+.page * { box-sizing: border-box; }
+.page nav { margin-bottom: 24px; }
+.page a { color: #4057cf; text-underline-offset: 3px; }
+.page header { margin-bottom: 28px; }
+.page h1 { margin: 0 0 8px; font-size: 34px; letter-spacing: -1px; }
+.page h2 { margin: 0 0 22px; font-size: 19px; }
+.page header p { color: #627087; }
+.page .eyebrow { color: #4057cf; font-size: 11px; letter-spacing: 1.4px; font-weight: 700; text-transform: uppercase; }
+.section { padding: 26px; margin-bottom: 22px; background: #fff; border: 1px solid #e1e6ee; border-radius: 12px; }
+.constraint { min-width: 0; display: grid; grid-template-columns: minmax(0, 2fr) minmax(180px, 1fr); gap: 24px; border: 0; padding: 16px 0 20px; margin: 0; border-bottom: 1px solid #edf0f5; }
+.constraint:last-child { border-bottom: 0; padding-bottom: 0; }
+.constraint legend { padding: 0; padding-top: 12px; font-weight: 600; }
+.control { min-width: 0; }
+.page input:not([type=checkbox]), .page select, .page textarea { display: block; width: 100%; padding: 9px 11px; border: 1px solid #dce2ed; border-radius: 7px; background: #fcfdff; color: #202b3e; font: inherit; }
+.page textarea { resize: vertical; }
+.page button { min-height: 38px; padding: 8px 14px; border: 1px solid #d5dce7; border-radius: 8px; background: #fff; color: #202b3e; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+.page button:hover { background: #f0f3f9; }
+.page :is(input, select, textarea, button, a):focus-visible { outline: 3px solid #8195ef; outline-offset: 3px; }
+.mode { padding-left: 20px; border-left: 1px solid #edf0f5; font-size: 12px; color: #627087; }
+.mode label { display: block; }
+.mode select { margin-top: 6px; }
+.mode p, .hint { margin: 8px 0 0; color: #627087; font-size: 12px; }
+.checkbox { display: flex; align-items: center; gap: 8px; }
+.checkbox input { width: 16px; height: 16px; accent-color: #4057cf; }
+.options { display: grid; gap: 10px; }
+.authorization { padding: 12px; margin-bottom: 12px; border: 1px solid #e1e6ee; border-radius: 8px; }
+.authorization label { display: block; margin-bottom: 10px; font-size: 12px; color: #627087; }
+.error, .success { padding: 16px 20px; margin-bottom: 20px; border: 1px solid #f0c7cd; border-radius: 10px; background: #fff4f5; color: #942937; }
+.success { color: #247254; border-color: #cdebdc; background: #eef9f3; }
+.footer { display: flex; align-items: center; justify-content: space-between; gap: 24px; }
+.footer p { max-width: 600px; color: #627087; font-size: 13px; }
+.page .primary { flex-shrink: 0; color: white; border-color: #4057cf; background: #4057cf; }
+.page .primary:hover { background: #3346b5; }
+@media(max-width: 650px) { .constraint { grid-template-columns: minmax(0, 1fr); gap: 14px; } .mode { padding-left: 0; border-left: 0; } .section { padding: 20px; } .footer { flex-direction: column; align-items: stretch; gap: 8px; } }

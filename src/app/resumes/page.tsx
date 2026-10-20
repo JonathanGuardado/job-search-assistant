@@ -35,7 +35,10 @@ export default async function ResumesPage({
           <h1>Resume library</h1>
           <p className={styles.subtitle}>Keep your experience together. Review each version and confirm what matters.</p>
         </div>
-        <span className={styles.count}>{resumes.length} {resumes.length === 1 ? 'version' : 'versions'}</span>
+        <div className={styles.rowActions}>
+          <span className={styles.count}>{resumes.length} {resumes.length === 1 ? 'version' : 'versions'}</span>
+          <Link className={styles.secondaryButton} href="/settings">Candidate settings</Link>
+        </div>
       </header>
       {searchParams.error && (
         <p role="alert" className={styles.error}>
@@ -110,10 +113,10 @@ export default async function ResumesPage({
                     filename={resume.filename}
                     isParsing={resume.latestParse?.status === 'running'}
                   />
-                  {resume.latestParse?.status === 'failed' && (
+                  {(resume.latestParse === null || resume.latestParse.status === 'failed') && (
                     <form action={retryParseAction}>
                       <input type="hidden" name="resumeId" value={resume.id} />
-                      <button type="submit">Try again</button>
+                      <button type="submit">{resume.latestParse === null ? 'Start reading' : 'Try again'}</button>
                     </form>
                   )}
                   </div>

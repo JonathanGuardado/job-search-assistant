@@ -83,7 +83,13 @@ export default async function ReviewPage({
       )}
 
       {status === undefined || status === 'running' ? (
-        <p className={styles.notice}>Reading your resume… this page updates by itself.</p>
+        <div className={styles.notice}>
+          <p>{status === undefined ? 'Your resume is saved and waiting to be read.' : 'Reading your resume… this page updates by itself.'}</p>
+          {status === undefined && <form action={retryParseAction}>
+            <input type="hidden" name="resumeId" value={resume.id} />
+            <button type="submit">Start reading</button>
+          </form>}
+        </div>
       ) : status === 'failed' ? (
         <div className={styles.error}>
           <strong>We couldn’t read this resume</strong>

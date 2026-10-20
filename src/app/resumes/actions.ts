@@ -6,19 +6,18 @@ import { getDb } from '@/lib/db/client'
 import { withTenant, type TenantScope } from '@/lib/db/tenancy'
 import { DEV_USER } from '@/lib/dev-user'
 import { getEnv } from '@/lib/env'
-import { connectRedis } from '@/lib/queue'
 import type { Result } from '@/lib/result'
 import {
   CareerItemEditSchema,
   confirmCareerItem,
   discardDraft,
   prepareCareerItemsForResumeDeletion,
+  enqueueResumeParse,
   resumeParseKey,
-  resumeParseQueue,
   saveCareerItem,
   type CareerItemEdit,
 } from '@/modules/career-knowledge'
-import { deleteResume, removeUnusedResumeFile, UploadResumeSchema, uploadResume } from '@/modules/resumes'
+import { deleteResume, getLatestParse, getResume, removeUnusedResumeFile, UploadResumeSchema, uploadResume } from '@/modules/resumes'
 
 /*
  * Server actions are an edge: they parse form input with Zod, act as the dev
@@ -33,14 +32,10 @@ const withError = (path: string, message: string) =>
   `${path}${path.includes('?') ? '&' : '?'}error=${encodeURIComponent(message)}`
 
 async function enqueueParse(resumeId: string, retryNonce?: string): Promise<void> {
-  const connection = connectRedis(getEnv().REDIS_URL)
-  const queue = resumeParseQueue.open({ connection })
-  try {
-    await queue.enqueue({ userId: DEV_USER.id, resumeId }, resumeParseKey(resumeId, retryNonce))
-  } finally {
-    await queue.close()
-    await connection.quit()
-  }
+  const enqueued = await enqueueResumeParse(
+    getEnv().REDIS_URL, { userId: DEV_USER.id, resumeId }, resumeParseKey(resumeId, retryNonce),
+  )
+  if (!enqueued.ok) redirect(withError('/resumes', enqueued.error.message))
 }
 
 export async function uploadResumeAction(formData: FormData): Promise<void> {
@@ -90,8 +85,14 @@ export async function deleteResumeAction(formData: FormData): Promise<void> {
 export async function retryParseAction(formData: FormData): Promise<void> {
   const resumeId = ResumeIdSchema.safeParse(formData.get('resumeId'))
   if (!resumeId.success) redirect('/resumes')
-  // A fresh key: the original job id is still remembered, which would drop the retry.
-  await enqueueParse(resumeId.data, String(Date.now()))
+  const current = await asDevUser(async (scope) => ({
+    resume: await getResume(scope, resumeId.data), parse: await getLatestParse(scope, resumeId.data),
+  }))
+  if (!current.resume.ok) redirect(withError('/resumes', current.resume.error.message))
+  // Pending uploads reuse their key; only a failed parse needs a new queue job.
+  if (current.parse === null || current.parse.status === 'failed') {
+    await enqueueParse(resumeId.data, current.parse === null ? undefined : String(Date.now()))
+  }
   redirect(`/resumes/${resumeId.data}/review`)
 }
 
