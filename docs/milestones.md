@@ -16,7 +16,7 @@ trustworthy.
 | 1.1 | Foundation | Claude Code | A job row writes and reads through a module interface; typecheck, test, lint, and migrations all run |
 | 1.2 | Candidate profile | Codex | A full profile configures through the UI with no code change, hard/preferred per field |
 | 1.3 | Resume intake | Claude Code | Upload → parse → review-and-correct → verified `career_items` |
-| 1.4 | Greenhouse + Lever adapters | Codex | 500+ real jobs ingested on a schedule, adapter tests on committed fixtures |
+| 1.4 | Greenhouse + Lever adapters | Codex | 500+ real postings captured in `raw_jobs` on a schedule, every one normalizes without error, adapter tests on committed fixtures. Writing `jobs` rows is 1.5 |
 | 1.5 | Normalization + dedupe | Claude Code | Duplicate rate under 2% on a 100-job manual sample |
 | 1.6 | Eligibility v1 | Claude Code | Eval suite hits the targets in `eligibility-spec.md` |
 | 1.7 | Matching | Claude Code | Every job card explains itself without a single score |

@@ -1,46 +1,75 @@
 import { z } from 'zod'
+import type { Result } from '@/lib/result'
 
 /**
  * Every source implements this and nothing more. Adapters fetch verbatim
- * payloads and map them to the canonical model. Eligibility, matching and
- * ranking live downstream and stay source-agnostic.
+ * payloads and map each one to a NormalizedJob. Canonical `jobs` rows, dedupe,
+ * eligibility, matching and ranking live downstream and stay source-agnostic.
+ *
+ * The enums below mirror `@/modules/jobs` on purpose: `jobs` will import this
+ * module to normalize raw rows (M1.5), so importing `jobs` here would be a cycle.
+ * The M1.5 mapping into NewJob is type-checked, so drift fails to compile.
  */
+
+export const ADAPTER_KEYS = ['greenhouse', 'lever'] as const
+export const AdapterKeySchema = z.enum(ADAPTER_KEYS)
+export type AdapterKey = z.infer<typeof AdapterKeySchema>
+
+const minorUnits = z.number().int().nonnegative()
+
+/** An unstated salary is its own variant, never zero and never an estimate. */
+export const NormalizedSalarySchema = z.discriminatedUnion('source', [
+  z.object({ source: z.literal('unknown') }),
+  z
+    .object({
+      source: z.literal('posted'),
+      minMinor: minorUnits.nullable(),
+      maxMinor: minorUnits.nullable(),
+      currency: z.string().regex(/^[A-Z]{3}$/),
+    })
+    .refine((s) => s.minMinor !== null || s.maxMinor !== null, { message: 'a posted salary needs a bound' })
+    .refine((s) => s.minMinor === null || s.maxMinor === null || s.minMinor <= s.maxMinor, {
+      message: 'salary minimum exceeds maximum',
+    }),
+])
+export type NormalizedSalary = z.infer<typeof NormalizedSalarySchema>
 
 export const NormalizedJobSchema = z.object({
   externalId: z.string().min(1),
+  /** The configured source name, not the payload's: boards label themselves inconsistently. */
   companyName: z.string().min(1),
+  /** Verbatim from the posting. Decorations like "(Remote)" are stripped in M1.5, not here. */
   title: z.string().min(1),
-  /** Full text, verbatim. The eligibility engine reads this. */
+  /**
+   * Plain text derived deterministically from the posting (see html-text.ts).
+   * The eligibility engine quotes from it, so the same payload must always
+   * produce the same text.
+   */
   description: z.string(),
   locationPolicy: z.enum(['onsite', 'hybrid', 'remote', 'unknown']),
   locationText: z.string().nullable(),
-  /** ISO 3166-1 alpha-2, or null when it cannot be determined confidently. */
-  locationCountry: z.string().length(2).nullable(),
+  /** ISO 3166-1 alpha-2 from a structured field only; null rather than parsed from free text. */
+  locationCountry: z.string().regex(/^[A-Z]{2}$/).nullable(),
   employmentType: z.enum(['employee', 'contractor', 'eor', 'unknown']),
-  salaryMinMinor: z.number().int().nullable(),
-  salaryMaxMinor: z.number().int().nullable(),
-  salaryCurrency: z.string().length(3).nullable(),
-  /**
-   * 'unknown' means the posting did not state a salary. It is NOT the same as
-   * zero, and it must never be replaced with an estimate.
-   */
-  salarySource: z.enum(['posted', 'unknown']),
-  applyUrl: z.string().url(),
+  salary: NormalizedSalarySchema,
+  applyUrl: z.url(),
   postedAt: z.date().nullable(),
 })
-
 export type NormalizedJob = z.infer<typeof NormalizedJobSchema>
 
 export type RawJob = {
   readonly externalId: string
+  /** Exactly as the source returned it. Stored verbatim in raw_jobs and never mutated. */
   readonly payload: unknown
   readonly fetchedAt: Date
 }
 
+/** Opaque to everything but the adapter that produced it. */
 export type Cursor = string
 
 export type FetchResult = {
   readonly raw: readonly RawJob[]
+  /** null when this was the last page. */
   readonly next: Cursor | null
 }
 
@@ -50,14 +79,32 @@ export type SourceHealth = {
   readonly message?: string
 }
 
-export type AdapterConfig = Record<string, string>
+/** Every adapter in M1.4 needs only a board token (Greenhouse) or site name (Lever). */
+export const AdapterConfigSchema = z.object({ token: z.string().trim().regex(/^[A-Za-z0-9_-]{1,100}$/) })
+export type AdapterConfig = z.infer<typeof AdapterConfigSchema>
+
+/** What an adapter knows about the source it is reading. */
+export type SourceRef = {
+  readonly name: string
+  readonly config: AdapterConfig
+}
+
+/** Network access is injected so tests run against committed fixtures, never the live API. */
+export type Fetcher = typeof fetch
 
 export type JobSourceAdapter = {
-  readonly key: string
+  readonly key: AdapterKey
   readonly kind: 'ats' | 'board' | 'aggregator'
-  /** Validates the per-source config (e.g. a board token) at registration time. */
-  readonly configSchema: z.ZodType<AdapterConfig>
-  fetchPage(config: AdapterConfig, cursor: Cursor | null): Promise<FetchResult>
-  normalize(raw: RawJob): NormalizedJob
-  health(config: AdapterConfig): Promise<SourceHealth>
+  /**
+   * One page. Network failures and non-2xx responses are `upstream_failed`; a
+   * response whose envelope does not match the expected shape is `validation_failed`.
+   */
+  fetchPage(source: SourceRef, cursor: Cursor | null, fetcher: Fetcher): Promise<Result<FetchResult>>
+  /**
+   * Pure and deterministic: no I/O, no clock. A payload missing a required
+   * field is `invalid_input`. Never throws.
+   */
+  normalize(raw: RawJob, source: SourceRef): Result<NormalizedJob>
+  /** Used when a source is registered and shown on the admin page. Never throws. */
+  health(source: SourceRef, fetcher: Fetcher): Promise<SourceHealth>
 }

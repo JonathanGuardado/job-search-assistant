@@ -50,6 +50,20 @@
       "when": 1792541739725,
       "tag": "0006_parse-run-leases",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1792542972140,
+      "tag": "0007_job-sources-and-raw-jobs",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1792542972568,
+      "tag": "0008_raw-jobs-immutable",
+      "breakpoints": true
     }
   ]
 }

@@ -1,3 +1,8 @@
+> **Superseded.** The delegated brief is [codex/m1.4-greenhouse-lever-adapters.md](codex/m1.4-greenhouse-lever-adapters.md).
+> It narrows this milestone to raw capture: title decoration stripping and `jobs` rows move
+> to 1.5, salary comes only from structured fields, and the interface changed. Where the two
+> disagree, the brief wins.
+
 # Milestone 1.4 — Greenhouse and Lever adapters
 
 **Owner:** Codex (brief written by Claude Code)

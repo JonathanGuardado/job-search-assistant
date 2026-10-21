@@ -119,15 +119,25 @@ Owned by `career-knowledge`.
   CHECK ties `verified_by_user` to `verified_at`.
 
 ### `job_sources`
-`id`, `adapter_key` (`greenhouse` | `lever` | `ashby` | ...), `config` (jsonb, e.g. board
-token), `cursor`, `last_polled_at`, `health_status`, `enabled`.
+Owned by `job-sources`. `id`, `adapter_key` (`greenhouse` | `lever`), `name`, `config`
+(jsonb, `{ token }`: the Greenhouse board token or Lever site name), `enabled`, `cursor`,
+`last_polled_at`, `health_status` (`unknown` | `ok` | `failing`), `health_message`,
+`health_checked_at`, `created_at`.
+
+- Unique on `(adapter_key, config->>'token')`: a board is registered once.
+- `name` is the company name given to every job from the source. Boards label themselves
+  inconsistently in their payloads (one calls itself "Stone - Linkedin").
+- `cursor` is the next page of a poll in progress, null between polls. `last_polled_at`
+  is set when a poll fetches its final page.
 
 ### `raw_jobs`
-Verbatim capture. **Never mutated.** Re-parsing replays from here.
+Owned by `job-sources`. Verbatim capture. **Never mutated.** Re-parsing replays from here.
+The app role has no UPDATE or DELETE privilege on this table.
 
 `id`, `source_id`, `external_id`, `payload` (jsonb), `content_hash`, `fetched_at`.
 Unique on `(source_id, external_id, content_hash)` so an unchanged repoll is a no-op and
-a changed posting creates a new row.
+a changed posting creates a new row. `content_hash` is the sha256 of the payload's
+canonical JSON (keys sorted), so key order in the source's response does not matter.
 
 ### `jobs`
 Canonical, deduplicated.

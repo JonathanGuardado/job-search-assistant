@@ -19,11 +19,14 @@
     "db:migrate": "tsx --env-file=.env.local scripts/db-migrate.ts",
     "db:bootstrap": "tsx --env-file=.env.local scripts/db-bootstrap.ts",
     "ai:smoke": "tsx --env-file=.env.local scripts/ai-smoke.ts",
-    "eval:eligibility": "tsx evals/run-eligibility-eval.ts"
+    "eval:eligibility": "tsx evals/run-eligibility-eval.ts",
+    "sources:seed": "tsx --env-file=.env.local scripts/seed-sources.ts",
+    "sources:check": "tsx --env-file=.env.local scripts/check-normalization.ts"
   },
   "dependencies": {
     "bullmq": "^5.13.0",
     "drizzle-orm": "^0.45.3",
+    "html-to-text": "9.0.5",
     "ioredis": "^5.4.1",
     "mammoth": "^1.12.3",
     "next": "^14.2.0",
@@ -35,6 +38,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@types/html-to-text": "9.0.4",
     "@types/node": "^22.20.4",
     "@types/react": "^18.3.0",
     "drizzle-kit": "^0.31.11",

@@ -1,0 +1,415 @@
+{
+  "jobs": [
+    {
+      "absolute_url": "https://job-boards.greenhouse.io/gitlab/jobs/8638232002",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": false
+        }
+      ],
+      "internal_job_id": 6449994002,
+      "location": {
+        "name": "Remote, United States"
+      },
+      "metadata": [
+        {
+          "id": 4595831002,
+          "name": "Quota Coverage Type",
+          "value": "n/a",
+          "value_type": "single_select"
+        }
+      ],
+      "id": 8638232002,
+      "updated_at": "2026-10-15T15:24:46-04:00",
+      "requisition_id": "6682",
+      "title": "AI Transformation Owner, CRO",
+      "pay_input_ranges": [
+        {
+          "min_cents": 13920000,
+          "max_cents": 23520000,
+          "currency_type": "USD",
+          "title": "United States Salary Range",
+          "blurb": "<p><em>The base salary range for this role’s listed level is currently for residents of the&nbsp;United States only. This range is intended to reflect the role's base salary rate in locations throughout the US.&nbsp;Grade level and salary ranges are determined through interviews and a review of education, experience, knowledge, skills, abilities of the applicant, equity with other team members, alignment with market data,&nbsp;and geographic location.&nbsp;The base salary range does not include any bonuses, equity, or benefits. See more information on our <a class=\"waffle-rich-text-link\" href=\"https://about.gitlab.com/handbook/total-rewards/benefits/general-and-entity-benefits/\" data-sheets-formula-bar-text-link=\"https://bit.ly/GLBeneUS\" data-sheets-formula-bar-text-style=\"font-size:12px;color:#1155cc;font-weight:normal;text-decoration:underline;font-family:''Arial'';font-style:normal;text-decoration-skip-ink:none;\">benefits</a><span data-sheets-formula-bar-text-style=\"font-size:12px;color:#000000;font-weight:normal;text-decoration:none;font-family:'Arial';font-style:normal;text-decoration-skip-ink:none;\"> and </span><a class=\"waffle-rich-text-link\" href=\"https://about.gitlab.com/handbook/stock-options/\" data-sheets-formula-bar-text-link=\"https://bit.ly/GLequity\" data-sheets-formula-bar-text-style=\"font-size:12px;color:#1155cc;font-weight:normal;text-decoration:underline;font-family:''Arial'';font-style:normal;text-decoration-skip-ink:none;\">equity</a>. Sales roles are also eligible for incentive pay targeted at up to 100% of the offered base salary.</em></p>"
+        }
+      ],
+      "company_name": "GitLab",
+      "first_published": "2026-07-22T13:38:40-04:00",
+      "language": "en",
+      "application_deadline": null,
+      "content": "&lt;div class=&quot;content-intro&quot;&gt;&lt;p&gt;GitLab is the intelligent orchestration platform for DevSecOps. GitLab enables organizations to increase developer productivity, improve operational efficiency, reduce security and compliance risk, and accelerate digital transformation. More than 50 million registered users and more than 50% of the Fortune 100* trust GitLab to ship better, more secure software faster.&lt;/p&gt;\n&lt;p&gt;The same principles built into our products are reflected in how our team works: we embrace AI as a core productivity multiplier, with all team members expected to incorporate AI into their daily workflows to drive efficiency, innovation, and impact. GitLab is where careers accelerate, innovation flourishes, and every voice is valued. Our high-performance culture is driven by our values&amp;nbsp;and continuous knowledge exchange, enabling our team members to reach their full potential while collaborating with industry leaders to solve complex problems. &lt;a href=&quot;https://www.youtube.com/watch?v=OuZIb5zszQI&quot;&gt;Co-create the future with us&lt;/a&gt; as we build technology that transforms how the world develops software.&lt;/p&gt;\n&lt;p&gt;*&lt;em&gt;Fortune 500® is a registered trademark of Fortune Media IP Limited, used under license. Claim based on GitLab data. Fortune 100 refers to the top 20% ranked companies in the 2025 Fortune 500 list, published in June 2025. Fortune and Fortune Media IP Limited are not affiliated with, and do not endorse products or services of GitLab.&lt;/em&gt;&lt;/p&gt;&lt;/div&gt;&lt;h4&gt;&lt;strong&gt;An overview of this role&lt;/strong&gt;&lt;/h4&gt;\n&lt;p&gt;The AI Transformation Owner drives the end-to-end AI agenda for the field organization, translating emerging AI capabilities into concrete enablement roadmaps, field use cases, and org-level strategy. You will partner closely with product and engineering teams to pilot and scale AI solutions, own the operational transformation plan needed to embed AI into day-to-day field workflows, and establish the governance framework that keeps AI adoption safe, compliant, and aligned with company standards. This is a hands-on role for someone who can move from strategy to execution without heavy oversight.&lt;/p&gt;\n&lt;p&gt;This role reports to the Vice President, Enablement &amp;amp; AI.&lt;/p&gt;\n&lt;p&gt;&lt;strong&gt;What You’ll Do&lt;/strong&gt; &amp;nbsp;&lt;/p&gt;\n&lt;ul&gt;\n&lt;li&gt;&lt;strong&gt;AI Enablement Roadmap:&lt;/strong&gt; Own and continuously evolve the roadmap for AI-driven enablement initiatives, prioritizing based on field impact, feasibility, and alignment with broader Enterprise AI team and strategy..&lt;/li&gt;\n&lt;li&gt;&lt;strong&gt;AI Field Use Cases:&lt;/strong&gt; Identify, scope, and execute on high-value AI use cases for the field (e.g., deal support, prospecting, content generation, guided selling, skills, change management), working with stakeholders to define success criteria and measure impact.&lt;/li&gt;\n&lt;li&gt;&lt;strong&gt;AI Field Champions: &lt;/strong&gt;build relationships with champions in the field organization to activate power-usage and drive peer-led adoption; track this adoption (e.g., usage, proficiency, behavior change) with our AI Ops Specialist and Enablement Analyst.&lt;/li&gt;\n&lt;/ul&gt;\n&lt;ul&gt;\n&lt;li&gt;&lt;strong&gt;Ops Transformation Plan:&lt;/strong&gt; Design and drive the operational plan that turns AI pilots into scaled, repeatable processes, coordinating across enablement, ops, and technical teams to remove execution bottlenecks.&lt;/li&gt;\n&lt;li&gt;&lt;strong&gt;AI Governance:&lt;/strong&gt; Influence and lead governance standards for AI tool adoption in the field, including data usage, risk review, tool vetting, and alignment with company-wide AI policy.&lt;/li&gt;\n&lt;/ul&gt;\n&lt;p&gt;&lt;strong&gt;What You’ll Bring&amp;nbsp;&lt;/strong&gt;&lt;/p&gt;\n&lt;ul&gt;\n&lt;li&gt;&lt;strong&gt;Mid-Senior Experience:&lt;/strong&gt; Several years of experience in enablement, sales operations, or a related GTM function, with a track record of owning initiatives end-to-end.&lt;/li&gt;\n&lt;li&gt;&lt;strong&gt;AI Solutions Experience:&lt;/strong&gt; Direct experience evaluating, piloting, or deploying AI tools or solutions in a business context, with a solid technical understanding of how they work and where they add value. Act as the field&#39;s primary advocate for AI tools (e.g., AI-assisted prospecting, call intelligence, forecasting copilots, RFP/proposal generation).&lt;/li&gt;\n&lt;li&gt;&lt;strong&gt;Cross-Functional Fluency:&lt;/strong&gt; Proven ability to work closely with product and engineering teams, translating field needs into technical requirements and vice versa.&lt;/li&gt;\n&lt;li&gt;&lt;strong&gt;Self-Sufficiency:&lt;/strong&gt; Comfortable operating with significant autonomy — able to define scope, structure ambiguous problems, and drive work forward without needing detailed direction.&lt;/li&gt;\n&lt;li&gt;&lt;strong&gt;Organization &amp;amp; Execution:&lt;/strong&gt; Strong project management instincts; able to manage multiple workstreams (roadmap, use cases, ops transformation, governance) in parallel without dropping details.&lt;/li&gt;\n&lt;li&gt;&lt;strong&gt;Innovative Mindset:&lt;/strong&gt; A builder&#39;s orientation toward new technology — curious about what&#39;s possible, willing to experiment, and able to separate genuine opportunity from hype.&lt;/li&gt;\n&lt;li&gt;&lt;strong&gt;Enablement/Sales Background:&lt;/strong&gt; Familiarity with field or sales enablement motions (onboarding, tool adoption, content, coaching) and how AI can realistically augment them.&lt;/li&gt;\n&lt;li&gt;&lt;strong&gt;GitLab Values Alignment:&lt;/strong&gt; Ability to work in an all-remote, asynchronous environment, leaning heavily on transparency and collaboration as defined in the GitLab Handbook.&lt;/li&gt;\n&lt;/ul&gt;\n&lt;p&gt;&lt;strong&gt;About the team&lt;/strong&gt;&lt;/p&gt;\n&lt;p&gt;The Enablement &amp;amp; AI function is part of the CRO organization. Enablement is instrumental in helping GitLab grow at a more accelerated pace and achieve our ambitious revenue targets. The enablement organization comprises enablement leads serving the CRO business functions, a centralized content group, AI tech resources, and an operations team.&lt;/p&gt;\n&lt;h4&gt;&lt;strong&gt;How GitLab will support you&lt;/strong&gt;&lt;/h4&gt;\n&lt;ul&gt;\n&lt;li&gt;&lt;a href=&quot;https://about.gitlab.com/handbook/total-rewards/benefits/general-and-entity-benefits/&quot; target=&quot;_blank&quot;&gt;Benefits to support your health, finances, and well-being&lt;/a&gt;&lt;/li&gt;\n&lt;li&gt;&lt;a href=&quot;https://handbook.gitlab.com/handbook/people-group/paid-time-off/&quot; target=&quot;_blank&quot;&gt;Flexible Paid Time Off&lt;/a&gt;&amp;nbsp;&lt;/li&gt;\n&lt;li&gt;&lt;a href=&quot;https://about.gitlab.com/company/culture/inclusion/erg-guide/#:~:text=Definition%20of%20the%20TMRG%20%2D%20Team%20Member%20Resource%20Groups,-TMRGs%20are%20voluntary&amp;amp;text=The%20purpose%20for%20this%20type,developing%20the%20sense%20of%20belonging.&quot; target=&quot;_blank&quot;&gt;Team Member Resource Groups&lt;/a&gt;&lt;/li&gt;\n&lt;li&gt;&lt;a href=&quot;https://handbook.gitlab.com/handbook/total-rewards/stock-options/&quot; target=&quot;_blank&quot;&gt;Equity Compensation &amp;amp; Employee Stock Purchase Plan&lt;/a&gt;&lt;/li&gt;\n&lt;li&gt;&lt;a href=&quot;https://handbook.gitlab.com/handbook/people-group/learning-and-development/growth-and-development/&quot; target=&quot;_blank&quot;&gt;Growth and Development Fund&lt;/a&gt;&lt;/li&gt;\n&lt;li&gt;&lt;a href=&quot;https://about.gitlab.com/handbook/total-rewards/benefits/general-and-entity-benefits/#parental-leave&quot; target=&quot;_blank&quot;&gt;Parental leave&lt;/a&gt;&amp;nbsp;&lt;/li&gt;\n&lt;li&gt;&lt;a href=&quot;https://handbook.gitlab.com/handbook/finance/expenses/#equipment&quot; target=&quot;_blank&quot;&gt;Home office&lt;/a&gt; support&lt;/li&gt;\n&lt;/ul&gt;\n&lt;p&gt;Please note that we welcome interest from candidates with varying levels of experience; many successful candidates do not meet every single requirement. Additionally, studies have shown that people from &lt;a href=&quot;https://about.gitlab.com/company/culture/inclusion/#examples-of-select-underrepresented-groups&quot;&gt;underrepresented groups&lt;/a&gt; are less likely to apply to a job unless they meet every single qualification. If you&#39;re excited about this role, please apply and allow our recruiters to assess your application.&lt;/p&gt;&lt;div class=&quot;content-pay-transparency&quot;&gt;&lt;div class=&quot;pay-input&quot;&gt;&lt;div class=&quot;description&quot;&gt;&lt;p&gt;&lt;em&gt;The base salary range for this role’s listed level is currently for residents of the&amp;nbsp;United States only. This range is intended to reflect the role&#39;s base salary rate in locations throughout the US.&amp;nbsp;Grade level and salary ranges are determined through interviews and a review of education, experience, knowledge, skills, abilities of the applicant, equity with other team members, alignment with market data,&amp;nbsp;and geographic location.&amp;nbsp;The base salary range does not include any bonuses, equity, or benefits. See more information on our &lt;a class=&quot;waffle-rich-text-link&quot; href=&quot;https://about.gitlab.com/handbook/total-rewards/benefits/general-and-entity-benefits/&quot; data-sheets-formula-bar-text-link=&quot;https://bit.ly/GLBeneUS&quot; data-sheets-formula-bar-text-style=&quot;font-size:12px;color:#1155cc;font-weight:normal;text-decoration:underline;font-family:&#39;&#39;Arial&#39;&#39;;font-style:normal;text-decoration-skip-ink:none;&quot;&gt;benefits&lt;/a&gt;&lt;span data-sheets-formula-bar-text-style=&quot;font-size:12px;color:#000000;font-weight:normal;text-decoration:none;font-family:&#39;Arial&#39;;font-style:normal;text-decoration-skip-ink:none;&quot;&gt; and &lt;/span&gt;&lt;a class=&quot;waffle-rich-text-link&quot; href=&quot;https://about.gitlab.com/handbook/stock-options/&quot; data-sheets-formula-bar-text-link=&quot;https://bit.ly/GLequity&quot; data-sheets-formula-bar-text-style=&quot;font-size:12px;color:#1155cc;font-weight:normal;text-decoration:underline;font-family:&#39;&#39;Arial&#39;&#39;;font-style:normal;text-decoration-skip-ink:none;&quot;&gt;equity&lt;/a&gt;. Sales roles are also eligible for incentive pay targeted at up to 100% of the offered base salary.&lt;/em&gt;&lt;/p&gt;&lt;/div&gt;&lt;div class=&quot;title&quot;&gt;United States Salary Range&lt;/div&gt;&lt;div class=&quot;pay-range&quot;&gt;&lt;span&gt;$139,200&lt;/span&gt;&lt;span class=&quot;divider&quot;&gt;&amp;mdash;&lt;/span&gt;&lt;span&gt;$235,200 USD&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class=&quot;content-conclusion&quot;&gt;&lt;h4&gt;&lt;strong&gt;How GitLab Supports Full-Time Employees&lt;/strong&gt;&lt;/h4&gt;\n&lt;ul&gt;\n&lt;li&gt;&lt;a href=&quot;https://about.gitlab.com/handbook/total-rewards/benefits/general-and-entity-benefits/&quot;&gt;Benefits to support your health, finances, and well-being&lt;/a&gt;&lt;/li&gt;\n&lt;li&gt;&lt;a href=&quot;https://handbook.gitlab.com/handbook/people-group/time-off-and-absence/time-off-types/#flexible-paid-time-off-pto&quot;&gt;Flexible Paid Time Off&amp;nbsp;&lt;/a&gt;&lt;/li&gt;\n&lt;li&gt;&lt;a href=&quot;https://handbook.gitlab.com/handbook/company/culture/inclusion/tmrg-tmag/&quot;&gt;Team Member Resource Groups&lt;/a&gt;&lt;/li&gt;\n&lt;li&gt;&lt;a href=&quot;https://handbook.gitlab.com/handbook/total-rewards/stock-options/&quot;&gt;Equity Compensation &amp;amp; Employee Stock Purchase Plan&lt;/a&gt;&lt;/li&gt;\n&lt;li&gt;&lt;a href=&quot;https://handbook.gitlab.com/handbook/people-group/learning-and-development/growth-and-development/&quot;&gt;Growth and Development Fund&lt;/a&gt;&lt;/li&gt;\n&lt;li&gt;&lt;a href=&quot;https://about.gitlab.com/handbook/total-rewards/benefits/general-and-entity-benefits/#parental-leave&quot;&gt;Parental Leave&lt;/a&gt;&amp;nbsp;&lt;/li&gt;\n&lt;/ul&gt;\n&lt;p&gt;Please note that we welcome interest from candidates with varying levels of experience; many successful candidates do not meet every single requirement. Additionally, studies have shown that people from &lt;a href=&quot;https://about.gitlab.com/company/culture/inclusion/#examples-of-select-underrepresented-groups&quot;&gt;underrepresented groups&lt;/a&gt; are less likely to apply to a job unless they meet every single qualification. If you&#39;re excited about this role, please apply and allow our recruiters to assess your application.&lt;/p&gt;\n&lt;hr&gt;\n&lt;p&gt;&lt;strong&gt;Country Hiring Guidelines: &lt;/strong&gt;GitLab hires new team members in countries around the world. All of our roles are remote, however some roles may carry specific location-based eligibility requirements. Our Talent Acquisition team can help answer any questions about location after starting the recruiting process.&amp;nbsp;&amp;nbsp;&lt;/p&gt;\n&lt;p&gt;&lt;strong&gt;Privacy Policy: &lt;/strong&gt;Please review our &lt;a href=&quot;https://handbook.gitlab.com/handbook/hiring/candidate-faq/recruitment-privacy-policy/&quot; target=&quot;_blank&quot;&gt;Recruitment Privacy Policy.&lt;/a&gt; Your privacy is important to us.&lt;/p&gt;\n&lt;p&gt;GitLab is proud to be an equal opportunity workplace and is an affirmative action employer. GitLab’s policies and practices relating to recruitment, employment, career development and advancement, promotion, and retirement are based solely on merit, regardless of race, color, religion, ancestry, sex (including pregnancy, lactation, sexual orientation, gender identity, or gender expression), national origin, age, citizenship, marital status, mental or physical disability, genetic information (including family medical history), discharge status from the military, protected veteran status (which includes disabled veterans, recently separated veterans, active duty wartime or campaign badge veterans, and Armed Forces service medal veterans), or any other basis protected by law. GitLab will not tolerate discrimination or harassment based on any of these characteristics. See also&amp;nbsp;&lt;a href=&quot;https://about.gitlab.com/handbook/people-policies/inc-usa/#equal-employment-opportunity-policy&quot; target=&quot;_blank&quot;&gt;GitLab’s EEO Policy&lt;/a&gt;&amp;nbsp;and&amp;nbsp;&lt;a href=&quot;https://about.gitlab.com/handbook/labor-and-employment-notices/#eeoc-us-equal-employment-opportunity-commission-notices&quot; target=&quot;_blank&quot;&gt;EEO is the Law&lt;/a&gt;. If you have a disability or special need that requires&amp;nbsp;&lt;a href=&quot;https://about.gitlab.com/handbook/people-policies/inc-usa/#reasonable-accommodation&quot; target=&quot;_blank&quot;&gt;accommodation&lt;/a&gt;, please let us know during the&amp;nbsp;&lt;a href=&quot;https://about.gitlab.com/handbook/hiring/interviewing/#adjustments-to-our-interview-process&quot; target=&quot;_blank&quot;&gt;recruiting process&lt;/a&gt;.&lt;/p&gt;&lt;/div&gt;",
+      "departments": [
+        {
+          "id": 4114891002,
+          "name": "Enablement",
+          "child_ids": [],
+          "parent_id": 4011049002
+        }
+      ],
+      "offices": [],
+      "ai_disclaimer": null,
+      "include_ai_disclaimer": null,
+      "ai_opt_out_request_url": null
+    },
+    {
+      "absolute_url": "https://job-boards.greenhouse.io/canonical/jobs/8002334",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": false
+        }
+      ],
+      "education": "education_optional",
+      "internal_job_id": 2352169,
+      "location": {
+        "name": "Home Based - Americas; Home based - EMEA; Home based - Worldwide"
+      },
+      "metadata": [
+        {
+          "id": 186225,
+          "name": "People management responsibilities?",
+          "value": true,
+          "value_type": "yes_no"
+        },
+        {
+          "id": 149021,
+          "name": "Employment Length",
+          "value": "Full-time",
+          "value_type": "single_select"
+        },
+        {
+          "id": 675557,
+          "name": "Core skills",
+          "value": [
+            "Analysers",
+            "Competitor",
+            "Doer",
+            "Entrepreneur",
+            "Leader",
+            "Organiser",
+            "Planner",
+            "Problem Solver",
+            "Seller",
+            "Spokesperson",
+            "Stalwart"
+          ],
+          "value_type": "multi_select"
+        },
+        {
+          "id": 2739136,
+          "name": "External Departments (website)",
+          "value": [
+            "Alliances"
+          ],
+          "value_type": "multi_select"
+        },
+        {
+          "id": 2739137,
+          "name": "One line job description",
+          "value": "Lead, build and scale strategic ecosystem motions that expand Canonical’s reach, accelerate enterprise adoption, and convert open source demand into durable commercial growth.",
+          "value_type": "long_text"
+        },
+        {
+          "id": 3209541,
+          "name": "Canonical site",
+          "value": [],
+          "value_type": "multi_select"
+        },
+        {
+          "id": 3587161,
+          "name": "LinkedIn Posting Level",
+          "value": "Director",
+          "value_type": "single_select"
+        },
+        {
+          "id": 11961371,
+          "name": "Featured job (Talent Team to complete)",
+          "value": true,
+          "value_type": "yes_no"
+        },
+        {
+          "id": 54742858,
+          "name": "Business Unit Type",
+          "value": null,
+          "value_type": "single_select"
+        },
+        {
+          "id": 54743567,
+          "name": "Req Category",
+          "value": null,
+          "value_type": "single_select"
+        },
+        {
+          "id": 56835606,
+          "name": "Discipline/Track",
+          "value": null,
+          "value_type": "single_select"
+        }
+      ],
+      "id": 8002334,
+      "updated_at": "2026-08-05T18:23:33-04:00",
+      "requisition_id": "976",
+      "title": "Alliances & Channels Leader",
+      "pay_input_ranges": [],
+      "company_name": "Canonical",
+      "first_published": "2026-06-29T06:28:10-04:00",
+      "language": "en",
+      "application_deadline": null,
+      "content": "&lt;p&gt;&lt;span style=&quot;font-size: 14pt;&quot;&gt;&lt;strong&gt;Alliances &amp;amp; Channels Leader&lt;/strong&gt;&lt;/span&gt;&lt;/p&gt;\n&lt;p&gt;Canonical is a leading provider of open source software and operating systems to the global enterprise and technology markets. Our platform, Ubuntu, is very widely used in breakthrough enterprise initiatives such as public cloud, data science, AI, engineering innovation, and IoT. Our customers include the world&#39;s leading public cloud and silicon providers, and industry leaders in many sectors. The company is a pioneer of global distributed collaboration, with 1200+ colleagues in 75+ countries and very few office-based roles. Teams meet two to four times yearly in person, in interesting locations around the world, to align on strategy and execution.&lt;/p&gt;\n&lt;p&gt;The company is founder led, profitable and growing.&lt;/p&gt;\n&lt;p&gt;We have new senior leadership opportunities in our Global Alliances and Channels organisations, to lead business development and partnership with some of the most important actors in the global technology sector. As the publisher of Ubuntu and a leading provider of open source to major technology firms globally, Canonical works across a broad partner ecosystem that includes global system integrators, value-added resellers, regional distributors, independent software vendors, independent hardware vendors, silicon companies, public clouds and other strategic technology brands.&lt;/p&gt;\n&lt;p&gt;These partners shape the platforms, solutions, marketplaces, hardware and delivery motions through which enterprises adopt open source at scale. We are looking for exceptional partner leaders who can build durable, mutually valuable relationships, develop joint solutions, drive global go-to-market programmes, and convert partner potential into measurable customer impact, revenue growth and market expansion for Canonical.&lt;/p&gt;\n&lt;p&gt;Opportunities are available for both people leaders and senior individual contributors. In these roles, you will lead, build or scale one or more strategic partner motions for Canonical, either by managing a team or by directly driving high-impact partner initiatives. You will work closely with partners throughout their sales, product, delivery and executive planning cycles to make Canonical their trusted partner for enterprise open source solutions. Depending on your experience and Canonical’s business priorities, your focus may include Channels, GSI, ISV, IHV/OEM, Silicon, Cloud or cross-ecosystem partnerships.&lt;/p&gt;\n&lt;p&gt;Our Alliances and Channels teams build trusted relationships with partners at executive level, increase Canonical market share and attach rate, evangelise the partnership, and lead business interactions from engineers to CxO level. This role will own strategy, sell-to, sell-through and sell-with motions across assigned partners or sectors, as well as promotion of partner-related activities, from campaigns, enablement and executive engagement, to strategic opportunities and partner events.&lt;/p&gt;\n&lt;p&gt;&lt;strong&gt;Location: &lt;/strong&gt;These are globally remote positions.&lt;/p&gt;\n&lt;p&gt;&lt;strong&gt;The role entails&lt;/strong&gt;&lt;/p&gt;\n&lt;ul&gt;\n&lt;li&gt;Own and drive partner strategy, forecast, bookings and revenues for Canonical across one or more indirect routes to market&lt;/li&gt;\n&lt;li&gt;Lead and evolve a team or strategic partner portfolio towards accelerated revenue growth and market impact&lt;/li&gt;\n&lt;li&gt;Build strategic relationships with global and regional partners at executive levels&lt;/li&gt;\n&lt;li&gt;Design and execute joint go-to-market plans with partners, sales, product management, product marketing and engineering teams&lt;/li&gt;\n&lt;li&gt;Develop partner capability through sales engagement, technical enablement, joint marketing and disciplined business planning&lt;/li&gt;\n&lt;li&gt;Guide our offering from product management, to product marketing, and scale it through the support of our global sales organisation&lt;/li&gt;\n&lt;li&gt;Establish operating cadence, pipeline governance and data-driven accountability across complex partner relationships&lt;/li&gt;\n&lt;/ul&gt;\n&lt;p&gt;What we are looking for in you:&lt;/p&gt;\n&lt;ul&gt;\n&lt;li&gt;10+ years of experience in alliance, channel, partner, ecosystem or indirect sales management roles&lt;/li&gt;\n&lt;li&gt;Experience in one or more of GSIs, VARs, distributors, ISVs, IHVs/OEMs, silicon, public cloud, marketplaces or strategic technology alliances&lt;/li&gt;\n&lt;li&gt;Deep commercial experience encompassing revenue, margins, pipeline, forecasting and partner economics&lt;/li&gt;\n&lt;li&gt;Proven leadership and presentation skills, with the ability to engage confidently from engineer to CxO level&lt;/li&gt;\n&lt;li&gt;Ability to build trusted executive relationships while aligning product, sales, marketing, engineering and operations teams&lt;/li&gt;\n&lt;li&gt;Insight into open source, Ubuntu, enterprise infrastructure, cloud, AI, security and Canonical’s competition and opportunities&lt;/li&gt;\n&lt;li&gt;Track record of data-driven decision-making and disciplined execution across complex, global relationships&lt;/li&gt;\n&lt;li&gt;An autonomous, disciplined, hands-on, get-it-done mentality&lt;/li&gt;\n&lt;li&gt;An exceptional academic track record from high school and university.&lt;/li&gt;\n&lt;li&gt;Business level written and spoken English.&lt;/li&gt;\n&lt;li&gt;Sincere personal motivation aligned with our mission.&lt;/li&gt;\n&lt;li&gt;International travel 2-4 times a year for company events up to two weeks long.&lt;/li&gt;\n&lt;/ul&gt;\n&lt;p&gt;In addition we expect that you will match our values, by being:&lt;/p&gt;\n&lt;ul&gt;\n&lt;li&gt;Precise, taking care to deliver correctness and clarity.&lt;/li&gt;\n&lt;li&gt;Reliable, delivering high quality work that builds trust and confidence.&lt;/li&gt;\n&lt;li&gt;Accessible, collaborating to build products and systems that are usable.&lt;/li&gt;\n&lt;li&gt;Adroit, blending enthusiasm, knowledge, adaptability, style and character.&lt;/li&gt;\n&lt;/ul&gt;\n&lt;p&gt;&lt;strong&gt;What we offer colleagues&lt;/strong&gt;&lt;/p&gt;\n&lt;p&gt;We consider geographical location, experience, and performance in shaping compensation worldwide. We revisit compensation annually (and more often for graduates and associates) to ensure we recognize outstanding performance. In addition to base pay, we offer a performance-driven annual bonus or commission. We provide all team members with additional benefits which reflect our values and ideals. We balance our programs to meet local needs and ensure fairness globally.&lt;/p&gt;\n&lt;ul&gt;\n&lt;li&gt;Distributed work environment with twice-yearly team sprints in person&lt;/li&gt;\n&lt;li&gt;Personal learning and development budget of USD 2,000 per year&lt;/li&gt;\n&lt;li&gt;Annual compensation review&lt;/li&gt;\n&lt;li&gt;Recognition rewards&lt;/li&gt;\n&lt;li&gt;Annual holiday leave&lt;/li&gt;\n&lt;li&gt;Maternity and paternity leave&lt;/li&gt;\n&lt;li&gt;Team Member Assistance Program &amp;amp; Wellness Platform&lt;/li&gt;\n&lt;li&gt;Opportunity to travel to new locations to meet colleagues&lt;/li&gt;\n&lt;li&gt;Priority Pass and travel upgrades for long-haul company events&lt;/li&gt;\n&lt;/ul&gt;\n&lt;p&gt;&lt;strong&gt;About Canonical&lt;/strong&gt;&lt;/p&gt;\n&lt;p&gt;Canonical is a pioneering tech firm at the forefront of the global move to open source. As the company that publishes Ubuntu, one of the most important open-source projects and the platform for AI, IoT, and the cloud, we are changing the world of software. We recruit on a global basis and set a very high standard for people joining the company. We expect excellence; in order to succeed, we need to be the best at what we do. Most colleagues at Canonical have worked from home since our inception in 2004.​ Working here is a step into the future and will challenge you to think differently, work smarter, learn new skills, and raise your game.&lt;/p&gt;\n&lt;p&gt;&lt;strong&gt;Canonical is an equal opportunity employer&lt;/strong&gt;&lt;/p&gt;\n&lt;p&gt;We are proud to foster a workplace free from discrimination. Diversity of experience, perspectives, and background create a better work environment and better products.&lt;a href=&quot;https://canonical.com/careers/diversity/identity&quot;&gt; Whatever your identity, we will give your application fair consideration.&lt;br&gt;&lt;/a&gt;&lt;/p&gt;",
+      "departments": [
+        {
+          "id": 82559,
+          "name": "Alliances",
+          "child_ids": [],
+          "parent_id": null
+        }
+      ],
+      "offices": [
+        {
+          "id": 44276,
+          "name": "Home Based - Americas",
+          "location": null,
+          "child_ids": [],
+          "parent_id": 73277
+        },
+        {
+          "id": 44278,
+          "name": "Home Based - EMEA",
+          "location": null,
+          "child_ids": [],
+          "parent_id": 73277
+        }
+      ],
+      "ai_disclaimer": null,
+      "include_ai_disclaimer": null,
+      "ai_opt_out_request_url": null
+    },
+    {
+      "absolute_url": "https://job-boards.greenhouse.io/gympass/jobs/8705839002",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": true
+        }
+      ],
+      "internal_job_id": 6479086002,
+      "location": {
+        "name": "Romania (Bucharest - Hybrid)"
+      },
+      "metadata": [
+        {
+          "id": 120906317002,
+          "name": "Entrevista LLIA",
+          "value": null,
+          "value_type": "yes_no"
+        }
+      ],
+      "id": 8705839002,
+      "updated_at": "2026-10-01T11:16:43-04:00",
+      "requisition_id": "R7488",
+      "title": "7CARD: Social Media Specialist",
+      "pay_input_ranges": [],
+      "company_name": "Wellhub",
+      "first_published": "2026-08-13T10:33:23-04:00",
+      "language": "en",
+      "application_deadline": null,
+      "content": "&lt;p&gt;&lt;span style=&quot;font-size: 12pt; font-family: arial, helvetica, sans-serif;&quot;&gt;&lt;strong&gt;Your wellbeing, our mission. Join a company shaping a healthier world.&lt;/strong&gt;&lt;/span&gt;&lt;/p&gt;\n&lt;p&gt;&lt;span style=&quot;font-size: 12pt; font-family: arial, helvetica, sans-serif;&quot;&gt;&lt;strong&gt;GET TO KNOW US&lt;/strong&gt;&lt;/span&gt;&lt;/p&gt;\n&lt;p&gt;&lt;span style=&quot;font-size: 12pt; font-family: arial, helvetica, sans-serif;&quot;&gt;7card (by Wellhub*) is a leading player in Romania’s wellbeing market, trusted by over 1,000 corporate clients and supported by more than 600 wellbeing partners across 55+ cities.&lt;/span&gt;&lt;/p&gt;\n&lt;p&gt;&lt;span style=&quot;font-size: 12pt; font-family: arial, helvetica, sans-serif;&quot;&gt;*In 2022, 7card was acquired by Wellhub, expanding our reach. Headquartered in NYC with team members in Europe, North America and South America, we’re now on a shared mission to make every company a wellness company.&lt;/span&gt;&lt;/p&gt;\n&lt;p&gt;&lt;span style=&quot;font-size: 12pt; font-family: arial, helvetica, sans-serif;&quot;&gt;At Wellhub we&#39;re revolutionizing workplace wellness. Our platform connects employees worldwide to the best partners for fitness, mindfulness, therapy, nutrition, and sleep—all in one simple subscription. We believe work should be fulfilling, inspiring, and balanced. Here, you’ll find a team that values wellbeing, collaboration, and different perspectives, where passion and creativity push boundaries to create real impact. Your contributions will help shape a healthier, more balanced world for you and millions of people globally.&amp;nbsp;&lt;/span&gt;&lt;/p&gt;\n&lt;p&gt;&lt;span style=&quot;font-size: 12pt; font-family: arial, helvetica, sans-serif;&quot;&gt;&lt;strong&gt;Join us in redefining the future of wellbeing!&lt;/strong&gt;&lt;/span&gt;&lt;/p&gt;\n&lt;h2&gt;&lt;span style=&quot;font-size: 12pt; font-family: arial, helvetica, sans-serif;&quot;&gt;&lt;strong&gt;THE OPPORTUNITY&lt;/strong&gt;&lt;/span&gt;&lt;/h2&gt;\n&lt;p&gt;&lt;span style=&quot;font-size: 12pt; font-family: arial, helvetica, sans-serif;&quot;&gt;We’re hiring a &lt;strong&gt;Social Media Specialist &lt;/strong&gt;for our &lt;strong&gt;Marketing team in Romania (Hybrid)!&lt;/strong&gt;&lt;/span&gt;&lt;/p&gt;\n&lt;p&gt;&lt;span style=&quot;font-size: 12pt; font-family: arial, helvetica, sans-serif;&quot;&gt;In this role, you&#39;ll lead Wellhub´s local social media strategy across Romania. You will own the planning, creation, and execution of culturally relevant content, collaborating closely with regional and global marketing teams, creators, and partners to amplify brand presence, drive community engagement, and continuously optimize performance using data-driven insights.&amp;nbsp;&lt;/span&gt;&lt;/p&gt;\n&lt;h2&gt;&lt;span style=&quot;font-size: 12pt; font-family: arial, helvetica, sans-serif;&quot;&gt;&lt;strong&gt;YOUR IMPACT&lt;/strong&gt;&lt;/span&gt;&lt;/h2&gt;\n&lt;h3&gt;&lt;span style=&quot;font-size: 12pt; font-family: arial, helvetica, sans-serif;&quot;&gt;&lt;strong&gt;Own Local Social Media Strategy&lt;/strong&gt;&lt;/span&gt;&lt;/h3&gt;\n&lt;ul&gt;\n&lt;li style=&quot;font-size: 12pt; font-family: arial, helvetica, sans-serif;&quot;&gt;&lt;span style=&quot;font-size: 12pt; font-family: arial, helvetica, sans-serif;&quot;&gt;Drive end-to-end local social media strategy and social content calendar for Romania across Instagram, LinkedIn, and Youtube channels, aligning with global priorities.&amp;nbsp;&lt;/span&gt;&lt;/li&gt;\n&lt;li style=&quot;font-size: 12pt; font-family: arial, helvetica, sans-serif;&quot;&gt;&lt;span style=&quot;font-size: 12pt; font-family: arial, helvetica, sans-serif;&quot;&gt;Lead social-first content creation, capturing event moments and directing designers, photographers, and videographers to produce high-quality assets.&amp;nbsp;&lt;/span&gt;&lt;/li&gt;\n&lt;li style=&quot;font-size: 12pt; font-family: arial, helvetica, sans-serif;&quot;&gt;&lt;span style=&quot;font-size: 12pt; font-family: arial, helvetica, sans-serif;&quot;&gt;Establish and grow community engagement while building strong relationships with local influencers, partners, creators and wellbeing communities.&amp;nbsp;&lt;/span&gt;&lt;/li&gt;\n&lt;li style=&quot;font-size: 12pt; font-family: arial, helvetica, sans-serif;&quot;&gt;&lt;span style=&quot;font-size: 12pt; font-family: arial, helvetica, sans-serif;&quot;&gt;Execute impactful local activations, managing influencer collaborations and social coverage for key product launches and brand events.&amp;nbsp;&lt;/span&gt;&lt;/li&gt;\n&lt;li style=&quot;font-size: 12pt; font-family: arial, helvetica, sans-serif;&quot;&gt;&lt;span style=&quot;font-size: 12pt; font-family: arial, helvetica, sans-serif;&quot;&gt;Ensure continuous content optimization by tracking analytics, social listening, and preparing actionable performance reports for cross-functional teams.&amp;nbsp;&lt;/span&gt;&lt;/li&gt;\n&lt;li style=&quot;font-size: 12pt; font-family: arial, helvetica, sans-serif;&quot;&gt;&lt;span style=&quot;font-size: 12pt; font-family: arial, helvetica, sans-serif;&quot;&gt;Collaborate closely with regional and global marketing stakeholders to adapt campaigns to local cultural contexts and share best practices across regions.&amp;nbsp;&lt;/span&gt;&lt;/li&gt;\n&lt;li style=&quot;font-size: 12pt; font-family: arial, helvetica, sans-serif;&quot;&gt;&lt;span style=&quot;font-size: 12pt; font-family: arial, helvetica, sans-serif;&quot;&gt;Roll up your sleeves and help when needed.&amp;nbsp;&lt;/span&gt;&lt;/li&gt;\n&lt;li style=&quot;font-size: 12pt; font-family: arial, helvetica, sans-serif;&quot;&gt;&lt;span style=&quot;font-size: 12pt; font-family: arial, helvetica, sans-serif;&quot;&gt;Live the mission: inspire and empower others by genuinely caring for your own wellbeing and your colleagues. Bring wellbeing to the forefront of work, and create a supportive environment where everyone feels comfortable taking care of themselves, taking time off, and finding work-life wellness.&lt;/span&gt;&lt;/li&gt;\n&lt;/ul&gt;\n&lt;h2&gt;&lt;span style=&quot;font-size: 12pt; font-family: arial, helvetica, sans-serif;&quot;&gt;&lt;strong&gt;WHO YOU ARE&lt;/strong&gt;&lt;/span&gt;&lt;/h2&gt;\n&lt;ul&gt;\n&lt;li style=&quot;font-size: 12pt; font-family: arial, helvetica, sans-serif;&quot;&gt;&lt;span style=&quot;font-size: 12pt; font-family: arial, helvetica, sans-serif;&quot;&gt;You bring at least 4–6 years of experience in social media management and execution.&amp;nbsp;&lt;/span&gt;&lt;/li&gt;\n&lt;li style=&quot;font-size: 12pt; font-family: arial, helvetica, sans-serif;&quot;&gt;&lt;span style=&quot;font-size: 12pt; font-family: arial, helvetica, sans-serif;&quot;&gt;You have extensive experience developing and executing end-to-end local social media strategies across key platforms.&amp;nbsp;&lt;/span&gt;&lt;/li&gt;\n&lt;li style=&quot;font-size: 12pt; font-family: arial, helvetica, sans-serif;&quot;&gt;&lt;span style=&quot;font-size: 12pt; font-family: arial, helvetica, sans-serif;&quot;&gt;You are an expert storyteller with solid in-depth knowledge of short-form video production, copywriting, and leveraging current platform trends and best practices.&amp;nbsp;&lt;/span&gt;&lt;/li&gt;\n&lt;li style=&quot;font-size: 12pt; font-family: arial, helvetica, sans-serif;&quot;&gt;&lt;span style=&quot;font-size: 12pt; font-family: arial, helvetica, sans-serif;&quot;&gt;You are a skilled relationship-builder with prior work experience managing influencer and creator collaborations from brief to execution.&amp;nbsp;&lt;/span&gt;&lt;/li&gt;\n&lt;li style=&quot;font-size: 12pt; font-family: arial, helvetica, sans-serif;&quot;&gt;&lt;span style=&quot;font-size: 12pt; font-family: arial, helvetica, sans-serif;&quot;&gt;You are a data-minded strategist with the ability to utilize social media management, listening and analytics tools to translate performance insights into action.&amp;nbsp;&lt;/span&gt;&lt;/li&gt;\n&lt;li style=&quot;font-size: 12pt; font-family: arial, helvetica, sans-serif;&quot;&gt;&lt;span style=&quot;font-size: 12pt; font-family: arial, helvetica, sans-serif;&quot;&gt;You are an organized project owner with the eagerness to embrace a fast-paced environment and juggle multiple priorities both independently and cross-functionally.&amp;nbsp;&lt;/span&gt;&lt;/li&gt;\n&lt;li style=&quot;font-size: 12pt; font-family: arial, helvetica, sans-serif;&quot;&gt;&lt;span style=&quot;font-size: 12pt; font-family: arial, helvetica, sans-serif;&quot;&gt;You&#39;re fluent in Romanian and English. Additional language skills are considered a plus.&lt;/span&gt;&lt;/li&gt;\n&lt;/ul&gt;\n&lt;p&gt;&lt;span style=&quot;font-size: 12pt; font-family: arial, helvetica, sans-serif;&quot;&gt;We recognize that individuals approach job applications differently. We strongly encourage all aspiring applicants to go for it, even if they don&#39;t match the job description 100%. We welcome your application and will be delighted to explore if you could be a great fit for our team. For this specific role, please note that prior experience in &lt;strong&gt;social media strategy execution&lt;/strong&gt; and&lt;strong&gt; Romanian fluency&lt;/strong&gt; are mandatory requirements&lt;strong&gt;.&lt;/strong&gt;&lt;/span&gt;&lt;/p&gt;\n&lt;p&gt;&lt;span style=&quot;font-size: 12pt; font-family: arial, helvetica, sans-serif;&quot;&gt;&lt;strong&gt;WHAT WE OFFER YOU&lt;/strong&gt;&lt;/span&gt;&lt;/p&gt;\n&lt;p&gt;&lt;span style=&quot;font-size: 12pt; font-family: arial, helvetica, sans-serif;&quot;&gt;With thoughtful benefits, emotional wellbeing resources, and a culture that empowers you to take ownership of your role and your wellbeing, we create an environment where you can thrive in all dimensions of your life. Our benefits include:&lt;/span&gt;&lt;/p&gt;\n&lt;p&gt;&lt;span style=&quot;font-size: 12pt; font-family: arial, helvetica, sans-serif;&quot;&gt;&lt;strong&gt;7CARD:&lt;/strong&gt; We give you access to the greatest network of sports &amp;amp; relaxation centers in Romania.&lt;/span&gt;&lt;/p&gt;\n&lt;p&gt;&lt;span style=&quot;font-size: 12pt; font-family: arial, helvetica, sans-serif;&quot;&gt;&lt;strong&gt;FLEXIBLE WORK: &lt;/strong&gt;As a Flexible First company, we offer hybrid and remote options to give you the freedom to work in a way that suits you. The model for this specific role can be discussed with your recruiter and hiring manager. &lt;strong&gt;(You can change this sentence depending on the role. If it’s hybrid: &lt;/strong&gt;This is a hybrid role based out of our Bucharest office. &lt;strong&gt;If it’s remote&lt;/strong&gt;: This specific role is a Remote – Romania position, meaning you can work from anywhere within the country.) We offer all employees a one-time reimbursement to set up their home office equipment and a monthly work allowance to help cover the costs of working from home.&lt;/span&gt;&lt;/p&gt;\n&lt;p&gt;&lt;span style=&quot;font-size: 12pt; font-family: arial, helvetica, sans-serif;&quot;&gt;&lt;strong&gt;&amp;nbsp;&lt;/strong&gt;&lt;strong&gt;FLEXIBLE SCHEDULE: &lt;/strong&gt;Flexibility for us isn’t just about where we work—it also means being able to shape how and when we get things done. Together with their leaders, employees define schedules that align with their time zones, team needs, and personal routines.&lt;/span&gt;&lt;/p&gt;\n&lt;p&gt;&lt;span style=&quot;font-size: 12pt; font-family: arial, helvetica, sans-serif;&quot;&gt;&lt;strong&gt;PAID TIME OFF:&lt;/strong&gt; We know how important it is to take time away from work to recharge. Employees receive a minimum of 25 days paid holiday per year with an additional day for each year of tenure (up to 5) in addition to annual holidays (including an extra holiday on your birthday!).&lt;/span&gt;&lt;/p&gt;\n&lt;p&gt;&lt;span style=&quot;font-size: 12pt; font-family: arial, helvetica, sans-serif;&quot;&gt;&lt;strong&gt;PARENTAL LEAVE:&lt;/strong&gt; Welcoming a new child is one of the most special moments in your life. Take the time to be present and enjoy your growing family. We offer 100% paid parental leave to all new parents. Parents giving birth are eligible for an extended leave and a ramp-back period to return part-time while they get settled.&amp;nbsp;&amp;nbsp;&lt;/span&gt;&lt;/p&gt;\n&lt;p&gt;&lt;span style=&quot;font-size: 12pt; font-family: arial, helvetica, sans-serif;&quot;&gt;&lt;strong&gt;CAREER GROWTH:&lt;/strong&gt; Access world-class platforms, participate in interactive sessions,&amp;nbsp; build your personalized development roadmap, and explore internal opportunities. We focus on continuous learning and feedback to support your journey toward personal and professional success.&lt;/span&gt;&lt;/p&gt;\n&lt;p&gt;&lt;span style=&quot;font-size: 12pt; font-family: arial, helvetica, sans-serif;&quot;&gt;&lt;strong&gt;CULTURE:&lt;/strong&gt; You’ll join a team of passionate people who come together to break boundaries, support each other, and create a meaningful impact in workplace wellness. We win together, building trust through open communication and a culture where every perspective matters. &lt;a href=&quot;https://wellhub.com/en-us/careers/our-values/&quot;&gt;Learn more about our shared culture and values here.&amp;nbsp;&lt;/a&gt;&lt;/span&gt;&lt;/p&gt;\n&lt;p&gt;&lt;span style=&quot;font-size: 12pt; font-family: arial, helvetica, sans-serif;&quot;&gt;&lt;strong&gt;Want to see what it’s really like to work here? Follow us on &lt;/strong&gt;&lt;a href=&quot;https://www.instagram.com/lifeatwellhub/&quot;&gt;&lt;strong&gt;Instagram&lt;/strong&gt;&lt;/a&gt;&lt;strong&gt; @lifeatwellhub and watch our team video on &lt;/strong&gt;&lt;a href=&quot;https://www.youtube.com/watch?v=ZgIPiszTVm4&quot;&gt;&lt;strong&gt;YouTube&lt;/strong&gt;&lt;/a&gt;&lt;strong&gt;!&lt;/strong&gt;&lt;/span&gt;&lt;/p&gt;\n&lt;p&gt;&lt;span style=&quot;font-size: 12pt; font-family: arial, helvetica, sans-serif;&quot;&gt;&lt;strong&gt;Diversity, Equity, and Belonging at Wellhub&lt;/strong&gt;&lt;/span&gt;&lt;/p&gt;\n&lt;p&gt;&lt;span style=&quot;font-size: 12pt; font-family: arial, helvetica, sans-serif;&quot;&gt;We aim to create a collaborative, supportive, and inclusive space where everyone knows they belong.&amp;nbsp;&lt;/span&gt;&lt;/p&gt;\n&lt;p&gt;&lt;span style=&quot;font-size: 12pt; font-family: arial, helvetica, sans-serif;&quot;&gt;Wellhub is committed to creating a diverse work environment and is proud to be an equal opportunity employer. All qualified applicants will receive consideration for employment without regard to race, religion, color, sex, gender identity or expression, sexual orientation, age, non-disqualifying physical or mental disability, national origin, veteran status, or any other basis covered by appropriate law.&lt;/span&gt;&lt;/p&gt;\n&lt;p&gt;&lt;span style=&quot;font-size: 12pt; font-family: arial, helvetica, sans-serif;&quot;&gt;Our commitment to inclusion also extends to how we recognize and reward our people. We’re proud to be Syndio Fair Pay Certified, reflecting our ongoing dedication to equitable and fair pay practices across our global team. &lt;a href=&quot;https://www.linkedin.com/posts/wellhub_fairpay-syndio-activity-7407826561531363328-wbN_?utm_source=share&amp;amp;utm_medium=member_desktop&amp;amp;rcm=ACoAAAzHQWABKsRqcpvxy4QpDCJNe_szRdC4hgY&quot;&gt;Read more about it here.&lt;/a&gt;&amp;nbsp;&lt;/span&gt;&lt;/p&gt;\n&lt;p&gt;&lt;span style=&quot;font-size: 12pt; font-family: arial, helvetica, sans-serif;&quot;&gt;Questions on how we treat your personal data? See our &lt;a href=&quot;https://wellhub.com/en-us/careers/job-applicant-privacy-notice/&quot;&gt;Job Applicant Privacy Notice.&lt;/a&gt;&lt;/span&gt;&lt;/p&gt;\n&lt;p&gt;&amp;nbsp;&lt;/p&gt;\n&lt;p&gt;&lt;strong&gt;&lt;span style=&quot;color: rgb(224, 62, 45);&quot;&gt;&amp;nbsp;&lt;span style=&quot;color: rgb(255, 255, 255);&quot;&gt;#LI-HYBRID&lt;/span&gt;&lt;/span&gt;&lt;/strong&gt;&lt;/p&gt;\n&lt;p&gt;&lt;strong&gt;&lt;span style=&quot;color: rgb(224, 62, 45);&quot;&gt;&amp;nbsp;&lt;/span&gt;&lt;/strong&gt;&lt;/p&gt;\n&lt;p&gt;&amp;nbsp;&lt;/p&gt;",
+      "departments": [
+        {
+          "id": 4006872002,
+          "name": "Marketing",
+          "child_ids": [],
+          "parent_id": null
+        }
+      ],
+      "offices": [
+        {
+          "id": 4091248002,
+          "name": "Bucharest",
+          "location": "Bucharest, Bucharest, Romania",
+          "child_ids": [],
+          "parent_id": 4046978002
+        }
+      ],
+      "ai_disclaimer": null,
+      "include_ai_disclaimer": null,
+      "ai_opt_out_request_url": null
+    },
+    {
+      "absolute_url": "https://stripe.com/jobs/search?gh_jid=8122192",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": false
+        }
+      ],
+      "education": "education_required",
+      "internal_job_id": 3517902,
+      "location": {
+        "name": "Mexico City, Mexico"
+      },
+      "metadata": null,
+      "id": 8122192,
+      "updated_at": "2026-10-20T17:25:50-04:00",
+      "requisition_id": "See Opening ID",
+      "title": "Account Executive - LATAM",
+      "pay_input_ranges": [],
+      "company_name": "Stripe",
+      "first_published": "2026-08-21T14:22:44-04:00",
+      "language": "en",
+      "application_deadline": null,
+      "content": "&lt;h2&gt;&lt;strong&gt;Who we are&lt;/strong&gt;&lt;/h2&gt;\n&lt;h3&gt;&lt;strong&gt;About Stripe&lt;/strong&gt;&lt;/h3&gt;\n&lt;p&gt;Stripe is a financial infrastructure platform for businesses. Millions of companies—from the world’s largest enterprises to the most ambitious startups—use Stripe to accept payments, grow their revenue, and accelerate new business opportunities. Our mission is to increase the GDP of the internet, and we have a staggering amount of work ahead. That means you have an unprecedented opportunity to put the global economy within everyone’s reach while doing the most important work of your career.&lt;/p&gt;\n&lt;h2&gt;&lt;strong&gt;What you’ll do&lt;/strong&gt;&lt;/h2&gt;\n&lt;p&gt;Stripe is growing its Enterprise sales team in Mexico City. As an&amp;nbsp;Account Executive, you will own a blended, full-lifecycle sales motion: building new strategic relationships while expanding Stripe’s impact within existing enterprise accounts.&lt;/p&gt;\n&lt;p&gt;You will lead complex opportunities from prospecting and discovery through business-case development, solution design, commercial negotiation, close, and long-term account growth. This role requires the ability to earn credibility with executive, technical, product, risk, and commercial stakeholders, while bringing together Stripe partners across Sales, Solutions Architecture, and other cross-functional teams.&lt;/p&gt;\n&lt;p&gt;This is an opportunity to help deepen Stripe’s enterprise presence in Mexico, with an expected focus on retail and other strategic businesses. You will be a consultative partner to customers, helping them solve complex business and technical problems with Stripe’s payments and financial-infrastructure platform.&lt;/p&gt;\n&lt;h3&gt;&lt;strong&gt;Responsibilities&lt;/strong&gt;&lt;/h3&gt;\n&lt;ul&gt;\n&lt;li&gt;Own the full sales cycle for a portfolio of strategic enterprise prospects and customers—from prospecting and discovery through negotiation, close, and ongoing account development.&lt;/li&gt;\n&lt;li&gt;Develop and execute long-term territory and account strategies that create new business and expand Stripe’s footprint within existing customers.&lt;/li&gt;\n&lt;li&gt;Build strong relationships with executive stakeholders and develop a deep understanding of their business, technical, and payments priorities.&lt;/li&gt;\n&lt;li&gt;Identify, qualify, and develop new enterprise opportunities; create compelling business cases that connect customer needs to Stripe’s products and capabilities.&lt;/li&gt;\n&lt;li&gt;Partner closely with Solutions Architecture, Product, Risk, Legal, and other internal teams to align on customer requirements and deliver thoughtful solutions.&lt;/li&gt;\n&lt;li&gt;Navigate complex buying processes involving multiple technical, commercial, product, and executive stakeholders.&lt;/li&gt;\n&lt;li&gt;Lead deal strategy, commercial structuring, and negotiations for sophisticated enterprise agreements.&lt;/li&gt;\n&lt;li&gt;Maintain rigorous account plans, stakeholder maps, pipeline discipline, and forecasting.&lt;/li&gt;\n&lt;li&gt;Contribute to the development of Stripe’s sales process, customer strategy, and growing sales culture in Mexico.&lt;/li&gt;\n&lt;/ul&gt;\n&lt;h2&gt;&lt;strong&gt;Who you are&lt;/strong&gt;&lt;/h2&gt;\n&lt;p&gt;We’re looking for someone who meets the minimum requirements to be considered for the role. If you meet these requirements, you are encouraged to apply. The preferred qualifications are a bonus, not a requirement.&lt;/p&gt;\n&lt;h3&gt;&lt;strong&gt;Minimum requirements&lt;/strong&gt;&lt;/h3&gt;\n&lt;ul&gt;\n&lt;li&gt;7+ years of quota-carrying B2B sales experience, with a track record of strong performance in complex sales environments.&lt;/li&gt;\n&lt;li&gt;Experience owning end-to-end sales cycles, including prospecting, discovery, business-case development, negotiation, and close.&lt;/li&gt;\n&lt;li&gt;Demonstrated ability to sell complex products or solutions to enterprise customers and navigate multi-stakeholder buying processes.&lt;/li&gt;\n&lt;li&gt;Experience developing account and territory plans, building executive relationships, and identifying expansion opportunities.&lt;/li&gt;\n&lt;li&gt;Ability to understand technical requirements and translate them into clear customer value.&lt;/li&gt;\n&lt;li&gt;Strong commercial judgment and experience supporting or leading complex negotiations.&lt;/li&gt;\n&lt;li&gt;Excellent verbal and written communication skills in&amp;nbsp;Spanish and English.&lt;/li&gt;\n&lt;li&gt;Strong presentation and stakeholder-management skills, including in-person and virtual meetings with senior audiences.&lt;/li&gt;\n&lt;li&gt;A collaborative approach and the ability to work effectively with a wide range of internal and external partners.&lt;/li&gt;\n&lt;li&gt;Comfort operating in an ambiguous, fast-paced environment and helping build a growing market.&lt;/li&gt;\n&lt;li&gt;Strong interest in technology, payments, financial infrastructure, or complex enterprise software.&lt;/li&gt;\n&lt;/ul&gt;\n&lt;h3 id=&quot;preferred-qualifications&quot;&gt;Preferred qualifications&lt;/h3&gt;\n&lt;ul&gt;\n&lt;li&gt;Experience selling payments, fintech, technical SaaS, cloud or data infrastructure, developer tools, or related enterprise technology.&lt;/li&gt;\n&lt;li&gt;Experience selling into retail, e-commerce, marketplaces, or other complex digital businesses.&lt;/li&gt;\n&lt;li&gt;Experience managing both new-logo acquisition and expansion within existing enterprise accounts.&lt;/li&gt;\n&lt;li&gt;Familiarity with Mexico’s payments or broader financial-services ecosystem.&lt;/li&gt;\n&lt;/ul&gt;\n&lt;p&gt;This role is based in Mexico City, Mexico and will be operating on a hybrid in-office schedule. (3 days per week).&amp;nbsp;&lt;/p&gt;",
+      "departments": [
+        {
+          "id": 81430,
+          "name": "1175 Enterprise - Account Executives (NA)",
+          "child_ids": [],
+          "parent_id": 81961
+        }
+      ],
+      "offices": [
+        {
+          "id": 87002,
+          "name": "Mexico Locations",
+          "location": null,
+          "child_ids": [
+            80450,
+            80451
+          ],
+          "parent_id": 673
+        }
+      ],
+      "ai_disclaimer": null,
+      "include_ai_disclaimer": false,
+      "ai_opt_out_request_url": "http://app.greenhouse.io/ai_opt_out_request/job_post/8122192/ai_opt_out"
+    },
+    {
+      "absolute_url": "https://careers.datadoghq.com/detail/8139662/?gh_jid=8139662",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": false
+        }
+      ],
+      "internal_job_id": 3522718,
+      "location": {
+        "name": "California, USA, Remote; New York, USA, Remote"
+      },
+      "metadata": [
+        {
+          "id": 33310,
+          "name": "Time Type",
+          "value": "Full time",
+          "value_type": "single_select"
+        },
+        {
+          "id": 166208,
+          "name": "Area - Engineering",
+          "value": "Technical Community",
+          "value_type": "single_select"
+        },
+        {
+          "id": 498252,
+          "name": "Cost Center",
+          "value": "Engineering - Community",
+          "value_type": "single_select"
+        },
+        {
+          "id": 516515,
+          "name": "Geography",
+          "value": "North America",
+          "value_type": "single_select"
+        },
+        {
+          "id": 9593635,
+          "name": "Early Career Time Type",
+          "value": null,
+          "value_type": "single_select"
+        },
+        {
+          "id": 29446322,
+          "name": "Pay Transparency Range",
+          "value": {
+            "unit": "USD",
+            "max_value": "170000.0",
+            "min_value": "136000.0"
+          },
+          "value_type": "currency_range"
+        },
+        {
+          "id": 31273219,
+          "name": "Does this role require access to ITAR-controlled data?",
+          "value": "No",
+          "value_type": "single_select"
+        },
+        {
+          "id": 58619948,
+          "name": "IC or MG",
+          "value": "IC",
+          "value_type": "single_select"
+        }
+      ],
+      "id": 8139662,
+      "updated_at": "2026-09-29T13:18:57-04:00",
+      "requisition_id": "R20682",
+      "title": "Developer Advocate - Service Management",
+      "pay_input_ranges": [
+        {
+          "min_cents": 13600000,
+          "max_cents": 17000000,
+          "currency_type": "USD",
+          "title": "The reasonably estimated yearly salary for this role at Datadog is:",
+          "blurb": "<p>Datadog offers a competitive salary and equity package, and may include variable compensation. Actual compensation is based on factors such as the candidate's skills, qualifications, and experience. In addition, Datadog offers a wide range of best in class, comprehensive and inclusive employee benefits for this role including healthcare, dental, parental planning, and mental health benefits, a 401(k) plan and match, paid time off, fitness reimbursements, and a discounted employee stock purchase plan.</p>"
+        }
+      ],
+      "company_name": "Datadog",
+      "first_published": "2026-08-18T14:03:28-04:00",
+      "language": "en",
+      "application_deadline": null,
+      "content": "&lt;p&gt;&amp;nbsp;&lt;/p&gt;\n&lt;p&gt;We are a team of engineers that translate our real-world experience to help our user communities solve problems. With a focus on service management, helping teams respond to incidents, run on-call, and automate their operations, you will work with practitioners and leaders across the industry and broaden your impact to the SRE, Engineer, DevOps, and Operations community at large. This is a unique opportunity to use both your engineering and creative storytelling skills to shape the landscape in cloud observability, incident response and service management.&lt;/p&gt;\n&lt;p&gt;&amp;nbsp;&lt;/p&gt;\n&lt;p&gt;&lt;strong&gt;What You&#39;ll Do:&lt;/strong&gt;&lt;/p&gt;\n&lt;p&gt;&amp;nbsp;&lt;/p&gt;\n&lt;ul&gt;\n&lt;li&gt;Act as a subject matter expert for service management (incident response, on-call, IDP, Work Management, Workflow Automation, Agent Builder, and operational automation) for Datadog&#39;s advocacy and engineering teams&lt;/li&gt;\n&lt;li&gt;Create content in one or more mediums to build Datadog&#39;s reputation as a leader in DevOps, Monitoring, Observability and Security e.g. building demos, public speaking, blogging, documentation, webinars, open source, research reports and more&lt;/li&gt;\n&lt;li&gt;Partner with product engineering teams to build compelling demos, and coach internal engineering teams on effective communication and presentation&lt;/li&gt;\n&lt;li&gt;Interface with open source communities to drive key messaging in the market and develop new integrations for Datadog&lt;/li&gt;\n&lt;li&gt;Contribute to the product through feedback (bugs or product enhancements suggestions), documentation, or code&lt;/li&gt;\n&lt;/ul&gt;\n&lt;p&gt;&amp;nbsp;&lt;/p&gt;\n&lt;p&gt;&lt;strong&gt;Who You Are:&lt;/strong&gt;&lt;/p&gt;\n&lt;ul&gt;\n&lt;li&gt;Approximately 5+ years of experience as a Platform Engineer, Site Reliability Engineer, DevOps Engineer or Software Developer with hands-on experience as an on-call/incident responder and running production systems in complex IT environments&amp;nbsp;&lt;/li&gt;\n&lt;li&gt;You have a strong understanding of core service-management practices (incident response, on-call, post incident reviews, and SLOs), using tools like Datadog, PagerDuty, Opsgenie, incident.io, Rootly, Jira Cloud Platform, Cortex, or similar and know how to navigate operational challenges of different sized organizations&lt;/li&gt;\n&lt;li&gt;You’re passionate about helping teams fix organizational challenges, not just technical ones and where they intersect, and have shared your knowledge broadly.&lt;/li&gt;\n&lt;li&gt;Approximately 2+ years of experience in storytelling and creating compelling content e.g. written content, speaking at conferences like SREcon, DevOpsDays or SREday, leading workshops, live streaming or recording videos, contributing to open source and participating in community events.&lt;/li&gt;\n&lt;li&gt;You have publicly available writing samples, blog posts, demos, or recordings of presentations on technical topics&lt;/li&gt;\n&lt;li&gt;You are comfortable with at least one scripting and programming languages (eg Node.js, Python, Go, bash) and are familiar with working with APIs and modern infrastructure such as IaaS cloud services and containers&lt;/li&gt;\n&lt;li&gt;You enjoy self driven exploration and education on new technologies and languages&lt;/li&gt;\n&lt;/ul&gt;\n&lt;p&gt;&amp;nbsp;&lt;/p&gt;\n&lt;p&gt;&lt;strong&gt;Bonus points:&lt;/strong&gt;&lt;/p&gt;\n&lt;ul&gt;\n&lt;li&gt;You have hands-on ITSM platform experience (ServiceNow, Jira Service Management)&lt;/li&gt;\n&lt;li&gt;You are already an active member of SRE, DevOps, or incident-response communities&lt;/li&gt;\n&lt;/ul&gt;\n&lt;p&gt;&amp;nbsp;&lt;/p&gt;\n&lt;p&gt;&lt;em&gt;Datadog values people from all walks of life. We understand not everyone will meet all the above qualifications on day one. That&#39;s okay. If you’re passionate about technology and want to grow your skills, we encourage you to apply.&lt;/em&gt;&lt;/p&gt;\n&lt;p&gt;&amp;nbsp;&lt;/p&gt;\n&lt;div&gt;\n&lt;p&gt;&lt;strong&gt;Benefits and Growth:&lt;/strong&gt;&lt;/p&gt;\n&lt;ul&gt;\n&lt;li&gt;Generous and competitive benefits package&lt;/li&gt;\n&lt;li&gt;New hire stock equity (RSUs) and employee stock purchase plan (ESPP)&lt;/li&gt;\n&lt;li&gt;Continuous career development opportunities&amp;nbsp;&lt;/li&gt;\n&lt;li&gt;Product training to develop understanding of our product and space&lt;/li&gt;\n&lt;li&gt;Best in breed onboarding&lt;/li&gt;\n&lt;li&gt;Internal mentor and buddy program cross-departmentally&lt;/li&gt;\n&lt;li&gt;Friendly and inclusive workplace culture&lt;/li&gt;\n&lt;/ul&gt;\n&lt;p&gt;&amp;nbsp;&lt;/p&gt;\n&lt;p&gt;&lt;em&gt;Benefits and Growth listed above may vary based on the country of your employment and the nature of your employment with Datadog.&lt;/em&gt;&lt;/p&gt;\n&lt;/div&gt;\n&lt;div class=&quot;job__pay-ranges&quot;&gt;\n&lt;div class=&quot;pay-range&quot;&gt;\n&lt;div class=&quot;description&quot;&gt;\n&lt;div class=&quot;body&quot;&gt;\n&lt;p&gt;Datadog offers a competitive salary and equity package, and may include variable compensation. Actual compensation is based on factors such as the candidate&#39;s skills, qualifications, and experience. In addition, Datadog offers a wide range of best in class, comprehensive and inclusive employee benefits for this role including healthcare, dental, parental planning, and mental health benefits, a 401(k) plan and match, paid time off, fitness reimbursements, and a discounted employee stock purchase plan.&lt;/p&gt;\n&lt;/div&gt;\n&lt;/div&gt;\n&lt;/div&gt;\n&lt;/div&gt;\n&lt;p&gt;&amp;nbsp;&lt;/p&gt;&lt;div class=&quot;content-pay-transparency&quot;&gt;&lt;div class=&quot;pay-input&quot;&gt;&lt;div class=&quot;description&quot;&gt;&lt;p&gt;Datadog offers a competitive salary and equity package, and may include variable compensation. Actual compensation is based on factors such as the candidate&#39;s skills, qualifications, and experience. In addition, Datadog offers a wide range of best in class, comprehensive and inclusive employee benefits for this role including healthcare, dental, parental planning, and mental health benefits, a 401(k) plan and match, paid time off, fitness reimbursements, and a discounted employee stock purchase plan.&lt;/p&gt;&lt;/div&gt;&lt;div class=&quot;title&quot;&gt;The reasonably estimated yearly salary for this role at Datadog is:&lt;/div&gt;&lt;div class=&quot;pay-range&quot;&gt;&lt;span&gt;$136,000&lt;/span&gt;&lt;span class=&quot;divider&quot;&gt;&amp;mdash;&lt;/span&gt;&lt;span&gt;$170,000 USD&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class=&quot;content-conclusion&quot;&gt;&lt;hr&gt;\n&lt;p&gt;&lt;strong&gt;About Datadog:&amp;nbsp;&lt;/strong&gt;&lt;/p&gt;\n&lt;p&gt;Datadog is the leading observability and security platform for the AI era, providing businesses with unified visibility across the technology stack to manage complexity at scale. It brings applications, infrastructure, data, models, and security into one place, using AI to detect and resolve issues before they impact customers. Trusted globally by Fortune 500 companies and high-growth AI leaders, Datadog enables businesses to move faster with clarity and confidence. Learn more about #DatadogLife on &lt;a href=&quot;https://www.instagram.com/datadoghq/?hl=en&quot; target=&quot;_blank&quot;&gt;Instagram&lt;/a&gt;, &lt;a href=&quot;https://www.linkedin.com/company/datadog&quot; target=&quot;_blank&quot;&gt;LinkedIn,&lt;/a&gt; and &lt;a href=&quot;https://learn.datadoghq.com/&quot; target=&quot;_blank&quot;&gt;Datadog Learning Center. &lt;/a&gt;&lt;/p&gt;\n&lt;hr&gt;\n&lt;p data-renderer-start-pos=&quot;215&quot;&gt;&lt;strong data-renderer-mark=&quot;true&quot;&gt;Equal Opportunity at Datadog:&lt;/strong&gt;&lt;/p&gt;\n&lt;p&gt;Datadog is proud to offer &lt;a href=&quot;https://www.eeoc.gov/sites/default/files/2023-06/22-088_EEOC_KnowYourRights6.12ScreenRdr.pdf&quot; target=&quot;_blank&quot;&gt;equal employment opportunity&lt;/a&gt; to everyone regardless of race, color, ancestry, religion, sex, national origin, sexual orientation, age, citizenship, marital status, disability, gender identity, veteran status, and other characteristics protected by law. We also consider qualified applicants regardless of criminal histories, consistent with legal requirements. Here are our &lt;a href=&quot;https://www.datadoghq.com/legal/candidate-legal-notices/&quot; target=&quot;_blank&quot;&gt;Candidate Legal Notices&lt;/a&gt; for your reference.&amp;nbsp;&lt;/p&gt;\n&lt;p&gt;Datadog endeavors to make our Careers Page accessible to all users. If you would like to contact us regarding the accessibility of our website or need assistance completing the application process, please complete &lt;a href=&quot;https://docs.google.com/forms/d/e/1FAIpQLSeoJeduEZ2NdZF_65uZmWUrCM-zee7yADXX1s6Xr9zAGq8iKA/viewform&quot; target=&quot;_blank&quot;&gt;this form&lt;/a&gt;. This form is for accommodation requests only and cannot be used to inquire about the status of applications.&amp;nbsp;&lt;/p&gt;\n&lt;p data-renderer-start-pos=&quot;662&quot;&gt;&lt;strong data-renderer-mark=&quot;true&quot;&gt;Privacy and AI Guidelines:&lt;/strong&gt;&lt;/p&gt;\n&lt;p data-renderer-start-pos=&quot;662&quot;&gt;Any information you submit to Datadog as part of your application will be processed in accordance with Datadog’s&amp;nbsp;&lt;a class=&quot;c-link&quot; href=&quot;https://www.datadoghq.com/legal/applicant-candidate-privacy/&quot; target=&quot;_blank&quot; data-stringify-link=&quot;https://www.datadoghq.com/legal/applicant-candidate-privacy/&quot; data-sk=&quot;tooltip_parent&quot;&gt;Applicant and Candidate Privacy Notice&lt;/a&gt;. For information on our AI policy, please visit &lt;a href=&quot;https://www.datadoghq.com/legal/interviewing-at-datadog-ai-guidelines/&quot; target=&quot;_blank&quot;&gt;Interviewing at Datadog AI Guidelines&lt;/a&gt;.&lt;/p&gt;&lt;/div&gt;",
+      "departments": [
+        {
+          "id": 72251,
+          "name": "Community",
+          "child_ids": [],
+          "parent_id": 9022
+        }
+      ],
+      "offices": [
+        {
+          "id": 76746,
+          "name": "Remote - New York",
+          "location": "New York, United States",
+          "child_ids": [],
+          "parent_id": 5664
+        }
+      ],
+      "ai_disclaimer": null,
+      "include_ai_disclaimer": null,
+      "ai_opt_out_request_url": null
+    }
+  ],
+  "meta": {
+    "total": 5
+  }
+}
