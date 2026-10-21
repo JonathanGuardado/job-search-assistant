@@ -3,10 +3,10 @@
 Phase 1 only. Later phases are listed at the bottom so their scope stays visible, but
 nothing from them gets built yet.
 
-**Active milestone: 1.3 stabilization.** Foundation (1.1) and candidate settings (1.2)
-are implemented. Resume intake, review, and deletion work; manual dispatch recovery is
-implemented. Overlapping parse attempts and interrupted-worker recovery still need an
-agreed ownership/lease policy before 1.3 is closed. See [stabilization review](resume-stabilization-review.md).
+**Active milestone: 1.3 stabilization, ready to close.** Foundation (1.1) and candidate
+settings (1.2) are implemented. Resume intake, review, and deletion work; manual dispatch
+recovery is implemented; parse runs are owned through an attempt lease (decision 0007).
+See [stabilization review](resume-stabilization-review.md).
 
 Each milestone is shippable. Nothing downstream is built until what it depends on is
 trustworthy.

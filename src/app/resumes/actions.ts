@@ -17,7 +17,15 @@ import {
   saveCareerItem,
   type CareerItemEdit,
 } from '@/modules/career-knowledge'
-import { deleteResume, getLatestParse, getResume, removeUnusedResumeFile, UploadResumeSchema, uploadResume } from '@/modules/resumes'
+import {
+  deleteResume,
+  getLatestParse,
+  getResume,
+  isParseStalled,
+  removeUnusedResumeFile,
+  UploadResumeSchema,
+  uploadResume,
+} from '@/modules/resumes'
 
 /*
  * Server actions are an edge: they parse form input with Zod, act as the dev
@@ -89,8 +97,9 @@ export async function retryParseAction(formData: FormData): Promise<void> {
     resume: await getResume(scope, resumeId.data), parse: await getLatestParse(scope, resumeId.data),
   }))
   if (!current.resume.ok) redirect(withError('/resumes', current.resume.error.message))
-  // Pending uploads reuse their key; only a failed parse needs a new queue job.
-  if (current.parse === null || current.parse.status === 'failed') {
+  // Pending uploads reuse their key; a failed or stalled parse needs a new queue job.
+  // Retrying early is harmless: the worker leaves a run under a live lease alone.
+  if (current.parse === null || current.parse.status === 'failed' || isParseStalled(current.parse)) {
     await enqueueParse(resumeId.data, current.parse === null ? undefined : String(Date.now()))
   }
   redirect(`/resumes/${resumeId.data}/review`)

@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { getDb } from '@/lib/db/client'
 import { withTenant } from '@/lib/db/tenancy'
 import { DEV_USER } from '@/lib/dev-user'
-import { listResumes, type ResumeSummary } from '@/modules/resumes'
+import { isParseStalled, listResumes, type ResumeSummary } from '@/modules/resumes'
 import { retryParseAction, uploadResumeAction } from './actions'
 import { AutoRefresh } from './_components/AutoRefresh'
 import { DeleteResumeButton } from './_components/DeleteResumeButton'
@@ -13,6 +13,7 @@ export const dynamic = 'force-dynamic'
 function parseStatus(resume: ResumeSummary): string {
   const parse = resume.latestParse
   if (parse === null) return 'Waiting to be read'
+  if (isParseStalled(parse)) return 'Reading stopped'
   if (parse.status === 'running') return 'Reading…'
   if (parse.status === 'succeeded') return 'Ready to review'
   return 'Needs attention'
@@ -24,7 +25,10 @@ export default async function ResumesPage({
   readonly searchParams: { readonly error?: string }
 }) {
   const resumes = await withTenant(getDb(), DEV_USER.id, (scope) => listResumes(scope))
-  const isWaiting = resumes.some((r) => r.latestParse === null || r.latestParse.status === 'running')
+  const isReading = (r: ResumeSummary) => r.latestParse?.status === 'running' && !isParseStalled(r.latestParse)
+  const canRetry = (r: ResumeSummary) =>
+    r.latestParse === null || r.latestParse.status === 'failed' || isParseStalled(r.latestParse)
+  const isWaiting = resumes.some((r) => r.latestParse === null || isReading(r))
 
   return (
     <main className={styles.page}>
@@ -100,7 +104,7 @@ export default async function ResumesPage({
                 </td>
                 <td className={styles.date}>{resume.createdAt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'America/El_Salvador' })}</td>
                 <td>
-                  <span className={`${styles.badge} ${resume.latestParse?.status === 'succeeded' ? styles.badgeConfirmed : resume.latestParse?.status === 'failed' ? styles.badgeError : styles.badgeDraft}`}>
+                  <span className={`${styles.badge} ${resume.latestParse?.status === 'succeeded' ? styles.badgeConfirmed : resume.latestParse !== null && canRetry(resume) ? styles.badgeError : styles.badgeDraft}`}>
                     {parseStatus(resume)}
                   </span>
                   {resume.latestParse?.status === 'failed' && <p className={styles.statusDetail}>{resume.latestParse.errorMessage}</p>}
@@ -111,9 +115,9 @@ export default async function ResumesPage({
                   <DeleteResumeButton
                     resumeId={resume.id}
                     filename={resume.filename}
-                    isParsing={resume.latestParse?.status === 'running'}
+                    isParsing={isReading(resume)}
                   />
-                  {(resume.latestParse === null || resume.latestParse.status === 'failed') && (
+                  {canRetry(resume) && (
                     <form action={retryParseAction}>
                       <input type="hidden" name="resumeId" value={resume.id} />
                       <button type="submit">{resume.latestParse === null ? 'Start reading' : 'Try again'}</button>

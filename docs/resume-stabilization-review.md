@@ -15,23 +15,18 @@
 - Retry actions check tenant-scoped ownership and avoid requeueing a currently running
   or successful parse.
 
-## Decision needed before closing milestone 1.3
+## Parse ownership (resolved)
 
-`startParse` currently restarts a running row. The tenant transaction lock serializes the
-start statements, but it does not exclusively claim the model call after commit.
-Independent queue jobs or stalled-job recovery can still overlap, spending twice and
-allowing an older attempt to finish or fail a newer one. A process crash can leave a run
-marked running, which also blocks deletion.
+The owner approved the lease policy, recorded as decision 0007 and implemented in
+migration `0006_parse-run-leases`. Each claim gets an attempt id and a five-minute lease
+that the worker renews during the model call. Overlapping jobs for a run under a live
+lease end without calling the model. An attempt that lost its lease cannot complete or
+fail the run. A run whose worker died shows as stopped after the lease lapses, and can be
+retried or deleted.
 
-Proposed decision, not implemented: add an attempt UUID and a five-minute lease to each
-parse run. A worker renews the lease while active; another attempt can claim only an
-expired lease. Completion and failure compare the attempt UUID so an old worker cannot
-overwrite a new result. The UI may retry expired runs. This changes schema and recovery
-semantics, so AGENTS.md requires an explicit decision before implementation. The owner
-has been asked to choose this policy or defer it.
-
-Manual dispatch recovery covers saved-but-never-queued uploads. It does not provide an
-automatic transactional outbox or recover an indefinitely running parse.
+Manual dispatch recovery covers saved-but-never-queued uploads. There is still no
+automatic transactional outbox, and stalled runs are retried by the user, not
+automatically.
 
 ## Remaining product limitations
 

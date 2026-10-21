@@ -6,10 +6,12 @@ import { beforeAll, describe, expect } from 'vitest'
 import type { Db } from '@/lib/db/client'
 import { withTenant } from '@/lib/db/tenancy'
 import { dbErrorFrom, dbTest as test } from '@/lib/db/testing'
+import { eq, sql } from 'drizzle-orm'
+import type { TenantScope } from '@/lib/db/tenancy'
 import { unwrap } from '@/lib/result'
 import type { ModelTrace } from '@/modules/ai'
 import { ensureUser } from '@/modules/profiles'
-import { resumes } from './schema.js'
+import { resumeParses, resumes } from './schema.js'
 import {
   completeParse,
   deleteResume,
@@ -18,9 +20,12 @@ import {
   getResume,
   listResumes,
   removeUnusedResumeFile,
+  renewParseLease,
   startParse,
   uploadResume,
+  type ParseStart,
 } from './service.js'
+import { isParseStalled } from './types.js'
 
 let storageRoot: string
 let pdf: Uint8Array
@@ -40,7 +45,7 @@ describe('resume deletion', () => {
       const uploaded = unwrap(await uploadResume(scope, { filename: 'cv.pdf', bytes: pdf }, { storageRoot }))
       const started = unwrap(await startParse(scope, { resumeId: uploaded.id, ...task }))
       if (started.kind !== 'started') throw new Error('expected a started run')
-      await failParse(scope, { parseId: started.parseId, errorCode: 'upstream_failed', errorMessage: 'unavailable', traces: [] })
+      await failParse(scope, { ...attemptOf(started), errorCode: 'upstream_failed', errorMessage: 'unavailable', traces: [] })
       return uploaded
     })
     const key = unwrap(await withTenant(db, user.id, (scope) => deleteResume(scope, resume.id, noDrafts)))
@@ -74,11 +79,24 @@ describe('resume deletion', () => {
       await startParse(scope, { resumeId: resume.id, ...task })
       const newer = unwrap(await startParse(scope, { resumeId: resume.id, task: 'newer', taskVersion: 1 }))
       if (newer.kind !== 'started') throw new Error('expected a started run')
-      await failParse(scope, { parseId: newer.parseId, errorCode: 'upstream_failed', errorMessage: 'unavailable', traces: [] })
+      await failParse(scope, { ...attemptOf(newer), errorCode: 'upstream_failed', errorMessage: 'unavailable', traces: [] })
       const result = await deleteResume(scope, resume.id, async () => { throw new Error('draft cleanup must not run') })
       expect(!result.ok && result.error.code).toBe('conflict')
       expect((await getResume(scope, resume.id)).ok).toBe(true)
       expect(await readFile(join(storageRoot, resume.storageKey))).toEqual(Buffer.from(pdf))
+    })
+  })
+
+  test('allows deleting a resume whose parse lease expired, so a crashed worker cannot block it', async ({ db }) => {
+    const user = await aUser(db)
+    await withTenant(db, user.id, async (scope) => {
+      const resume = unwrap(await uploadResume(scope, { filename: 'cv.pdf', bytes: pdf }, { storageRoot }))
+      const stalled = attemptOf(unwrap(await startParse(scope, { resumeId: resume.id, ...task })))
+      await expireLease(scope, stalled.parseId)
+      expect((await deleteResume(scope, resume.id, noDrafts)).ok).toBe(true)
+      // The dead worker, if it ever wakes, finds nothing to complete.
+      const late = await completeParse(scope, { ...stalled, result: {}, traces: [] })
+      expect(!late.ok && late.error.code).toBe('conflict')
     })
   })
 
@@ -117,6 +135,18 @@ describe('resume deletion', () => {
 
 const aUser = (db: Db) => ensureUser(db, { email: `resume-${randomUUID()}@test.local` })
 const task = { task: 'test.parse', taskVersion: 1 }
+
+function attemptOf(start: ParseStart) {
+  if (start.kind !== 'started') throw new Error(`expected a started run, got ${start.kind}`)
+  return { parseId: start.parseId, attemptId: start.attemptId }
+}
+
+/** Simulates a worker that died: its lease lapses without the run finishing. */
+async function expireLease(scope: TenantScope, parseId: string): Promise<void> {
+  await scope.db.update(resumeParses)
+    .set({ leaseExpiresAt: sql`clock_timestamp() - interval '1 second'` })
+    .where(eq(resumeParses.id, parseId))
+}
 
 function trace(costMicroUsd: number): ModelTrace {
   return {
@@ -196,9 +226,9 @@ describe('parse runs', () => {
       expect(started.kind).toBe('started')
       if (started.kind !== 'started') return
 
-      expect((await completeParse(scope, { parseId: started.parseId, result: { n: 1 }, traces: [trace(50)] })).ok).toBe(true)
+      expect((await completeParse(scope, { ...attemptOf(started), result: { n: 1 }, traces: [trace(50)] })).ok).toBe(true)
       expect(unwrap(await startParse(scope, { resumeId: resume.id, ...task }))).toEqual({ kind: 'already_succeeded' })
-      const again = await completeParse(scope, { parseId: started.parseId, result: { n: 2 }, traces: [] })
+      const again = await completeParse(scope, { ...attemptOf(started), result: { n: 2 }, traces: [] })
       expect(!again.ok && again.error.code).toBe('conflict')
 
       expect(await getLatestParse(scope, resume.id)).toMatchObject({
@@ -213,11 +243,11 @@ describe('parse runs', () => {
       const resume = unwrap(await uploadResume(scope, { filename: 'cv.pdf', bytes: pdf }, { storageRoot }))
       const first = unwrap(await startParse(scope, { resumeId: resume.id, ...task }))
       if (first.kind !== 'started') throw new Error('expected a started run')
-      await failParse(scope, { parseId: first.parseId, errorCode: 'validation_failed', errorMessage: 'bad', traces: [trace(30), trace(30)] })
+      await failParse(scope, { ...attemptOf(first), errorCode: 'validation_failed', errorMessage: 'bad', traces: [trace(30), trace(30)] })
 
       const second = unwrap(await startParse(scope, { resumeId: resume.id, ...task }))
       expect(second).toMatchObject({ kind: 'started', parseId: first.parseId })
-      await completeParse(scope, { parseId: first.parseId, result: {}, traces: [trace(40)] })
+      await completeParse(scope, { ...attemptOf(second), result: {}, traces: [trace(40)] })
 
       const parse = await getLatestParse(scope, resume.id)
       expect(parse).toMatchObject({ status: 'succeeded', costMicroUsd: 100, errorCode: null })
@@ -230,9 +260,69 @@ describe('parse runs', () => {
     await withTenant(db, user.id, async (scope) => {
       const resume = unwrap(await uploadResume(scope, { filename: 'cv.pdf', bytes: pdf }, { storageRoot }))
       const v1 = unwrap(await startParse(scope, { resumeId: resume.id, ...task }))
-      if (v1.kind === 'started') await completeParse(scope, { parseId: v1.parseId, result: {}, traces: [] })
+      if (v1.kind === 'started') await completeParse(scope, { ...attemptOf(v1), result: {}, traces: [] })
       const v2 = unwrap(await startParse(scope, { resumeId: resume.id, task: 'test.parse', taskVersion: 2 }))
       expect(v2.kind).toBe('started')
+    })
+  })
+
+  test('a run held by a live lease is not claimed by a second worker', async ({ db }) => {
+    const user = await aUser(db)
+    await withTenant(db, user.id, async (scope) => {
+      const resume = unwrap(await uploadResume(scope, { filename: 'cv.pdf', bytes: pdf }, { storageRoot }))
+      const first = attemptOf(unwrap(await startParse(scope, { resumeId: resume.id, ...task })))
+      expect(unwrap(await startParse(scope, { resumeId: resume.id, ...task }))).toEqual({ kind: 'in_progress' })
+
+      const parse = await getLatestParse(scope, resume.id)
+      expect(parse?.status).toBe('running')
+      expect(parse?.leaseExpiresAt?.getTime()).toBeGreaterThan(Date.now() + 4 * 60_000)
+      expect(parse && isParseStalled(parse)).toBe(false)
+      expect((await completeParse(scope, { ...first, result: {}, traces: [] })).ok).toBe(true)
+    })
+  })
+
+  test('an expired lease is reclaimed by a new attempt, and the old attempt can no longer finish', async ({ db }) => {
+    const user = await aUser(db)
+    await withTenant(db, user.id, async (scope) => {
+      const resume = unwrap(await uploadResume(scope, { filename: 'cv.pdf', bytes: pdf }, { storageRoot }))
+      const old = attemptOf(unwrap(await startParse(scope, { resumeId: resume.id, ...task })))
+      await expireLease(scope, old.parseId)
+      const stalled = await getLatestParse(scope, resume.id)
+      expect(stalled && isParseStalled(stalled)).toBe(true)
+
+      const current = attemptOf(unwrap(await startParse(scope, { resumeId: resume.id, ...task })))
+      expect(current.parseId).toBe(old.parseId)
+      expect(current.attemptId).not.toBe(old.attemptId)
+
+      const oldFail = await failParse(scope, { ...old, errorCode: 'upstream_failed', errorMessage: 'late', traces: [trace(10)] })
+      const oldComplete = await completeParse(scope, { ...old, result: { from: 'old' }, traces: [trace(10)] })
+      expect([oldFail, oldComplete].map((r) => !r.ok && r.error.code)).toEqual(['conflict', 'conflict'])
+
+      expect((await completeParse(scope, { ...current, result: { from: 'current' }, traces: [trace(20)] })).ok).toBe(true)
+      expect(await getLatestParse(scope, resume.id)).toMatchObject({
+        status: 'succeeded', result: { from: 'current' }, costMicroUsd: 20, leaseExpiresAt: null,
+      })
+    })
+  })
+
+  test('only the current attempt can renew its lease', async ({ db }) => {
+    const user = await aUser(db)
+    await withTenant(db, user.id, async (scope) => {
+      const resume = unwrap(await uploadResume(scope, { filename: 'cv.pdf', bytes: pdf }, { storageRoot }))
+      const run = attemptOf(unwrap(await startParse(scope, { resumeId: resume.id, ...task })))
+      await expireLease(scope, run.parseId)
+
+      expect((await renewParseLease(scope, run)).ok).toBe(true)
+      const renewed = await getLatestParse(scope, resume.id)
+      expect(renewed && isParseStalled(renewed)).toBe(false)
+
+      const stranger = await renewParseLease(scope, { parseId: run.parseId, attemptId: randomUUID() })
+      expect(!stranger.ok && stranger.error.code).toBe('conflict')
+
+      await failParse(scope, { ...run, errorCode: 'validation_failed', errorMessage: 'bad', traces: [] })
+      const afterFinish = await renewParseLease(scope, run)
+      expect(!afterFinish.ok && afterFinish.error.code).toBe('conflict')
+      expect(await getLatestParse(scope, resume.id)).toMatchObject({ status: 'failed', leaseExpiresAt: null })
     })
   })
 

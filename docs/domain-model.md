@@ -82,12 +82,19 @@ the model call. It replaces the `parsed_payload` / `parse_status` / `parse_revie
 columns once planned for `resumes`, which kept a mutable status on an immutable row.
 
 `id`, `user_id`, `resume_id`, `task`, `task_version`, `status` (`running` | `succeeded`
-| `failed`), `result` (jsonb, shaped by the task), `traces` (jsonb, every attempt),
-`model`, `cost_micro_usd`, `error_code`, `error_message`, `started_at`, `completed_at`.
+| `failed`), `attempt_id`, `lease_expires_at`, `result` (jsonb, shaped by the task),
+`traces` (jsonb, every attempt), `model`, `cost_micro_usd`, `error_code`,
+`error_message`, `started_at`, `completed_at`.
 
 Unique on `(resume_id, task, task_version)`. A retry resumes the same row, and traces and
 cost accumulate across attempts. An improved prompt version is a new row, which is how a
 resume is re-parsed without touching the original run.
+
+- **Ownership is leased** (decision 0007). Each claim writes a new `attempt_id` and a
+  `lease_expires_at` that the worker renews. Only that attempt can complete or fail the
+  run. A CHECK keeps `lease_expires_at` set exactly while `running`.
+- A `running` row whose lease has expired is *stalled*: its worker died. It can be
+  reclaimed by a retry or deleted with its resume.
 
 ### `career_items`
 The grounding source for every piece of generated text. If a claim is not here, it may

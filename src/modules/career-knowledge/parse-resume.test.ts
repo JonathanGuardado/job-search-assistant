@@ -66,6 +66,8 @@ async function uploaded(db: Db) {
   return { userId: user.id, resumeId: resume.id }
 }
 
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
+
 const failure = (code: AiError['code']) =>
   err<AiError>({ code, message: `model ${code}`, traces: code === 'upstream_failed' ? [] : [trace] })
 
@@ -137,6 +139,52 @@ describe('runResumeParse', () => {
       errorCode: 'internal_error',
       errorMessage: 'AI_API_KEY is not set',
     })
+  })
+
+  test('a second job for a run in progress does not call the model again', async ({ db }) => {
+    const payload = await uploaded(db)
+    const duplicate = stub()
+    let duplicateResult: Awaited<ReturnType<typeof runResumeParse>> | undefined
+    const extract: ExtractCareerItems = async () => {
+      duplicateResult = await runResumeParse(db, payload, duplicate.extract)
+      return ok({ value: extracted, traces: [trace] })
+    }
+
+    expect((await runResumeParse(db, payload, extract)).ok).toBe(true)
+    expect(duplicateResult?.ok).toBe(true)
+    expect(duplicate.calls).toHaveLength(0)
+    expect(await withTenant(db, payload.userId, (scope) => listCareerItems(scope))).toHaveLength(1)
+  })
+
+  test('the lease is renewed during a long model call, so the run is not taken over', async ({ db }) => {
+    const payload = await uploaded(db)
+    const lease = { leaseMs: 200, renewEveryMs: 40 }
+    const duplicate = stub()
+    const extract: ExtractCareerItems = async () => {
+      await sleep(500) // well past the original lease
+      await runResumeParse(db, payload, duplicate.extract, lease)
+      return ok({ value: extracted, traces: [trace] })
+    }
+
+    expect((await runResumeParse(db, payload, extract, lease)).ok).toBe(true)
+    expect(duplicate.calls).toHaveLength(0)
+  })
+
+  test('an attempt whose lease lapsed and was reclaimed cannot overwrite the newer result', async ({ db }) => {
+    const payload = await uploaded(db)
+    const lease = { leaseMs: 50, renewEveryMs: 60_000 } // effectively never renewed: a stalled worker
+    const newer = stub(ok({ value: extracted, traces: [trace] }))
+    const extract: ExtractCareerItems = async () => {
+      await sleep(120)
+      expect((await runResumeParse(db, payload, newer.extract, lease)).ok).toBe(true)
+      return ok({ value: { items: [] }, traces: [trace] })
+    }
+
+    expect((await runResumeParse(db, payload, extract, lease)).ok).toBe(true)
+    expect(newer.calls).toHaveLength(1)
+    expect(await withTenant(db, payload.userId, (scope) => listCareerItems(scope))).toHaveLength(1)
+    const report = await withTenant(db, payload.userId, (scope) => getParseReport(scope, payload.resumeId))
+    expect(report.parse).toMatchObject({ status: 'succeeded', result: { draftCount: 1 }, costMicroUsd: 700 })
   })
 
   test("a parse cannot be run against another user's resume", async ({ db }) => {

@@ -1,4 +1,5 @@
-import { and, desc, eq, getTableColumns, inArray, max, sql } from 'drizzle-orm'
+import { randomUUID } from 'node:crypto'
+import { and, desc, eq, getTableColumns, gt, inArray, max, sql } from 'drizzle-orm'
 import type { TenantScope } from '@/lib/db/tenancy'
 import { domainError, err, ok, type Result } from '@/lib/result'
 import type { ModelTrace } from '@/modules/ai'
@@ -7,6 +8,7 @@ import { removeFile, sha256, storageKeyFor, storeFile } from './storage.js'
 import { extractResumeText } from './text-extraction.js'
 import {
   MAX_RESUME_BYTES,
+  PARSE_LEASE_MS,
   type Resume,
   type ResumeParse,
   type ResumeSummary,
@@ -42,6 +44,7 @@ function toParse(row: ParseRow): ResumeParse {
     task: row.task,
     taskVersion: row.taskVersion,
     status: row.status,
+    leaseExpiresAt: row.leaseExpiresAt,
     result: row.result,
     traces: row.traces,
     model: row.model,
@@ -120,7 +123,13 @@ export async function listResumes(scope: TenantScope): Promise<ResumeSummary[]> 
     return {
       ...toResume(row),
       latestParse: parse
-        ? { id: parse.id, status: parse.status, errorMessage: parse.errorMessage, completedAt: parse.completedAt }
+        ? {
+            id: parse.id,
+            status: parse.status,
+            leaseExpiresAt: parse.leaseExpiresAt,
+            errorMessage: parse.errorMessage,
+            completedAt: parse.completedAt,
+          }
         : null,
     }
   })
@@ -142,8 +151,9 @@ export async function deleteResume(
   await lockResumeChanges(scope)
   const resume = await getResume(scope, resumeId)
   if (!resume.ok) return resume
+  // An expired lease means the worker died; its run must not block deletion forever.
   const [running] = await scope.db.select({ id: resumeParses.id }).from(resumeParses)
-    .where(and(eq(resumeParses.resumeId, resumeId), eq(resumeParses.status, 'running'))).limit(1)
+    .where(and(eq(resumeParses.resumeId, resumeId), gt(resumeParses.leaseExpiresAt, sql`clock_timestamp()`))).limit(1)
   if (running) return err(domainError('conflict', 'This resume is being read. Wait for parsing to finish before deleting it.'))
   const [derived] = await scope.db.select({ id: resumes.id }).from(resumes)
     .where(eq(resumes.parentId, resumeId)).limit(1)
@@ -187,30 +197,75 @@ export async function getLatestParse(scope: TenantScope, resumeId: string): Prom
 
 export type ParseStart =
   | { readonly kind: 'already_succeeded' }
-  | { readonly kind: 'started'; readonly parseId: string; readonly resume: ResumeWithText }
+  /** Another worker holds a live lease on this run. */
+  | { readonly kind: 'in_progress' }
+  | { readonly kind: 'started'; readonly parseId: string; readonly attemptId: string; readonly resume: ResumeWithText }
+
+/** Proof of ownership of a running parse. Every write to the run after the claim requires it. */
+export type ParseAttempt = { readonly parseId: string; readonly attemptId: string }
+
+// Lease times use the wall clock, not now(), which is frozen at the start of a transaction.
+const leaseUntil = (leaseMs: number) => sql`clock_timestamp() + ${leaseMs}::int * interval '1 millisecond'`
 
 /**
- * Claims a parse run. Safe to call repeatedly: a succeeded run is never
- * restarted, and a failed or interrupted one is resumed on the same row.
+ * Claims a parse run for one attempt. Safe to call repeatedly: a succeeded run is
+ * never restarted, a run under a live lease is left to its worker, and a failed run
+ * or one whose lease lapsed is resumed on the same row under a new attempt id.
  */
 export async function startParse(
   scope: TenantScope,
-  input: { readonly resumeId: string; readonly task: string; readonly taskVersion: number },
+  { leaseMs = PARSE_LEASE_MS, ...input }: {
+    readonly resumeId: string
+    readonly task: string
+    readonly taskVersion: number
+    readonly leaseMs?: number
+  },
 ): Promise<Result<ParseStart>> {
   await lockResumeChanges(scope)
   const resume = await getResume(scope, input.resumeId)
   if (!resume.ok) return resume
 
+  const attemptId = randomUUID()
+  const claim = { status: 'running', attemptId, leaseExpiresAt: leaseUntil(leaseMs) } as const
   const [row] = await scope.db
     .insert(resumeParses)
-    .values({ userId: scope.userId, ...input, status: 'running' })
+    .values({ userId: scope.userId, ...input, ...claim })
     .onConflictDoUpdate({
       target: [resumeParses.resumeId, resumeParses.task, resumeParses.taskVersion],
-      set: { status: 'running', startedAt: sql`now()`, completedAt: null, errorCode: null, errorMessage: null },
-      setWhere: sql`${resumeParses.status} <> 'succeeded'`,
+      set: { ...claim, startedAt: sql`now()`, completedAt: null, errorCode: null, errorMessage: null },
+      setWhere: sql`${resumeParses.status} = 'failed' or ${resumeParses.leaseExpiresAt} <= clock_timestamp()`,
     })
     .returning({ id: resumeParses.id })
-  return ok(row ? { kind: 'started', parseId: row.id, resume: resume.value } : { kind: 'already_succeeded' })
+  if (row) return ok({ kind: 'started', parseId: row.id, attemptId, resume: resume.value })
+
+  const [existing] = await scope.db
+    .select({ status: resumeParses.status })
+    .from(resumeParses)
+    .where(and(
+      eq(resumeParses.resumeId, input.resumeId),
+      eq(resumeParses.task, input.task),
+      eq(resumeParses.taskVersion, input.taskVersion),
+    ))
+  return ok({ kind: existing?.status === 'succeeded' ? 'already_succeeded' : 'in_progress' })
+}
+
+const heldBy = (attempt: ParseAttempt) =>
+  and(eq(resumeParses.id, attempt.parseId), eq(resumeParses.attemptId, attempt.attemptId), eq(resumeParses.status, 'running'))
+
+const lostAttempt = (attempt: ParseAttempt) =>
+  err(domainError('conflict', `parse ${attempt.parseId} is no longer held by attempt ${attempt.attemptId}`))
+
+/** Extends the lease. `conflict` means the run finished or another attempt reclaimed it. */
+export async function renewParseLease(
+  scope: TenantScope,
+  { leaseMs = PARSE_LEASE_MS, ...attempt }: ParseAttempt & { readonly leaseMs?: number },
+): Promise<Result<void>> {
+  const updated = await scope.db
+    .update(resumeParses)
+    .set({ leaseExpiresAt: leaseUntil(leaseMs) })
+    .where(heldBy(attempt))
+    .returning({ id: resumeParses.id })
+  return updated.length > 0 ? ok(undefined) : lostAttempt(attempt)
 }
 
 // Failed attempts cost money too, so traces and cost accumulate across runs of the same row.
@@ -222,25 +277,31 @@ function traceColumns(traces: readonly ModelTrace[]) {
   }
 }
 
-/** Fails with `conflict` if the run is no longer running (another worker finished it). */
+/**
+ * Fails with `conflict` if this attempt no longer holds the run, so a worker that
+ * lost its lease cannot overwrite the result of the attempt that replaced it.
+ */
 export async function completeParse(
   scope: TenantScope,
-  input: { readonly parseId: string; readonly result: unknown; readonly traces: readonly ModelTrace[] },
+  input: ParseAttempt & { readonly result: unknown; readonly traces: readonly ModelTrace[] },
 ): Promise<Result<void>> {
   const updated = await scope.db
     .update(resumeParses)
-    .set({ status: 'succeeded', result: input.result, completedAt: sql`now()`, ...traceColumns(input.traces) })
-    .where(and(eq(resumeParses.id, input.parseId), eq(resumeParses.status, 'running')))
+    .set({
+      status: 'succeeded',
+      result: input.result,
+      leaseExpiresAt: null,
+      completedAt: sql`now()`,
+      ...traceColumns(input.traces),
+    })
+    .where(heldBy(input))
     .returning({ id: resumeParses.id })
-  return updated.length > 0
-    ? ok(undefined)
-    : err(domainError('conflict', `parse ${input.parseId} is not running`))
+  return updated.length > 0 ? ok(undefined) : lostAttempt(input)
 }
 
 export async function failParse(
   scope: TenantScope,
-  input: {
-    readonly parseId: string
+  input: ParseAttempt & {
     readonly errorCode: string
     readonly errorMessage: string
     readonly traces: readonly ModelTrace[]
@@ -252,12 +313,11 @@ export async function failParse(
       status: 'failed',
       errorCode: input.errorCode,
       errorMessage: input.errorMessage,
+      leaseExpiresAt: null,
       completedAt: sql`now()`,
       ...traceColumns(input.traces),
     })
-    .where(and(eq(resumeParses.id, input.parseId), eq(resumeParses.status, 'running')))
+    .where(heldBy(input))
     .returning({ id: resumeParses.id })
-  return updated.length > 0
-    ? ok(undefined)
-    : err(domainError('conflict', `parse ${input.parseId} is not running`))
+  return updated.length > 0 ? ok(undefined) : lostAttempt(input)
 }

@@ -15,13 +15,16 @@ export {
   getResume,
   listResumes,
   removeUnusedResumeFile,
+  renewParseLease,
   startParse,
   uploadResume,
 } from './service.js'
-export type { ParseStart } from './service.js'
+export type { ParseAttempt, ParseStart } from './service.js'
 
 export {
+  isParseStalled,
   MAX_RESUME_BYTES,
+  PARSE_LEASE_MS,
   ResumeParseSchema,
   ResumeSchema,
   UploadResumeSchema,

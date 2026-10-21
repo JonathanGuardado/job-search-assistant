@@ -11,7 +11,7 @@ import {
   type EvidenceSpan,
   type RejectedValue,
 } from '@/modules/career-knowledge'
-import { getResume } from '@/modules/resumes'
+import { getResume, isParseStalled } from '@/modules/resumes'
 import { retryParseAction } from '../../actions'
 import { AutoRefresh } from '../../_components/AutoRefresh'
 import { CareerItemCard } from '../../_components/CareerItemCard'
@@ -61,7 +61,8 @@ export default async function ReviewPage({
   // D3: drafts from a new version often repeat what is already confirmed. Show both.
   const alreadyConfirmed = items.filter((i) => i.sourceResumeId !== resume.id && i.verifiedByUser)
   const focused = fromThisResume.find((i) => i.id === searchParams.item)
-  const status = report.parse?.status
+  // A stalled run lost its worker; it is presented as a failure the user can retry.
+  const status = report.parse && isParseStalled(report.parse) ? 'stalled' : report.parse?.status
   const drafts = fromThisResume.filter((i) => !i.verifiedByUser).length
 
   return (
@@ -90,10 +91,10 @@ export default async function ReviewPage({
             <button type="submit">Start reading</button>
           </form>}
         </div>
-      ) : status === 'failed' ? (
+      ) : status === 'failed' || status === 'stalled' ? (
         <div className={styles.error}>
           <strong>We couldn’t read this resume</strong>
-          <p>{report.parse?.errorMessage}</p>
+          <p>{status === 'stalled' ? 'Reading stopped before it finished.' : report.parse?.errorMessage}</p>
           <form action={retryParseAction}>
             <input type="hidden" name="resumeId" value={resume.id} />
             <button type="submit" className={styles.secondaryButton}>Try again</button>

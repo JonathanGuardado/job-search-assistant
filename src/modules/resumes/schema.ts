@@ -57,7 +57,11 @@ export const resumes = pgTable(
   ],
 )
 
-/** One run of a parse task. Mutable status; a better prompt version is a new row. */
+/**
+ * One run of a parse task. Mutable status; a better prompt version is a new row.
+ * A worker owns a running row only while its lease is live (decision 0007): each
+ * claim issues a new attempt id, and only that attempt may renew, complete, or fail it.
+ */
 export const resumeParses = pgTable(
   'resume_parses',
   {
@@ -71,6 +75,8 @@ export const resumeParses = pgTable(
     task: text('task').notNull(),
     taskVersion: integer('task_version').notNull(),
     status: text('status', { enum: PARSE_STATUSES }).notNull(),
+    attemptId: uuid('attempt_id').notNull().defaultRandom(),
+    leaseExpiresAt: timestamptz('lease_expires_at'),
     result: jsonb('result'),
     traces: jsonb('traces').$type<ModelTrace[]>().notNull().default([]),
     model: text('model'),
@@ -83,6 +89,7 @@ export const resumeParses = pgTable(
   (t) => [
     unique('resume_parses_resume_task_key').on(t.resumeId, t.task, t.taskVersion),
     check('resume_parses_status_check', sql`${t.status} in (${literals(PARSE_STATUSES)})`),
+    check('resume_parses_lease_check', sql`(${t.status} = 'running') = (${t.leaseExpiresAt} is not null)`),
     tenantIsolation(),
   ],
 )

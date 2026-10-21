@@ -37,6 +37,13 @@ export const UploadResumeSchema = z.object({
 export type UploadResume = z.infer<typeof UploadResumeSchema>
 
 export const PARSE_STATUSES = ['running', 'succeeded', 'failed'] as const
+
+/**
+ * How long a worker owns a running parse without renewing. A model call can take
+ * several minutes (provider timeouts plus a validation retry), so workers renew
+ * well inside this window rather than sizing it to the slowest call.
+ */
+export const PARSE_LEASE_MS = 5 * 60_000
 export const ParseStatusSchema = z.enum(PARSE_STATUSES)
 export type ParseStatus = z.infer<typeof ParseStatusSchema>
 
@@ -51,6 +58,8 @@ export const ResumeParseSchema = z.object({
   task: z.string(),
   taskVersion: z.number().int().positive(),
   status: ParseStatusSchema,
+  /** Set only while running. A running parse past this time has lost its worker. */
+  leaseExpiresAt: z.date().nullable(),
   result: z.unknown(),
   traces: z.array(ModelTraceSchema),
   model: z.string().nullable(),
@@ -62,7 +71,12 @@ export const ResumeParseSchema = z.object({
 })
 export type ResumeParse = z.infer<typeof ResumeParseSchema>
 
+/** A running parse whose worker stopped renewing its lease. It can be retried or deleted. */
+export function isParseStalled(parse: Pick<ResumeParse, 'status' | 'leaseExpiresAt'>, now = new Date()): boolean {
+  return parse.status === 'running' && parse.leaseExpiresAt !== null && parse.leaseExpiresAt <= now
+}
+
 /** A version plus the state of its most recent parse; `null` means none has started yet. */
 export type ResumeSummary = Resume & {
-  readonly latestParse: Pick<ResumeParse, 'id' | 'status' | 'errorMessage' | 'completedAt'> | null
+  readonly latestParse: Pick<ResumeParse, 'id' | 'status' | 'leaseExpiresAt' | 'errorMessage' | 'completedAt'> | null
 }

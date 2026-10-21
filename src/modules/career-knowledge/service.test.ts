@@ -50,15 +50,15 @@ const asEdit = ({ evidence: _evidence, ...fields }: CareerItemDraft): CareerItem
 async function withDrafts(db: Db, drafts: CareerItemDraft[]) {
   const user = await ensureUser(db, { email: `career-${randomUUID()}@test.local` })
   const run = async <T>(work: (scope: TenantScope) => Promise<T>) => withTenant(db, user.id, work)
-  const resumeId = await run(async (scope) => {
+  const { resumeId, parse } = await run(async (scope) => {
     const resume = unwrap(await uploadResume(scope, { filename: 'cv.pdf', bytes: pdf }, { storageRoot }))
     const started = unwrap(await startParse(scope, { resumeId: resume.id, task: 't', taskVersion: 1 }))
     if (started.kind !== 'started') throw new Error('expected a started run')
     await recordDrafts(scope, { sourceResumeId: resume.id, sourceParseId: started.parseId, drafts })
-    return resume.id
+    return { resumeId: resume.id, parse: { parseId: started.parseId, attemptId: started.attemptId } }
   })
   const items = await run((scope) => listCareerItems(scope, { sourceResumeId: resumeId }))
-  return { user, run, resumeId, items }
+  return { user, run, resumeId, parse, items }
 }
 
 describe('grounding invariant', () => {
@@ -107,14 +107,12 @@ describe('listCareerItems', () => {
 
 describe('review actions', () => {
   test('deleting a resume removes drafts and preserves confirmed grounding items and evidence', async ({ db }) => {
-    const { run, resumeId, items } = await withDrafts(db, [draft(), draft({ organization: 'Globex' })])
+    const { run, resumeId, parse, items } = await withDrafts(db, [draft(), draft({ organization: 'Globex' })])
     const first = items[0]
     if (!first) throw new Error('expected a draft')
     const confirmed = unwrap(await run((scope) => confirmCareerItem(scope, first.id, asEdit(draft()))))
     await run(async (scope) => {
-      const parse = await getLatestParse(scope, resumeId)
-      if (!parse) throw new Error('expected a parse')
-      unwrap(await completeParse(scope, { parseId: parse.id, result: {}, traces: [] }))
+      unwrap(await completeParse(scope, { ...parse, result: {}, traces: [] }))
       unwrap(await deleteResume(scope, resumeId, prepareCareerItemsForResumeDeletion))
     })
     expect(await run((scope) => listCareerItems(scope))).toEqual([{
@@ -132,12 +130,8 @@ describe('review actions', () => {
   })
 
   test('a failed deletion transaction restores the resume, parses, and drafts', async ({ db }) => {
-    const { user, run, resumeId, items } = await withDrafts(db, [draft()])
-    await run(async (scope) => {
-      const parse = await getLatestParse(scope, resumeId)
-      if (!parse) throw new Error('expected a parse')
-      unwrap(await completeParse(scope, { parseId: parse.id, result: {}, traces: [] }))
-    })
+    const { user, run, resumeId, parse, items } = await withDrafts(db, [draft()])
+    await run(async (scope) => unwrap(await completeParse(scope, { ...parse, result: {}, traces: [] })))
     const error = await dbErrorFrom(db, (executor) => withTenant(executor, user.id, async (scope) => {
       unwrap(await deleteResume(scope, resumeId, prepareCareerItemsForResumeDeletion))
       throw new Error('simulated commit failure')
