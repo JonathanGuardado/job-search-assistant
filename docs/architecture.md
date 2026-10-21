@@ -85,8 +85,9 @@ machines with persisted state: a crash resumes at the last committed step.
 Postgres row-level security enforces tenant isolation (decision 0004). The app connects
 as `job_seeker_app`, which owns no tables. Per-user work runs inside
 `withTenant(db, userId, …)`, and service functions that touch per-user tables take a
-`TenantScope`. A query outside a scope fails with `tenant not set`, never with an empty
-result.
+`TenantScope`. A query outside a scope fails with `tenant not set` once it reaches a row.
+Postgres evaluates the policy lazily, so the same query on an empty table returns nothing
+instead of failing. That leaks nothing, but it means the error is not a guarantee.
 
 ## Workflow engine
 

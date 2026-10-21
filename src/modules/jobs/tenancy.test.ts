@@ -21,8 +21,20 @@ async function twoUsersAndAJob(db: Db) {
   return { alice, bob, job }
 }
 
+/**
+ * Postgres evaluates the policy's tenant lookup lazily, on the first row it filters,
+ * so an empty table answers an unscoped query with nothing rather than an error.
+ * The fail-loudly tests seed a row so they never depend on what the database holds.
+ */
+async function aStoredState(db: Db) {
+  const { alice, bob, job } = await twoUsersAndAJob(db)
+  await withTenant(db, alice.id, (scope) => setJobUserState(scope, { jobId: job.id, state: 'saved' }))
+  return { alice, bob, job }
+}
+
 describe('tenant isolation', () => {
   test('a per-user query outside withTenant fails loudly', async ({ db }) => {
+    await aStoredState(db)
     const error = await dbErrorFrom(db, (d) => d.select().from(jobUserStates))
     expect(error).toContain('tenant not set')
   })
@@ -71,7 +83,7 @@ describe('tenant isolation', () => {
   })
 
   test('the tenant does not outlive its scope', async ({ db }) => {
-    const { alice } = await twoUsersAndAJob(db)
+    const { alice } = await aStoredState(db)
     await withTenant(db, alice.id, async () => undefined)
 
     const error = await dbErrorFrom(db, (d) => d.select().from(jobUserStates))
