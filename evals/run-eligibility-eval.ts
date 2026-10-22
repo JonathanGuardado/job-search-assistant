@@ -32,10 +32,13 @@ const LabelSchema = z.object({
   quote: z.string(),
   basis: z.enum(['stated', 'location-only']),
 })
+const SPLITS = ['tuning', 'holdout'] as const
 const CaseSchema = z.object({
   id: z.string(),
   jobId: z.uuid(),
   category: z.string(),
+  /** tuning: prompts and rules were shaped against it. holdout: labeled before any run, never tuned on. */
+  split: z.enum(SPLITS),
   posting: z.object({
     company: z.string(),
     title: z.string(),
@@ -66,7 +69,11 @@ const TARGETS = { precision: 0.95, recall: 0.8, reviewShare: 0.25, quoteRate: 0.
 const CACHE_PATH = 'evals/.cache/claims.json'
 
 const profiles = ProfilesSchema.parse(JSON.parse(readFileSync('evals/profiles.json', 'utf8')))
+// `pnpm eval:eligibility -- --split=holdout` runs one split; the default runs both.
+const splitArg = process.argv.find((arg) => arg.startsWith('--split='))?.slice('--split='.length)
+const split = splitArg === undefined ? null : z.enum(SPLITS).parse(splitArg)
 const cases = readFileSync('evals/dataset.jsonl', 'utf8').trim().split('\n').map((line) => CaseSchema.parse(JSON.parse(line)))
+  .filter((c) => split === null || c.split === split)
 const cache: Record<string, CacheEntry> = existsSync(CACHE_PATH) ? CacheSchema.parse(JSON.parse(readFileSync(CACHE_PATH, 'utf8'))) : {}
 
 function jobOf(c: Case): EligibilityJob {
@@ -182,7 +189,7 @@ const lines: string[] = []
 const say = (line = '') => lines.push(line)
 const costMicroUsd = Object.values(cache).reduce((s, e) => s + e.costMicroUsd, 0)
 
-say(`Eligibility eval: ${cases.length} postings, ${outcomes.length} labeled verdicts, prompt ${extractClaimsTask.name}@${extractClaimsTask.version}`)
+say(`Eligibility eval (${split ?? 'all splits'}): ${cases.length} postings, ${outcomes.length} labeled verdicts, prompt ${extractClaimsTask.name}@${extractClaimsTask.version}`)
 say(`Model calls this run: ${modelCalls} (cached extractions cost $${(costMicroUsd / 1e6).toFixed(4)} in total)`)
 say()
 say(`| Metric | Value | Target | |`)
