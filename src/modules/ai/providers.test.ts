@@ -134,6 +134,15 @@ describe('provider HTTP failures', () => {
     expect(fetcher).toHaveBeenCalledTimes(2)
   })
 
+  it('reports a quota that stays exhausted as rate_limited, so the queue can pause', async () => {
+    vi.useFakeTimers()
+    const fetcher = vi.fn<typeof fetch>().mockImplementation(async () => new Response('quota', { status: 429 }))
+    const pending = geminiProvider('test-key', fetcher).complete(request)
+    await vi.runAllTimersAsync()
+    expect(await pending).toMatchObject({ ok: false, error: { code: 'rate_limited' } })
+    expect(fetcher).toHaveBeenCalledTimes(3)
+  })
+
   it('bounds network retries and does not expose request credentials', async () => {
     vi.useFakeTimers()
     const fetcher = vi.fn<typeof fetch>().mockRejectedValue(new Error('secret-test-key'))

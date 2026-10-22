@@ -8,6 +8,18 @@ import {
 import { saveProfileAction } from '../actions'
 import styles from '../settings.module.css'
 
+const REGIONS = [
+  ['worldwide', 'Anywhere (worldwide)'], ['latam', 'Latin America'], ['namer', 'North America (US and Canada)'],
+  ['emea', 'Europe, Middle East and Africa'], ['apac', 'Asia-Pacific'],
+] as const
+const regionName = new Intl.DisplayNames('en', { type: 'region' })
+const countryName = (code: string) => regionName.of(code) ?? code
+// Every ISO 3166-1 alpha-2 code the runtime can name, so the list is predefined rather than typed.
+const COUNTRIES = Array.from({ length: 26 * 26 }, (_, i) => String.fromCharCode(65 + Math.floor(i / 26), 65 + (i % 26)))
+  .filter((code) => { const name = regionName.of(code); return name !== undefined && name !== code && !/unknown/i.test(name) })
+  .sort((a, b) => countryName(a).localeCompare(countryName(b)))
+const TIMEZONES = Intl.supportedValuesOf('timeZone')
+
 function Constraint({ field, label, hint, profile, children }: {
   readonly field: ConstraintField
   readonly label: string
@@ -33,7 +45,11 @@ function Constraint({ field, label, hint, profile, children }: {
   )
 }
 
-export function ProfileForm({ profile }: { readonly profile: CandidateProfile | null }) {
+export function ProfileForm({ profile, regionCountries }: {
+  readonly profile: CandidateProfile | null
+  /** Region → ISO codes, from the eligibility rule's table, so every option is one the rule understands. */
+  readonly regionCountries: Readonly<Record<string, readonly string[]>>
+}) {
   const [errors, setErrors] = useState<string[]>([])
   const [authorizations, setAuthorizations] = useState((profile?.workAuthorizations ?? []).map((entry, key) => ({ ...entry, key })))
   const [nextKey, setNextKey] = useState(authorizations.length)
@@ -56,9 +72,13 @@ export function ProfileForm({ profile }: { readonly profile: CandidateProfile | 
       {errors.length > 0 && <div className={styles.error} role="alert"><strong>Check these fields before saving:</strong><ul>{errors.map((error, index) => <li key={index}>{error}</li>)}</ul></div>}
       <section className={styles.section}>
         <h2>Location and authorization</h2>
-        {row('country', 'Country', text('country', 'Country', 'Two-letter code, e.g. SV'))}
+        {row('country', 'Country', <select name="country" aria-label="Country" defaultValue={defaults?.country ?? ''} required><option value="" disabled>Choose your country</option>{COUNTRIES.map((code) => <option value={code} key={code}>{countryName(code)}</option>)}</select>, 'Where you live and work from.')}
         {row('city', 'City', text('city', 'City', 'Your city'))}
-        {row('timezone', 'Timezone', text('timezone', 'Timezone', 'America/El_Salvador'))}
+        {row('timezone', 'Timezone', <select name="timezone" aria-label="Timezone" defaultValue={defaults?.timezone ?? ''} required>
+          <option value="" disabled>Choose your timezone</option>
+          {defaults && !TIMEZONES.includes(defaults.timezone) && <option value={defaults.timezone}>{defaults.timezone} (current, not a standard zone)</option>}
+          {TIMEZONES.map((zone) => <option value={zone} key={zone}>{zone.replaceAll('_', ' ')}</option>)}
+        </select>, 'Pick your city’s zone, e.g. America/El Salvador. Abbreviations like CST shift with daylight saving.')}
         {row('workAuthorizations', 'Work authorizations', <>
           {authorizations.map((authorization) => <div className={styles.authorization} key={authorization.key}>
             <label>Country<input name="authorizationCountry" defaultValue={authorization.country} placeholder="Country code" required /></label>
@@ -82,7 +102,13 @@ export function ProfileForm({ profile }: { readonly profile: CandidateProfile | 
       </section>
       <section className={styles.section}>
         <h2>Work arrangement</h2>
-        {row('allowedRegions', 'Allowed regions', list('allowedRegions', 'Allowed regions'), 'Separate worldwide, latam, emea, apac, namer, or two-letter country codes with commas.')}
+        {row('allowedRegions', 'Where you can work', <>
+          <div className={styles.options}>{REGIONS.map(([value, label]) => <label className={styles.checkbox} key={value}><input type="checkbox" name="allowedRegions" value={value} defaultChecked={defaults?.allowedRegions.includes(value) ?? false} />{label}</label>)}</div>
+          {Object.entries(regionCountries).map(([region, codes]) => <details key={region}>
+            <summary>Extra countries in {REGIONS.find(([value]) => value === region)?.[1]}</summary>
+            <div className={styles.options}>{[...codes].sort((a, b) => countryName(a).localeCompare(countryName(b))).map((code) => <label className={styles.checkbox} key={code}><input type="checkbox" name="allowedRegions" value={code.toLowerCase()} defaultChecked={defaults?.allowedRegions.includes(code.toLowerCase()) ?? false} />{countryName(code)}</label>)}</div>
+          </details>)}
+        </>, 'Remote jobs hiring in a region you select, or in your own country, count as open to you. Select a single country only if you can legally work there.')}
         {row('employmentTypes', 'Employment arrangements', <div className={styles.options}>{EMPLOYMENT_TYPES.map((kind) => <label className={styles.checkbox} key={kind}><input type="checkbox" name="employmentTypes" value={kind} defaultChecked={defaults?.employmentTypes.includes(kind) ?? false} />{kind === 'eor' ? 'Employer of record (EOR)' : kind === 'employee' ? 'Employee' : 'Contractor'}</label>)}</div>)}
       </section>
       <section className={styles.section}>
@@ -95,7 +121,7 @@ export function ProfileForm({ profile }: { readonly profile: CandidateProfile | 
         {row('excludedCompanies', 'Excluded companies', list('excludedCompanies', 'Excluded companies'), 'Separate companies with commas or new lines.')}
         {row('excludedIndustries', 'Excluded industries', list('excludedIndustries', 'Excluded industries'))}
       </section>
-      <div className={styles.footer}><p>These settings are saved for your profile. Job assessment will use them when that pipeline is connected.</p><button className={styles.primary} type="submit">Save profile</button></div>
+      <div className={styles.footer}><p>Saving re-checks every open job against these settings in the background.</p><button className={styles.primary} type="submit">Save profile</button></div>
     </form>
   )
 }

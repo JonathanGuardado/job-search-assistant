@@ -7,8 +7,10 @@ function formFixture() {
   const form = new FormData()
   for (const [key, value] of Object.entries(profileFixture)) {
     if (typeof value === 'string') form.set(key, value)
-    else if (Array.isArray(value) && key !== 'workAuthorizations' && key !== 'employmentTypes') form.set(key, value.join(', '))
+    else if (Array.isArray(value) && !['workAuthorizations', 'employmentTypes', 'allowedRegions'].includes(key)) form.set(key, value.join(', '))
   }
+  // Allowed regions are checkboxes: one form value per selected region or country.
+  for (const region of profileFixture.allowedRegions) form.append('allowedRegions', region)
   form.set('salaryFloor', '123.45')
   for (const kind of profileFixture.employmentTypes) form.append('employmentTypes', kind)
   for (const authorization of profileFixture.workAuthorizations) {
@@ -41,7 +43,8 @@ describe('profile form validation', () => {
   it('normalizes country codes and allows an empty authorization list and salary floor', () => {
     const form = formFixture()
     form.set('country', 'sv')
-    form.set('allowedRegions', 'LATAM, US')
+    form.delete('allowedRegions')
+    for (const value of ['LATAM', 'US', 'latam']) form.append('allowedRegions', value)
     for (const name of ['authorizationCountry', 'authorizationType', 'authorizationExpiresAt']) form.delete(name)
     form.set('salaryFloor', '')
     const parsed = CandidateProfileFormSchema.parse(profileFormInput(form))

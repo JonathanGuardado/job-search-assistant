@@ -73,7 +73,8 @@ exported from that module's `index.ts`. Queues:
 | --- | --- | --- |
 | `source-poll` | Fetch one page from one source | Cron per source |
 | `job-normalize` | One raw version → its job, then duplicate links | Per poll page, for new or changed postings |
-| `assess-eligibility` | One candidate × one job | On new job, on profile change |
+| `assess-eligibility` | One candidate × one job | After a job is normalized; after a profile save (via `eligibility-reassess-user`) |
+| `eligibility-reassess-user` | Queue every open job for one candidate | On profile save |
 | `assess-match` | One candidate × one eligible job | After eligibility |
 | `resume-parse` | One resume version → draft career items | On upload |
 

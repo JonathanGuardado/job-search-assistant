@@ -22,10 +22,13 @@ afterEach(async () => {
   for (const cleanup of cleanups.splice(0).reverse()) await cleanup()
 })
 
-async function harness(handler: (p: JobNormalizePayload) => Promise<Result<unknown, DomainError>>) {
+async function harness(
+  handler: (p: JobNormalizePayload) => Promise<Result<unknown, DomainError>>,
+  overrides: { readonly attempts?: number; readonly rateLimitPauseMs?: number } = {},
+) {
   const connection = connectRedis(getEnv().REDIS_URL)
   const eventsConnection = connectRedis(getEnv().REDIS_URL)
-  const options = { connection, prefix: `test-${randomUUID()}`, attempts: 3, backoffMs: 10 }
+  const options = { connection, prefix: `test-${randomUUID()}`, attempts: 3, backoffMs: 10, ...overrides }
   const opened = jobNormalizeQueue.open(options)
   const worker: Worker = jobNormalizeQueue.work(options, handler)
   const events = new QueueEvents(jobNormalizeQueue.name, { connection: eventsConnection, prefix: options.prefix })
@@ -76,6 +79,20 @@ describe('job-normalize queue', () => {
 
     await first.waitUntilFinished(q.events)
     expect(calls).toBe(1)
+  })
+
+  test('a rate-limited job pauses the worker and runs again without spending an attempt', async () => {
+    let calls = 0
+    const q = await harness(async () => {
+      calls += 1
+      return calls === 1 ? err(domainError('rate_limited', 'quota')) : err(domainError('not_found', 'done'))
+    }, { attempts: 1, rateLimitPauseMs: 50 })
+
+    const id = randomUUID()
+    const queued = await q.enqueue({ rawJobId: id }, jobNormalizeKey(id))
+    // With one attempt, a counted retry would have failed for good on the rate limit.
+    await expect(queued.waitUntilFinished(q.events)).rejects.toThrow('not_found')
+    expect(calls).toBe(2)
   })
 
   test('a permanent failure is not retried', async () => {

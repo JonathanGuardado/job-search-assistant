@@ -7,10 +7,14 @@
  * reached only through functions that take a TenantScope. Model-free.
  */
 
+// Exported for foreign keys only. Only this module writes it.
+export { jobs } from './schema.js'
+
 export {
   closeUnseenJobs,
   getJob,
   getJobUserState,
+  listAssessableJobs,
   recordSightings,
   setJobUserState,
   upsertJobFromRaw,

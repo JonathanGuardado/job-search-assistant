@@ -3,7 +3,12 @@
 Phase 1 only. Later phases are listed at the bottom so their scope stays visible, but
 nothing from them gets built yet.
 
-**Active milestone: 1.6 eligibility v1.** 1.1 through 1.5 are closed. Jobs are normalized
+**Active milestone: 1.6 eligibility v1.** 1.1 through 1.5 are closed. The engine,
+storage, background jobs and eval harness are built; on 84 labeled postings, prompt v3
+meets every target (precision 98.6%, recall 90.0%, needs_review 13.5%, quotes 99.4%; see
+[eligibility eval](eligibility-eval.md)). The owner reviewed and accepted the labels on
+2026-10-21. Before the phase gate: one run on a fresh labeled set the prompt has never
+seen. Jobs are normalized
 from raw capture, duplicates are linked under decision 0008, and open/closed state follows
 each poll. 1.5's sample measured 2.0%, at the target rather than under it; the owner
 accepted it on 2026-10-21 because the only failure mode is one company's bilingual

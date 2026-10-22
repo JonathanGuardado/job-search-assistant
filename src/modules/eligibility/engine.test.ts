@@ -18,6 +18,8 @@ const profile = (overrides: Partial<EligibilityProfile> = {}): EligibilityProfil
 
 const job = (overrides: Partial<EligibilityJob> = {}): EligibilityJob => ({
   id: 'job-1',
+  title: 'Senior Engineer',
+  locationText: null,
   description: 'We are hiring a senior engineer.',
   locationPolicy: 'remote',
   locationCountry: null,
@@ -179,7 +181,7 @@ describe('preferences never reject', () => {
 })
 
 describe('quote validation', () => {
-  const source = 'This role is open to candidates in LATAM. We cannot sponsor visas.'
+  const source = job({ description: 'This role is open to candidates in LATAM. We cannot sponsor visas.' })
 
   it('keeps a claim whose quote appears verbatim', () => {
     const { claims: sanitized, stripped } = validateQuotes(
@@ -233,13 +235,13 @@ describe('onsite', () => {
     expect(result.verdict).toBe('not_eligible')
   })
 
-  it('accepts an onsite role abroad when the candidate will relocate', () => {
+  it('relocation alone does not clear an onsite role abroad: sponsorship is the open question (D4)', () => {
     const result = evaluateRules(
       profile({ willingToRelocate: true }),
       job({ locationPolicy: 'onsite', locationCountry: 'DE' }),
       claims(),
       'structured',
     )
-    expect(result.verdict).toBe('eligible')
+    expect(result).toMatchObject({ verdict: 'needs_review', openQuestions: [expect.stringContaining('DE')] })
   })
 })

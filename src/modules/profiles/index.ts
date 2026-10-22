@@ -5,7 +5,7 @@
  * Only this module writes to it.
  */
 export { users } from './schema.js'
-export { ensureUser } from './service.js'
+export { ensureUser, listUserIds } from './service.js'
 export { NewUserSchema, UserSchema } from './types.js'
 export type { NewUser, User } from './types.js'
 export { getCandidateProfile, saveCandidateProfile } from './service.js'

@@ -48,6 +48,8 @@ export const RelocationClaimSchema = z.object({
 export const OnsiteClaimSchema = z.object({
   kind: z.enum(['onsite', 'hybrid', 'remote', 'unspecified']),
   daysInOffice: z.number().min(0).max(7).optional(),
+  /** ISO 3166-1 alpha-2 of where an onsite or hybrid role is. Greenhouse never gives this structurally. */
+  countries: z.array(z.string().length(2)).optional(),
   quote,
 })
 
@@ -139,6 +141,9 @@ export const ALWAYS_HARD: ReadonlySet<HardConstraintKey> = new Set([
 /** The slice of the job the rules read. */
 export type EligibilityJob = {
   readonly id: string
+  /** Title and location line are part of the posting: quotes may come from them. */
+  readonly title: string
+  readonly locationText: string | null
   readonly description: string
   readonly locationPolicy: 'onsite' | 'hybrid' | 'remote' | 'unknown'
   readonly locationCountry: string | null
@@ -171,6 +176,16 @@ export type EligibilityVerdict =
       readonly openQuestions: readonly string[]
     }
 
-export type AssessmentStage = 'structured' | 'extracted' | 'partial'
+export const ASSESSMENT_STAGES = ['structured', 'extracted', 'partial'] as const
+export type AssessmentStage = (typeof ASSESSMENT_STAGES)[number]
+
+export const VERDICTS = ['eligible', 'not_eligible', 'needs_review'] as const
+export type Verdict = (typeof VERDICTS)[number]
+
+/** Why, stored with every assessment: the deciding rule, or the questions left open. */
+export type AssessmentReasons =
+  | { readonly ruleId: RuleId; readonly reason: string }
+  | { readonly openQuestions: readonly string[] }
+  | Record<string, never>
 
 export const ENGINE_VERSION = 1

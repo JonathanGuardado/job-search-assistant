@@ -19,7 +19,7 @@
     "db:migrate": "tsx --env-file=.env.local scripts/db-migrate.ts",
     "db:bootstrap": "tsx --env-file=.env.local scripts/db-bootstrap.ts",
     "ai:smoke": "tsx --env-file=.env.local scripts/ai-smoke.ts",
-    "eval:eligibility": "tsx evals/run-eligibility-eval.ts",
+    "eval:eligibility": "tsx --env-file=.env.local evals/run-eligibility-eval.ts",
     "sources:seed": "tsx --env-file=.env.local scripts/seed-sources.ts",
     "sources:check": "tsx --env-file=.env.local scripts/check-normalization.ts",
     "jobs:renormalize": "tsx --env-file=.env.local scripts/renormalize.ts",

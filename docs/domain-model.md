@@ -169,15 +169,27 @@ units of weak currencies overflow 32 bits.
 ### `job_posting_snapshots`
 `id`, `job_id`, `full_text`, `captured_at`. Postings disappear; applications must not.
 
+### `job_eligibility_claims`
+Owned by `eligibility`. Shared: what a posting states, extracted once per text version and
+reused for every candidate (decision 0009). It holds no candidate data.
+
+`id`, `job_id`, `task_version`, `job_fingerprint` (the text it was read from), `claims`
+(jsonb, as the model returned them; quotes are re-validated on every assessment),
+`traces` (jsonb), `model`, `cost_micro_usd`, `extracted_at`. Unique on
+`(job_id, task_version)`.
+
 ### `eligibility_assessments`
-`id`, `user_id`, `job_id`, `verdict` (`eligible` | `not_eligible` | `needs_review`),
-`confidence` (0–1), `reasons` (jsonb: rule ids + human text), `evidence` (jsonb:
-verbatim quotes with offsets), `extracted_claims` (jsonb), `engine_version`,
-`prompt_version`, `model`, `assessed_at`, `user_override` (nullable),
-`override_reason`.
+Owned by `eligibility`. `id`, `user_id`, `job_id`, `engine_version`, `verdict`
+(`eligible` | `not_eligible` | `needs_review`), `confidence` (0–1), `stage`
+(`structured` | `extracted` | `partial`), `reasons` (jsonb: the deciding rule and its
+text, or the open questions), `evidence` (jsonb: rule id + verbatim quote), `claims_id`
+(null when structured fields decided), `prompt_version`, `model`, `job_fingerprint` and
+`profile_hash` (the inputs, to detect staleness), `assessed_at`, `user_override`
+(nullable), `override_reason`.
 
 Unique on `(user_id, job_id, engine_version)`. Keeping old versions is what lets you
-re-run an improved engine and diff it against the previous one.
+re-run an improved engine and diff it against the previous one. Re-assessment replaces
+the engine's verdict and never the user's override.
 
 ### `match_assessments`
 `id`, `user_id`, `job_id`, `dimensions` (jsonb: per-dimension verdict + evidence),

@@ -33,7 +33,7 @@ export async function postJson<S extends z.ZodType>(
       await response.body?.cancel()
       const retryable = [408, 409, 429].includes(response.status) || response.status >= 500
       if (retryable && attempt < 2) continue
-      return err(domainError('upstream_failed', `${request.provider}: HTTP ${response.status}`))
+      return err(domainError(response.status === 429 ? 'rate_limited' : 'upstream_failed', `${request.provider}: HTTP ${response.status}`))
     }
     try {
       const payload: unknown = await response.json()

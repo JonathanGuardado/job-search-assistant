@@ -7,13 +7,14 @@ answers with a verdict, a confidence, and the verbatim text it relied on.
 
 ## Design
 
-Three stages, each cheaper and more reliable than the next. Most jobs never reach a model.
+Three stages. Stage 1 is free; stage 2 reads each posting once per text version, and the
+claims it produces are shared by every candidate (decision 0009).
 
 ```
 job + profile
   → Stage 1: rules over structured fields
-      decided → verdict
-      unknown → Stage 2: LLM extraction of constraints (no verdict)
+      not_eligible → verdict (a structured field proved the rejection)
+      anything else → Stage 2: LLM extraction of constraints (no verdict)
                 → Stage 3: the same rules over extracted claims
                     decided → verdict
                     still unknown → needs_review
@@ -22,6 +23,10 @@ job + profile
 Stage 3 runs the **same rule functions** as stage 1. The decision logic exists in exactly
 one testable place, and verdicts are reproducible from stored claims without re-calling a
 model.
+
+Stage 1 never returns `eligible`. With no posting text, every claim is `unspecified`, so
+a structured "eligible" only means the posting has not been read. The model reads the
+title, the location line and the description, and quotes may come from any of them.
 
 ## Verdicts
 
@@ -75,6 +80,7 @@ type EligibilityClaims = {
   onsite: {
     kind: 'onsite' | 'hybrid' | 'remote' | 'unspecified'
     daysInOffice?: number
+    countries?: string[]    // where an onsite or hybrid role is; Greenhouse has no structured country
     quote?: string
   }
 }
@@ -84,9 +90,12 @@ Every field defaults to `unspecified`. **`unspecified` is the correct answer whe
 posting is silent** — the extraction prompt must say so explicitly, because models
 default to helpfully guessing.
 
-Every `quote` is validated against the source text after parsing. A quote that does not
-appear verbatim invalidates that claim, which is then treated as `unspecified`. This is
-the cheapest available hallucination check and it is not optional.
+Every `quote` is validated against the posting (title, location line and description)
+after parsing. A quote that does not appear verbatim invalidates that claim, which is
+then treated as `unspecified`. So does a claim that states anything **without** a quote.
+This is the cheapest available hallucination check and it is not optional. The model's
+output schema makes `quote` a required, nullable key on every claim, because constrained
+decoding skips optional keys.
 
 ## Rules
 
@@ -110,9 +119,9 @@ as a concern, never as a rejection.
 
 | Rule id | Fails when |
 | --- | --- |
-| `onsite-requires-relocation` | Job is onsite/hybrid, candidate will not relocate, and location is outside their country |
-| `remote-scope-excludes-country` | `remoteScope` is regions/countries and the candidate's country is in neither |
-| `authorization-missing` | Authorization required in a country where the candidate holds none, and sponsorship is not offered |
+| `onsite-requires-relocation` | Job is onsite/hybrid, candidate will not relocate, and none of its countries (`onsite.countries`, else the structured country) is theirs |
+| `remote-scope-excludes-country` | `remoteScope` names regions/countries outside where the candidate can work: their country, the countries they selected, and the regions they live in or selected. A selected region is not residence in each of its countries |
+| `authorization-missing` | Authorization is required (stated, or implied by onsite/hybrid work in a country where they hold none) and sponsorship is explicitly refused. Silent on sponsorship → unknown. The candidate's own country always counts as held |
 | `timezone-overlap-impossible` | Required overlap exceeds what the candidate's timezone permits (see below) |
 | `employment-type-mismatch` | Job is contractor-only and candidate excludes contractor (or vice versa) |
 | `salary-below-floor` | Posted max is below the candidate's floor, same currency, salary marked hard |
@@ -121,6 +130,10 @@ as a concern, never as a rejection.
 Rules return `unknown` when the claim they depend on is `unspecified`. If any rule
 returns `unknown` and no rule returns `fail`, the verdict is `needs_review` with those
 questions attached.
+
+Which rules may reject comes from the profile, never from code: `location` follows the
+"where you can work" (`allowedRegions`) mode, `timezone`, `employmentType` and `salary`
+their own modes. Authorization and relocation are always hard.
 
 ### Timezone arithmetic
 
@@ -151,8 +164,10 @@ Confidence is computed by code from stage provenance, never asked of the model.
 
 ## Recomputation
 
-An assessment is recomputed when: the job's description hash changes, the candidate's
-profile changes in a field a rule reads, or `engine_version` increments. Nothing else.
+An assessment is recomputed when: the job's fingerprint changes (its text changed), the
+digest of the profile fields the rules read changes, or `engine_version` increments.
+Nothing else. Both inputs are stored on the assessment, so an unchanged pair is a no-op.
+Claims are re-extracted only when the job's text changes or the prompt version does.
 Store the result; do not recompute on read. At a few hundred new jobs a day, careless
 reprocessing is the difference between negligible and painful monthly spend.
 
@@ -160,9 +175,21 @@ reprocessing is the difference between negligible and painful monthly spend.
 
 The engine is not "done" — it is measured.
 
-`evals/dataset.jsonl` holds hand-labeled postings, each with an expected verdict and the
-reason. Aim for ~200 cases weighted toward ambiguity: bare "Remote", US-only phrasing of
-both kinds, LATAM-restricted, timezone overlap, contractor-only, relocation-required.
+`evals/dataset.jsonl` holds hand-labeled postings, each snapshotted with its full text
+and labeled for one or more reference profiles (`evals/profiles.json`) with an expected
+verdict, the reason, and the verbatim sentence it rests on. A label marked
+`location-only` was inferred from a bare city or country line. Aim for ~200 cases weighted
+toward ambiguity: bare "Remote", US-only phrasing of both kinds, LATAM-restricted,
+timezone overlap, contractor-only, relocation-required. `evals/labels-review.md` is the
+readable form.
+
+Label from the full posting, not from excerpts. When the engine disagrees with a label,
+read the full text: change a label only when the text proves it wrong, and say why in its
+reason. Never change one to match the engine.
+
+The harness caches extractions per prompt version (`evals/.cache`, gitignored), so a
+rule-only change re-runs for free. It never caches a failed extraction, and it waits out
+provider rate limits.
 
 `pnpm eval:eligibility` reports:
 

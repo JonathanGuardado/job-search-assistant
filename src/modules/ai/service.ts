@@ -73,7 +73,7 @@ export function createModelCaller(deps: ModelCallerDeps) {
       })
       if (!response.ok) {
         logEvent('ai.provider_failed', { task: task.name, model, attempt, error: response.error.message })
-        return fail('upstream_failed', response.error.message)
+        return fail(response.error.code === 'rate_limited' ? 'rate_limited' : 'upstream_failed', response.error.message)
       }
 
       const { text, stop, rawStopReason, usage } = response.value

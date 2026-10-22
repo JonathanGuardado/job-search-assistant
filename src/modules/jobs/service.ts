@@ -66,6 +66,12 @@ function toJobUserState(row: JobUserStateRow): JobUserState {
   return { userId: row.userId, jobId: row.jobId, state: row.state, updatedAt: row.updatedAt }
 }
 
+/** Open canonical jobs: the ones a candidate is shown, and so the ones assessed. */
+export async function listAssessableJobs(db: Db): Promise<{ readonly id: string; readonly fingerprint: string }[]> {
+  return db.select({ id: jobs.id, fingerprint: jobs.fingerprint }).from(jobs)
+    .where(and(isNull(jobs.closedAt), isNull(jobs.canonicalJobId))).orderBy(asc(jobs.firstSeenAt), asc(jobs.id))
+}
+
 export async function getJob(db: Db, id: string): Promise<Result<Job>> {
   const [row] = await db.select().from(jobs).where(eq(jobs.id, id))
   return row ? ok(toJob(row)) : err(domainError('not_found', `job ${id} not found`))

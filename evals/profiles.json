@@ -1,0 +1,80 @@
+{
+  "sv-remote": {
+    "about": "The owner: El Salvador, remote only, no work authorization abroad, accepts LATAM and worldwide hiring. Mirrors the live profile after the 1.6 settings fixes.",
+    "profile": {
+      "country": "SV",
+      "city": "Antiguo Cuscatlán",
+      "timezone": "America/El_Salvador",
+      "workAuthorizations": [],
+      "willingToRelocate": false,
+      "allowedRegions": ["worldwide", "latam"],
+      "employmentTypes": ["contractor"],
+      "salaryFloorMinor": 6000000,
+      "salaryCurrency": "USD",
+      "targetRoles": ["Senior Software Engineer", "Full-stack developer"],
+      "seniority": "senior",
+      "preferredTech": [],
+      "excludedTech": [],
+      "excludedCompanies": [],
+      "excludedIndustries": [],
+      "constraintModes": {
+        "country": "preferred", "city": "preferred", "timezone": "preferred", "workAuthorizations": "hard",
+        "willingToRelocate": "hard", "allowedRegions": "hard", "employmentTypes": "preferred",
+        "salaryFloorMinor": "hard", "salaryCurrency": "hard", "targetRoles": "preferred", "seniority": "preferred",
+        "preferredTech": "preferred", "excludedTech": "preferred", "excludedCompanies": "preferred", "excludedIndustries": "preferred"
+      }
+    }
+  },
+  "us-remote": {
+    "about": "Contrast: a US citizen in New York, remote only, North America only. Most US postings should be eligible for them, so false rejections show up here.",
+    "profile": {
+      "country": "US",
+      "city": "New York",
+      "timezone": "America/New_York",
+      "workAuthorizations": [{ "country": "US", "type": "citizen" }],
+      "willingToRelocate": false,
+      "allowedRegions": ["namer"],
+      "employmentTypes": ["employee"],
+      "salaryFloorMinor": null,
+      "salaryCurrency": "USD",
+      "targetRoles": ["Engineer"],
+      "seniority": "senior",
+      "preferredTech": [],
+      "excludedTech": [],
+      "excludedCompanies": [],
+      "excludedIndustries": [],
+      "constraintModes": {
+        "country": "preferred", "city": "preferred", "timezone": "preferred", "workAuthorizations": "hard",
+        "willingToRelocate": "hard", "allowedRegions": "hard", "employmentTypes": "preferred",
+        "salaryFloorMinor": "preferred", "salaryCurrency": "preferred", "targetRoles": "preferred", "seniority": "preferred",
+        "preferredTech": "preferred", "excludedTech": "preferred", "excludedCompanies": "preferred", "excludedIndustries": "preferred"
+      }
+    }
+  },
+  "sv-us-authorized": {
+    "about": "The US-only trap from the other side: lives in El Salvador but holds US work authorization. US authorization requirements pass; US location requirements still fail.",
+    "profile": {
+      "country": "SV",
+      "city": "San Salvador",
+      "timezone": "America/El_Salvador",
+      "workAuthorizations": [{ "country": "US", "type": "permanent resident" }],
+      "willingToRelocate": false,
+      "allowedRegions": ["worldwide", "latam"],
+      "employmentTypes": ["employee", "contractor"],
+      "salaryFloorMinor": null,
+      "salaryCurrency": "USD",
+      "targetRoles": ["Engineer"],
+      "seniority": "senior",
+      "preferredTech": [],
+      "excludedTech": [],
+      "excludedCompanies": [],
+      "excludedIndustries": [],
+      "constraintModes": {
+        "country": "preferred", "city": "preferred", "timezone": "preferred", "workAuthorizations": "hard",
+        "willingToRelocate": "hard", "allowedRegions": "hard", "employmentTypes": "preferred",
+        "salaryFloorMinor": "preferred", "salaryCurrency": "preferred", "targetRoles": "preferred", "seniority": "preferred",
+        "preferredTech": "preferred", "excludedTech": "preferred", "excludedCompanies": "preferred", "excludedIndustries": "preferred"
+      }
+    }
+  }
+}

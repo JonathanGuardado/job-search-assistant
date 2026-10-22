@@ -16,6 +16,8 @@ export type DomainErrorCode =
   | 'invalid_input'
   | 'conflict'
   | 'upstream_failed'
+  /** A provider quota is exhausted: retry later, without counting it as a failed attempt. */
+  | 'rate_limited'
   | 'validation_failed'
 
 export type DomainError = {

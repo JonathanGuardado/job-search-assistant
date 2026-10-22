@@ -5,7 +5,7 @@ import type { Region } from './types.js'
  * Kept deliberately small: a country missing here yields 'unknown', which the
  * rules treat as an open question rather than a rejection.
  */
-const REGION_COUNTRIES: Record<Exclude<Region, 'worldwide'>, readonly string[]> = {
+export const REGION_COUNTRIES: Readonly<Record<Exclude<Region, 'worldwide'>, readonly string[]>> = {
   latam: [
     'AR', 'BO', 'BR', 'CL', 'CO', 'CR', 'CU', 'DO', 'EC', 'SV', 'GT', 'HN',
     'MX', 'NI', 'PA', 'PY', 'PE', 'PR', 'UY', 'VE',

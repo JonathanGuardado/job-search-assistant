@@ -42,6 +42,7 @@ export type ModelTrace = z.infer<typeof ModelTraceSchema>
 export type AiErrorCode =
   | 'validation_failed' // output failed the schema twice
   | 'upstream_failed' // provider or network error
+  | 'rate_limited' // provider quota exhausted; the same request succeeds later
   | 'refused' // the model declined; retrying the same request will not help
   | 'truncated' // hit max_tokens; the task's budget is wrong, not the output
 

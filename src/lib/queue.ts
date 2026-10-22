@@ -15,12 +15,16 @@ import type { DomainError, DomainErrorCode, Result } from './result.js'
 // Retrying cannot fix these; failing fast keeps them out of the backoff loop.
 const PERMANENT_FAILURES: ReadonlySet<DomainErrorCode> = new Set(['not_found', 'invalid_input'])
 
+/** How long a worker pauses after a provider quota error, unless overridden. */
+const RATE_LIMIT_PAUSE_MS = 60_000
+
 export type QueueConnectionOptions = {
   readonly connection: Redis
   /** Namespaces keys; tests use a unique prefix per run. */
   readonly prefix?: string
   readonly attempts?: number
   readonly backoffMs?: number
+  readonly rateLimitPauseMs?: number
 }
 
 /** BullMQ requires `maxRetriesPerRequest: null` on connections used by workers. */
@@ -62,7 +66,7 @@ export function defineQueue<S extends z.ZodType>(name: string, payloadSchema: S)
       options: QueueConnectionOptions & { readonly concurrency?: number },
       handler: (payload: Payload) => Promise<Result<unknown, DomainError>>,
     ): Worker {
-      return new Worker(
+      const worker: Worker = new Worker(
         name,
         async (job) => {
           const parsed = payloadSchema.safeParse(job.data)
@@ -71,6 +75,11 @@ export function defineQueue<S extends z.ZodType>(name: string, payloadSchema: S)
           }
           const result = await handler(parsed.data)
           if (result.ok) return
+          if (result.error.code === 'rate_limited') {
+            // Pause this worker and put the job back without spending one of its attempts.
+            await worker.rateLimit(options.rateLimitPauseMs ?? RATE_LIMIT_PAUSE_MS)
+            throw Worker.RateLimitError()
+          }
           const message = `${name}: ${result.error.code}: ${result.error.message}`
           throw PERMANENT_FAILURES.has(result.error.code)
             ? new UnrecoverableError(message)
@@ -82,6 +91,7 @@ export function defineQueue<S extends z.ZodType>(name: string, payloadSchema: S)
           ...(options.prefix === undefined ? {} : { prefix: options.prefix }),
         },
       )
+      return worker
     },
   }
 }

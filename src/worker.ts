@@ -4,6 +4,9 @@ import { getEnv } from '@/lib/env'
 import { logEvent } from '@/lib/log'
 import { connectRedis } from '@/lib/queue'
 import { resumeParseQueue, runResumeParse } from '@/modules/career-knowledge'
+import {
+  assessEligibilityQueue, assessJobForUser, enqueueAssessmentsForJob, enqueueAssessmentsForUser, extractClaimsWithModel, reassessUserQueue,
+} from '@/modules/eligibility'
 import { closeUnseenJobs, jobNormalizeKey, jobNormalizeQueue, recordSightings, upsertJobFromRaw } from '@/modules/jobs'
 import {
   DISPATCH_EVERY_MS, dispatchSourcePolls, pollSourcePage, sourcePollDispatchQueue, sourcePollKey, sourcePollQueue, type SourcePollPayload,
@@ -20,6 +23,31 @@ const db = getDb()
 const pollProducer = sourcePollQueue.open({ connection })
 const dispatchProducer = sourcePollDispatchQueue.open({ connection })
 const normalizeProducer = jobNormalizeQueue.open({ connection })
+const assessProducer = assessEligibilityQueue.open({ connection })
+const enqueueAssessment = async (payload: { userId: string; jobId: string }, key: string) => { await assessProducer.enqueue(payload, key) }
+
+/** A normalized job is assessed for every candidate, unless it is closed or a linked duplicate. */
+async function normalizeJob(rawJobId: string): Promise<Result<void>> {
+  const job = await upsertJobFromRaw(db, rawJobId)
+  if (!job.ok) return job
+  if (job.value.closedAt !== null || job.value.canonicalJobId !== null) return ok(undefined)
+  try {
+    await enqueueAssessmentsForJob(db, job.value, enqueueAssessment)
+    return ok(undefined)
+  } catch {
+    return err(domainError('upstream_failed', 'Could not queue eligibility assessments.'))
+  }
+}
+
+async function reassessUser(userId: string): Promise<Result<void>> {
+  try {
+    const queued = await enqueueAssessmentsForUser(db, userId, enqueueAssessment)
+    logEvent('eligibility.reassess_queued', { userId, jobs: queued })
+    return ok(undefined)
+  } catch {
+    return err(domainError('upstream_failed', 'Could not queue eligibility assessments.'))
+  }
+}
 
 async function enqueuePoll(payload: SourcePollPayload): Promise<Result<void>> {
   try {
@@ -59,7 +87,13 @@ const workers: Worker[] = [
   sourcePollQueue.work({ connection, concurrency: 1 }, handlePollPage),
   // Concurrency 1: linking reads and rewrites a fingerprint's cluster, so two normalizations
   // of one cluster must not interleave.
-  jobNormalizeQueue.work({ connection, concurrency: 1 }, ({ rawJobId }) => upsertJobFromRaw(db, rawJobId)),
+  jobNormalizeQueue.work({ connection, concurrency: 1 }, ({ rawJobId }) => normalizeJob(rawJobId)),
+  // One at a time: a provider quota error pauses this worker (lib/queue) until the quota resets.
+  assessEligibilityQueue.work({ connection, concurrency: 1 }, async (payload) => {
+    const outcome = await assessJobForUser(db, payload, extractClaimsWithModel)
+    return outcome.ok ? ok(undefined) : outcome
+  }),
+  reassessUserQueue.work({ connection }, ({ userId }) => reassessUser(userId)),
   sourcePollDispatchQueue.work({ connection }, () => dispatchSourcePolls(db, new Date(), enqueuePoll)),
 ]
 
@@ -85,7 +119,7 @@ async function shutdown(signal: string): Promise<void> {
   logEvent('worker.stopping', { signal })
   // Closing waits for in-flight jobs, so nothing is abandoned mid-write.
   await Promise.all(workers.map((w) => w.close()))
-  await Promise.all([pollProducer.close(), dispatchProducer.close(), normalizeProducer.close()])
+  await Promise.all([pollProducer.close(), dispatchProducer.close(), normalizeProducer.close(), assessProducer.close()])
   await connection.quit()
   await closeDb()
   process.exit(0)

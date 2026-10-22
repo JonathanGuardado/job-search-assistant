@@ -16,6 +16,11 @@ export async function ensureUser(db: Db, input: NewUser): Promise<User> {
   return row
 }
 
+/** Every tenant, for fan-out jobs that enqueue one tenant-scoped job per user. */
+export async function listUserIds(db: Db): Promise<string[]> {
+  return (await db.select({ id: users.id }).from(users)).map((row) => row.id)
+}
+
 export async function getCandidateProfile(scope: TenantScope): Promise<CandidateProfile | null> {
   const [row] = await scope.db.select().from(candidateProfiles).where(eq(candidateProfiles.userId, scope.userId))
   return row ? CandidateProfileSchema.parse(row) : null

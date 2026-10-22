@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { getDb } from '@/lib/db/client'
 import { withTenant } from '@/lib/db/tenancy'
 import { DEV_USER } from '@/lib/dev-user'
+import { REGION_COUNTRIES } from '@/modules/eligibility'
 import { getCandidateProfile } from '@/modules/profiles'
 import { ProfileForm } from './_components/ProfileForm'
 import styles from './settings.module.css'
@@ -22,7 +23,8 @@ export default async function SettingsPage({ searchParams }: {
       </header>
       {searchParams.error && <p role="alert" className={styles.error}>{searchParams.error}</p>}
       {searchParams.saved === '1' && <p role="status" className={styles.success}>Your profile has been saved.</p>}
-      <ProfileForm profile={profile} />
+      {/* The location rule's own country table, read here: the eligibility module is server-only. */}
+      <ProfileForm profile={profile} regionCountries={REGION_COUNTRIES} />
     </main>
   )
 }

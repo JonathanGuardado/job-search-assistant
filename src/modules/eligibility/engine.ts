@@ -102,50 +102,55 @@ export function claimsFromStructuredFields(job: EligibilityJob): EligibilityClai
 }
 
 /**
- * Every quote must appear verbatim in the source text. A claim whose quote does
- * not is reset to 'unspecified' — the cheapest hallucination check available,
- * and it is not optional.
+ * Every claim must rest on a quote that appears verbatim in the posting. A claim whose
+ * quote does not appear, or which states something without any quote, is reset to
+ * 'unspecified' — the cheapest hallucination check available, and it is not optional.
  *
- * Returns the sanitized claims and whether anything was stripped (which
- * downgrades the stage to 'partial').
+ * Returns the sanitized claims and how many were reset, split into quotes that do not
+ * appear (`stripped`) and statements made without a quote (`unquoted`). Either
+ * downgrades the stage to 'partial'.
  */
 export function validateQuotes(
   claims: EligibilityClaims,
-  sourceText: string,
-): { claims: EligibilityClaims; stripped: number } {
-  const haystack = normalizeWhitespace(sourceText).toLowerCase()
+  job: EligibilityJob,
+): { claims: EligibilityClaims; stripped: number; unquoted: number } {
+  const haystack = normalizeWhitespace(postingText(job)).toLowerCase()
   let stripped = 0
+  let unquoted = 0
 
-  const appearsVerbatim = (quote: string | undefined): boolean => {
-    if (quote === undefined) return true
-    const needle = normalizeWhitespace(quote).toLowerCase()
-    return needle.length > 0 && haystack.includes(needle)
-  }
-
-  const keep = (quote: string | undefined): boolean => {
-    const valid = appearsVerbatim(quote)
+  const supported = (stated: boolean, quote: string | undefined): boolean => {
+    if (!stated) return true
+    const needle = quote === undefined ? '' : normalizeWhitespace(quote).toLowerCase()
+    if (needle.length === 0) {
+      unquoted += 1
+      return false
+    }
+    const valid = haystack.includes(needle)
     if (!valid) stripped += 1
     return valid
   }
+  const answered = (value: boolean | 'unspecified' | undefined) => value === true || value === false
 
+  const { remoteScope, authorization, timezone, employmentType, relocation, onsite } = claims
   const sanitized: EligibilityClaims = {
-    remoteScope: keep(claims.remoteScope.quote)
-      ? claims.remoteScope
-      : { kind: 'unspecified' },
-    authorization: keep(claims.authorization.quote)
-      ? claims.authorization
+    remoteScope: supported(remoteScope.kind !== 'unspecified', remoteScope.quote) ? remoteScope : { kind: 'unspecified' },
+    authorization: supported(answered(authorization.required) || answered(authorization.sponsorshipOffered), authorization.quote)
+      ? authorization
       : { required: 'unspecified' },
-    timezone: keep(claims.timezone.quote) ? claims.timezone : { kind: 'unspecified' },
-    employmentType: keep(claims.employmentType.quote)
-      ? claims.employmentType
-      : { kind: 'unspecified' },
-    relocation: keep(claims.relocation.quote)
-      ? claims.relocation
+    timezone: supported(timezone.kind !== 'unspecified', timezone.quote) ? timezone : { kind: 'unspecified' },
+    employmentType: supported(employmentType.kind !== 'unspecified', employmentType.quote) ? employmentType : { kind: 'unspecified' },
+    relocation: supported(answered(relocation.required) || answered(relocation.assistanceOffered), relocation.quote)
+      ? relocation
       : { required: 'unspecified' },
-    onsite: keep(claims.onsite.quote) ? claims.onsite : { kind: 'unspecified' },
+    onsite: supported(onsite.kind !== 'unspecified' || (onsite.countries ?? []).length > 0, onsite.quote) ? onsite : { kind: 'unspecified' },
   }
 
-  return { claims: sanitized, stripped }
+  return { claims: sanitized, stripped, unquoted }
+}
+
+/** Everything the model reads, and so everything a quote may come from. */
+export function postingText(job: EligibilityJob): string {
+  return [`Title: ${job.title}`, `Location: ${job.locationText ?? 'not stated'}`, '', job.description].join('\n')
 }
 
 function normalizeWhitespace(value: string): string {
@@ -163,18 +168,20 @@ export function stageFor(stripped: number): AssessmentStage {
 export async function assessEligibility(
   profile: EligibilityProfile,
   job: EligibilityJob,
-  extract: (description: string) => Promise<EligibilityClaims>,
+  extract: (postingText: string) => Promise<EligibilityClaims>,
 ): Promise<{ verdict: EligibilityVerdict; claims: EligibilityClaims; stage: AssessmentStage }> {
   const structuredClaims = claimsFromStructuredFields(job)
   const structuredVerdict = evaluateRules(profile, job, structuredClaims, 'structured')
 
-  if (structuredVerdict.verdict !== 'needs_review') {
+  // D1: structured fields can prove a rejection, but a structured "eligible" only means
+  // the posting has not been read yet, so anything short of a rejection reads it.
+  if (structuredVerdict.verdict === 'not_eligible') {
     return { verdict: structuredVerdict, claims: structuredClaims, stage: 'structured' }
   }
 
-  const extracted = await extract(job.description)
-  const { claims, stripped } = validateQuotes(extracted, job.description)
-  const stage = stageFor(stripped)
+  const extracted = await extract(postingText(job))
+  const { claims, stripped, unquoted } = validateQuotes(extracted, job)
+  const stage = stageFor(stripped + unquoted)
 
   return { verdict: evaluateRules(profile, job, claims, stage), claims, stage }
 }

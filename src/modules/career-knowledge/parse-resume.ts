@@ -120,8 +120,8 @@ export async function runResumeParse(
     await withTenant(db, userId, (scope) =>
       failParse(scope, { ...run, errorCode: code, errorMessage: message, traces }),
     )
-    // Only an outage is worth retrying; refusals, truncation and bad output would repeat.
-    return code === 'upstream_failed' ? err(domainError('upstream_failed', message)) : ok(undefined)
+    // Only an outage or a quota is worth retrying; refusals, truncation and bad output would repeat.
+    return code === 'upstream_failed' || code === 'rate_limited' ? err(domainError(code, message)) : ok(undefined)
   }
 
   const { drafts, rejected } = sanitizeExtractedResume(extracted.value.value, resume.extractedText)

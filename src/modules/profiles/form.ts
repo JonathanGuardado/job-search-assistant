@@ -14,7 +14,8 @@ export const CandidateProfileFormSchema = CandidateProfileInputSchema.omit({ sal
   salaryFloor: z.string().max(40),
   salaryCurrency: z.string().refine((value) => CURRENCIES.includes(value), 'Choose a supported currency.'),
   workAuthorizations: authorizations,
-  allowedRegions: separatedList,
+  // Checkboxes: one value per selected region or country.
+  allowedRegions: z.array(z.string().max(20)).max(300).transform((values) => [...new Set(values.map((v) => v.trim().toLowerCase()).filter(Boolean))]),
   targetRoles: separatedList,
   preferredTech: separatedList,
   excludedTech: separatedList,
@@ -39,7 +40,7 @@ export function profileFormInput(form: FormData) {
     country: form.get('country'), city: form.get('city'), timezone: form.get('timezone'),
     workAuthorizations: countries.map((country, index) => ({ country, type: types[index], expiresAt: expirations[index] })),
     willingToRelocate: form.get('willingToRelocate') === 'on',
-    allowedRegions: form.get('allowedRegions'), employmentTypes: form.getAll('employmentTypes'),
+    allowedRegions: form.getAll('allowedRegions'), employmentTypes: form.getAll('employmentTypes'),
     salaryFloor: form.get('salaryFloor'), salaryCurrency: form.get('salaryCurrency'),
     targetRoles: form.get('targetRoles'), seniority: form.get('seniority'),
     preferredTech: form.get('preferredTech'), excludedTech: form.get('excludedTech'),
