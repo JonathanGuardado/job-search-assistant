@@ -6,8 +6,8 @@ import { withTenant } from '@/lib/db/tenancy'
 import { dbErrorFrom, dbTest as test } from '@/lib/db/testing'
 import { ensureUser } from '@/modules/profiles'
 import { jobUserStates } from './schema.js'
-import { getJobUserState, insertJob, setJobUserState } from './service.js'
-import { aNewJob } from './test-fixtures.js'
+import { getJobUserState, setJobUserState } from './service.js'
+import { aStoredJob } from './test-fixtures.js'
 
 /**
  * These exercise the RLS policy on a real per-user table. They are the
@@ -17,7 +17,7 @@ import { aNewJob } from './test-fixtures.js'
 async function twoUsersAndAJob(db: Db) {
   const alice = await ensureUser(db, { email: `alice-${randomUUID()}@test.local` })
   const bob = await ensureUser(db, { email: `bob-${randomUUID()}@test.local` })
-  const job = await insertJob(db, aNewJob())
+  const job = await aStoredJob(db)
   return { alice, bob, job }
 }
 

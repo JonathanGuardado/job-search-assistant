@@ -33,6 +33,10 @@ describe('Greenhouse normalization', () => {
     expect(result).toMatchObject({ ok: false, error: { code: 'invalid_input', message: expect.stringContaining('malformed-posting') } })
     expect(!result.ok && result.error.message).toContain('title')
   })
+  it('rejects an apply URL that is not http or https', () => {
+    const result = greenhouseAdapter.normalize(rawFixture({ ...greenhouseFixture.jobs[0], absolute_url: 'javascript:alert(1)' }), fixtureSource)
+    expect(result).toMatchObject({ ok: false, error: { code: 'invalid_input' } })
+  })
   it('keeps titles decorated and unknown dates unset', () => {
     const payload = { ...greenhouseFixture.jobs[0], title: ' Engineer (Remote) ', first_published: 'not-a-date', location: { name: '  ' } }
     expect(unwrap(greenhouseAdapter.normalize(rawFixture(payload), fixtureSource))).toMatchObject({ title: 'Engineer (Remote)', postedAt: null, locationText: null })

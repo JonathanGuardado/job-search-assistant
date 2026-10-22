@@ -40,6 +40,10 @@ describe('Lever normalization', () => {
   it.each([['Fixed-Term Contract', 'unknown'], ['Contract', 'contractor'], ['Full-time', 'unknown']])('maps commitment %s to %s', (commitment, employmentType) => {
     expect(unwrap(leverAdapter.normalize(rawFixture({ ...leverFixture[0], categories: { commitment } }), fixtureSource)).employmentType).toBe(employmentType)
   })
+  it('rejects an apply URL that is not http or https', () => {
+    const result = leverAdapter.normalize(rawFixture({ ...leverFixture[0], applyUrl: 'javascript:alert(1)' }), fixtureSource)
+    expect(result).toMatchObject({ ok: false, error: { code: 'invalid_input' } })
+  })
   it('reports malformed postings with external id and field path', () => {
     const result = leverAdapter.normalize(rawFixture({ id: 'missing-title' }), fixtureSource)
     expect(result).toMatchObject({ ok: false, error: { code: 'invalid_input', message: expect.stringContaining('malformed-posting') } })

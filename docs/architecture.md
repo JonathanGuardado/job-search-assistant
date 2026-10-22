@@ -32,7 +32,7 @@ must survive restarts and run on a schedule; application work is latency-sensiti
 | `resumes` | File storage, immutable versions, text extraction, parse run records | No |
 | `career-knowledge` | Structured career record; the resume extraction task | Extraction only |
 | `job-sources` | Adapters, polling cursors, raw capture | No |
-| `jobs` | Normalization, dedupe, canonical model | Field extraction only |
+| `jobs` | Normalization, dedupe, canonical model, open/closed state | No |
 | `eligibility` | Rules, extraction, three-state verdicts | Extraction only |
 | `matching` | Requirement comparison and explanation | Reasoning |
 | `applications` | Pipeline state, artifacts, status history | No |
@@ -72,7 +72,7 @@ exported from that module's `index.ts`. Queues:
 | Queue | Job | Schedule |
 | --- | --- | --- |
 | `source-poll` | Fetch one page from one source | Cron per source |
-| `job-normalize` | Raw → canonical, dedupe | On raw insert |
+| `job-normalize` | One raw version → its job, then duplicate links | Per poll page, for new or changed postings |
 | `assess-eligibility` | One candidate × one job | On new job, on profile change |
 | `assess-match` | One candidate × one eligible job | After eligibility |
 | `resume-parse` | One resume version → draft career items | On upload |

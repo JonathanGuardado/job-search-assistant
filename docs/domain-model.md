@@ -140,14 +140,25 @@ a changed posting creates a new row. `content_hash` is the sha256 of the payload
 canonical JSON (keys sorted), so key order in the source's response does not matter.
 
 ### `jobs`
-Canonical, deduplicated.
+Owned by `jobs`. Canonical, deduplicated: one row per posting, keyed `(source_id,
+external_id)` and normalized from the newest raw version of that posting.
 
-`id`, `company_name`, `company_normalized`, `title`, `title_normalized`, `description`,
-`location_policy` (`onsite` | `hybrid` | `remote` | `unknown`), `location_text`,
-`remote_scope` (jsonb, nullable), `employment_type`, `salary_min_minor`,
-`salary_max_minor`, `salary_currency`, `salary_source` (`posted` | `unknown`),
-`apply_url`, `fingerprint`, `canonical_job_id` (self-ref for duplicates),
-`first_seen_at`, `last_seen_at`, `closed_at`.
+`id`, `source_id`, `external_id`, `raw_job_id` (the version normalized from),
+`raw_fetched_at`, `company_name`, `company_normalized`, `title` (verbatim),
+`title_normalized`, `seniority` (`intern` | `junior` | `senior` | `lead` | `staff` |
+`principal`, nullable), `description`, `location_policy` (`onsite` | `hybrid` | `remote`
+| `unknown`), `location_text`, `location_country` (ISO alpha-2, structured sources only),
+`remote_scope` (jsonb, nullable, unused until 1.6), `employment_type`,
+`salary_min_minor`, `salary_max_minor`, `salary_currency`, `salary_source` (`posted` |
+`unknown`), `apply_url` (http(s) only), `posted_at`, `fingerprint`, `canonical_job_id`
+(self-ref for duplicates), `first_seen_at`, `last_seen_at`, `closed_at`.
+
+- **Replayable.** Normalization is a pure function of the raw version, so `pnpm
+  jobs:renormalize` rebuilds every row. An upsert never replaces a newer version with an
+  older one (`raw_fetched_at`).
+- **Open while listed.** Each poll page updates `last_seen_at` for what it lists. After a
+  poll's last page, the source's jobs it did not list are closed. A job that reappears is
+  reopened. A poll that listed none of the source's jobs closes nothing.
 
 A field that cannot be parsed confidently is **null plus a flag**, never guessed.
 `salary_source = 'unknown'` is different from a salary of zero. `jobs_salary_check`
@@ -199,13 +210,21 @@ shared `jobs` table.
 
 ## Deduplication
 
-Fingerprint = hash of `(company_normalized, title_normalized, location_policy,
-remote_scope_key)`. On collision, compare description similarity; above threshold, link
-via `canonical_job_id` rather than deleting. The UI can then show "also posted on Lever".
+A duplicate is the same posting listed twice (decision 0008), not the same role in
+another location.
 
-Company normalization strips legal suffixes, punctuation, and case. Title normalization
-strips seniority decorations that vary by board (`(Remote)`, `- LATAM`, roman numerals)
-into a separate parsed field.
+Fingerprint = hash of `(company_normalized, title_normalized, seniority, location_policy,
+location_key, description words)`, where the description is compared after case,
+punctuation, whitespace and identifiers of 5+ digits are ignored. An equal fingerprint is
+a duplicate; there is no similarity threshold. Duplicates are linked through
+`canonical_job_id` to the earliest-seen open member, never deleted. The UI can then show
+"also posted on Lever".
+
+Company normalization strips legal suffixes (only at the end), punctuation, accents, and
+case. Title normalization drops board decorations made only of work-arrangement and
+region words (`(Remote - LATAM)`, `| Remote |`, `(Contract)`) and reads seniority from
+leading words into its own column. Level numerals (`II`) stay in the title, because they
+name different jobs.
 
 ## Migration discipline
 

@@ -1,14 +1,16 @@
 import { randomUUID } from 'node:crypto'
 import { QueueEvents, type Worker } from 'bullmq'
+import { eq } from 'drizzle-orm'
 import { afterEach, describe, expect } from 'vitest'
 import { dbTest as test } from '@/lib/db/testing'
 import { getEnv } from '@/lib/env'
 import { connectRedis } from '@/lib/queue'
-import { domainError, err, unwrap, type DomainError, type Result } from '@/lib/result'
-import { jobSeenQueue } from './queues.js'
-import { getJob, insertJob, markJobSeen } from './service.js'
-import { aNewJob } from './test-fixtures.js'
-import type { JobSeenPayload } from './types.js'
+import { domainError, err, type DomainError, type Result } from '@/lib/result'
+import { jobNormalizeKey, jobNormalizeQueue } from './queues.js'
+import { jobs } from './schema.js'
+import { upsertJobFromRaw } from './service.js'
+import { aBoard, aPosting, poll } from './test-fixtures.js'
+import type { JobNormalizePayload } from './types.js'
 
 /**
  * Real Redis, real BullMQ, and the real handler writing through the test
@@ -20,13 +22,13 @@ afterEach(async () => {
   for (const cleanup of cleanups.splice(0).reverse()) await cleanup()
 })
 
-function harness(handler: (p: JobSeenPayload) => Promise<Result<unknown, DomainError>>) {
+async function harness(handler: (p: JobNormalizePayload) => Promise<Result<unknown, DomainError>>) {
   const connection = connectRedis(getEnv().REDIS_URL)
   const eventsConnection = connectRedis(getEnv().REDIS_URL)
   const options = { connection, prefix: `test-${randomUUID()}`, attempts: 3, backoffMs: 10 }
-  const opened = jobSeenQueue.open(options)
-  const worker: Worker = jobSeenQueue.work(options, handler)
-  const events = new QueueEvents(jobSeenQueue.name, { connection: eventsConnection, prefix: options.prefix })
+  const opened = jobNormalizeQueue.open(options)
+  const worker: Worker = jobNormalizeQueue.work(options, handler)
+  const events = new QueueEvents(jobNormalizeQueue.name, { connection: eventsConnection, prefix: options.prefix })
   cleanups.push(
     () => connection.quit(),
     () => eventsConnection.quit(),
@@ -35,54 +37,56 @@ function harness(handler: (p: JobSeenPayload) => Promise<Result<unknown, DomainE
     () => events.close(),
     () => worker.close(),
   )
+  // QueueEvents reads the event stream from when it connects; a job that finishes
+  // before then is never reported, so wait for it before anything is enqueued.
+  await events.waitUntilReady()
   return { ...opened, events }
 }
 
-describe('job-seen queue', () => {
-  test('a job that fails once is retried and lands the correct state', async ({ db }) => {
-    const job = await insertJob(db, aNewJob({ seenAt: new Date('2026-09-01T00:00:00Z') }))
-    const seenAt = new Date('2026-09-10T00:00:00Z')
+describe('job-normalize queue', () => {
+  test('a job that fails once is retried and writes the job', async ({ db }) => {
+    const [posting] = (await poll(db, await aBoard(db), [aPosting()])).postings
+    if (!posting) throw new Error('expected a captured posting')
     let calls = 0
-    const q = harness(async (payload) => {
+    const q = await harness(async ({ rawJobId }) => {
       calls += 1
       if (calls === 1) return err(domainError('upstream_failed', 'transient'))
-      return markJobSeen(db, payload)
+      return upsertJobFromRaw(db, rawJobId)
     })
 
-    const queued = await q.enqueue({ jobId: job.id, seenAt }, `${job.id}@${seenAt.getTime()}`)
+    const queued = await q.enqueue({ rawJobId: posting.rawJobId }, jobNormalizeKey(posting.rawJobId))
     await queued.waitUntilFinished(q.events)
 
     expect(calls).toBe(2)
-    expect(unwrap(await getJob(db, job.id)).lastSeenAt).toEqual(seenAt)
+    expect(await db.select().from(jobs).where(eq(jobs.rawJobId, posting.rawJobId))).toHaveLength(1)
   })
 
-  test('enqueuing the same key twice runs the work once', async ({ db }) => {
-    const job = await insertJob(db, aNewJob())
-    const seenAt = new Date('2026-09-10T00:00:00Z')
+  test('enqueuing the same raw version twice runs the work once', async ({ db }) => {
+    const [posting] = (await poll(db, await aBoard(db), [aPosting()])).postings
+    if (!posting) throw new Error('expected a captured posting')
     let calls = 0
-    const q = harness(async (payload) => {
+    const q = await harness(async ({ rawJobId }) => {
       calls += 1
-      return markJobSeen(db, payload)
+      return upsertJobFromRaw(db, rawJobId)
     })
 
-    const key = `${job.id}@${seenAt.getTime()}`
-    const first = await q.enqueue({ jobId: job.id, seenAt }, key)
-    const second = await q.enqueue({ jobId: job.id, seenAt }, key)
+    const first = await q.enqueue({ rawJobId: posting.rawJobId }, jobNormalizeKey(posting.rawJobId))
+    const second = await q.enqueue({ rawJobId: posting.rawJobId }, jobNormalizeKey(posting.rawJobId))
     expect(second.id).toBe(first.id)
 
     await first.waitUntilFinished(q.events)
     expect(calls).toBe(1)
   })
 
-  test('a permanent failure is not retried', async ({ db }) => {
+  test('a permanent failure is not retried', async () => {
     let calls = 0
-    const q = harness(async (payload) => {
+    const q = await harness(async () => {
       calls += 1
-      return markJobSeen(db, payload)
+      return err(domainError('not_found', 'raw job missing'))
     })
 
     const missing = randomUUID()
-    const queued = await q.enqueue({ jobId: missing, seenAt: new Date() }, `${missing}@0`)
+    const queued = await q.enqueue({ rawJobId: missing }, jobNormalizeKey(missing))
     await expect(queued.waitUntilFinished(q.events)).rejects.toThrow('not_found')
     expect(calls).toBe(1)
   })

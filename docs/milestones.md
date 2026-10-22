@@ -3,10 +3,11 @@
 Phase 1 only. Later phases are listed at the bottom so their scope stays visible, but
 nothing from them gets built yet.
 
-**Active milestone: 1.3 stabilization, ready to close.** Foundation (1.1) and candidate
-settings (1.2) are implemented. Resume intake, review, and deletion work; manual dispatch
-recovery is implemented; parse runs are owned through an attempt lease (decision 0007).
-See [stabilization review](resume-stabilization-review.md).
+**Active milestone: 1.6 eligibility v1.** 1.1 through 1.5 are closed. Jobs are normalized
+from raw capture, duplicates are linked under decision 0008, and open/closed state follows
+each poll. 1.5's sample measured 2.0%, at the target rather than under it; the owner
+accepted it on 2026-10-21 because the only failure mode is one company's bilingual
+postings. See [dedupe sample](dedupe-sample.md).
 
 Each milestone is shippable. Nothing downstream is built until what it depends on is
 trustworthy.

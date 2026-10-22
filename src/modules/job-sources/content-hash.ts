@@ -17,6 +17,9 @@ export function canonicalJson(value: unknown): string {
   return serialize(JsonSchema.parse(value))
 }
 
-export function contentHash(payload: unknown): string {
-  return createHash('sha256').update(canonicalJson(payload)).digest('hex')
+export function contentHash(payload: unknown, volatileKeys: readonly string[] = []): string {
+  const hashed = payload !== null && typeof payload === 'object' && !Array.isArray(payload)
+    ? Object.fromEntries(Object.entries(payload).filter(([key]) => !volatileKeys.includes(key)))
+    : payload
+  return createHash('sha256').update(canonicalJson(hashed)).digest('hex')
 }

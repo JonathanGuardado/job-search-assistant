@@ -52,7 +52,8 @@ export const NormalizedJobSchema = z.object({
   locationCountry: z.string().regex(/^[A-Z]{2}$/).nullable(),
   employmentType: z.enum(['employee', 'contractor', 'eor', 'unknown']),
   salary: NormalizedSalarySchema,
-  applyUrl: z.url(),
+  /** http(s) only: the jobs UI renders it as a link, and a javascript: URL would run. */
+  applyUrl: z.url({ protocol: /^https?$/ }),
   postedAt: z.date().nullable(),
 })
 export type NormalizedJob = z.infer<typeof NormalizedJobSchema>
@@ -95,6 +96,12 @@ export type Fetcher = typeof fetch
 export type JobSourceAdapter = {
   readonly key: AdapterKey
   readonly kind: 'ats' | 'board' | 'aggregator'
+  /**
+   * Top-level payload fields that change without the posting changing (Greenhouse bumps
+   * `updated_at` daily). Left out of the content hash so they do not create new raw
+   * versions; the stored payload still contains them.
+   */
+  readonly volatileKeys: readonly string[]
   /**
    * One page. Network failures and non-2xx responses are `upstream_failed`; a
    * response whose envelope does not match the expected shape is `validation_failed`.

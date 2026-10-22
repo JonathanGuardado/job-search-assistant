@@ -37,6 +37,10 @@ export { canonicalJson, contentHash } from './content-hash.js'
 export { htmlToPlainText } from './html-text.js'
 export { getJson } from './http.js'
 export { NewSourceSchema, SourcePollPayloadSchema } from './types.js'
-export type { JobSource, JobSourceSummary, NewSource, NormalizationReport, SourcePollPayload } from './types.js'
+export type {
+  JobSource, JobSourceSummary, NewSource, NormalizationReport, NormalizedPosting, PagePosting, PollOutcome, SourcePollPayload,
+} from './types.js'
 export { POLL_INTERVAL_MS, DISPATCH_EVERY_MS, sourcePollQueue, sourcePollDispatchQueue, sourcePollKey, enqueueSourcePoll } from './queues.js'
-export { addSource, listSources, setSourceEnabled, pollSourcePage, dispatchSourcePolls, checkNormalization } from './service.js'
+export {
+  addSource, checkNormalization, dispatchSourcePolls, listLatestRawJobIds, listSources, pollSourcePage, readNormalizedPosting, setSourceEnabled,
+} from './service.js'

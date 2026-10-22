@@ -19,7 +19,7 @@ export async function addSourceAction(form: FormData): Promise<void> {
 export async function pollSourceAction(form: FormData): Promise<void> {
   const sourceId = z.uuid().safeParse(form.get('sourceId'))
   if (!sourceId.success) redirect(withError('Invalid source.'))
-  const result = await enqueueSourcePoll(getEnv().REDIS_URL, { sourceId: sourceId.data, pollId: `m${Date.now()}`, cursor: null })
+  const result = await enqueueSourcePoll(getEnv().REDIS_URL, { sourceId: sourceId.data, pollId: `m${Date.now()}`, cursor: null, startedAt: new Date() })
   if (!result.ok) redirect(withError(result.error.message))
   redirect('/sources')
 }

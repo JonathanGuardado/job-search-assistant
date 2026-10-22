@@ -9,6 +9,11 @@ export const EMPLOYMENT_TYPES = ['employee', 'contractor', 'eor', 'unknown'] as 
 export const EmploymentTypeSchema = z.enum(EMPLOYMENT_TYPES)
 export type EmploymentType = z.infer<typeof EmploymentTypeSchema>
 
+// Ordered junior to senior: when a title states two ("Senior Staff"), the later one wins.
+export const SENIORITIES = ['intern', 'junior', 'senior', 'lead', 'staff', 'principal'] as const
+export const SenioritySchema = z.enum(SENIORITIES)
+export type Seniority = z.infer<typeof SenioritySchema>
+
 export const JOB_USER_STATES = ['new', 'saved', 'ignored', 'applied'] as const
 export const JobUserStateValueSchema = z.enum(JOB_USER_STATES)
 export type JobUserStateValue = z.infer<typeof JobUserStateValueSchema>
@@ -37,29 +42,28 @@ export const SalarySchema = z.discriminatedUnion('source', [
 ])
 export type Salary = z.infer<typeof SalarySchema>
 
-const JobFieldsSchema = z.object({
+/** A canonical posting: one per (source, external id), normalized from its newest raw version. */
+export const JobSchema = z.object({
+  id: z.uuid(),
+  sourceId: z.uuid(),
+  externalId: z.string().min(1),
+  /** The duplicate this posting is linked to, or null if it is canonical itself (decision 0008). */
+  canonicalJobId: z.uuid().nullable(),
   companyName: z.string().min(1),
   companyNormalized: z.string().min(1),
+  /** Verbatim from the posting. Eligibility reads this, not titleNormalized. */
   title: z.string().min(1),
   titleNormalized: z.string().min(1),
+  seniority: SenioritySchema.nullable(),
   description: z.string(),
   locationPolicy: LocationPolicySchema,
   locationText: z.string().nullable(),
+  locationCountry: z.string().regex(/^[A-Z]{2}$/).nullable(),
   employmentType: EmploymentTypeSchema,
   salary: SalarySchema,
-  applyUrl: z.url(),
+  applyUrl: z.url({ protocol: /^https?$/ }),
+  postedAt: z.date().nullable(),
   fingerprint: z.string().min(1),
-})
-
-export const NewJobSchema = JobFieldsSchema.extend({
-  /** When the posting was observed. Becomes both first_seen_at and last_seen_at. */
-  seenAt: z.date(),
-})
-export type NewJob = z.infer<typeof NewJobSchema>
-
-export const JobSchema = JobFieldsSchema.extend({
-  id: z.uuid(),
-  canonicalJobId: z.uuid().nullable(),
   firstSeenAt: z.date(),
   lastSeenAt: z.date(),
   closedAt: z.date().nullable(),
@@ -74,9 +78,6 @@ export const JobUserStateSchema = z.object({
 })
 export type JobUserState = z.infer<typeof JobUserStateSchema>
 
-/** Queue payload. Dates cross Redis as ISO strings, hence the coercion. */
-export const JobSeenPayloadSchema = z.object({
-  jobId: z.uuid(),
-  seenAt: z.coerce.date(),
-})
-export type JobSeenPayload = z.infer<typeof JobSeenPayloadSchema>
+/** Queue payload: normalize one stored raw version into its job. */
+export const JobNormalizePayloadSchema = z.object({ rawJobId: z.uuid() })
+export type JobNormalizePayload = z.infer<typeof JobNormalizePayloadSchema>

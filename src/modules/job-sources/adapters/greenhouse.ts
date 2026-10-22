@@ -6,7 +6,7 @@ import { getJson } from '../http.js'
 
 const JobsSchema = z.object({ jobs: z.array(z.looseObject({ id: z.number().int() })) })
 const PostingSchema = z.looseObject({
-  id: z.number().int(), title: z.string().trim().min(1), content: z.string(), absolute_url: z.url(),
+  id: z.number().int(), title: z.string().trim().min(1), content: z.string(), absolute_url: z.url({ protocol: /^https?$/ }),
   location: z.object({ name: z.string() }).nullable().optional(),
   first_published: z.string().nullable().optional(),
 })
@@ -20,7 +20,7 @@ function classifyLocationText(text: string | null): NormalizedJob['locationPolic
 }
 
 export const greenhouseAdapter: JobSourceAdapter = {
-  key: 'greenhouse', kind: 'ats',
+  key: 'greenhouse', kind: 'ats', volatileKeys: ['updated_at'],
   async fetchPage(source, cursor, fetcher) {
     if (cursor !== null) return err(domainError('invalid_input', 'Greenhouse does not accept a page cursor.'))
     const fetched = await getJson(`https://boards-api.greenhouse.io/v1/boards/${source.config.token}/jobs?content=true&pay_transparency=true`, JobsSchema, fetcher)

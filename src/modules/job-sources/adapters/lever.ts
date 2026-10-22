@@ -14,7 +14,7 @@ const PostingSchema = z.looseObject({
   lists: z.array(z.object({ text: z.string(), content: z.string() })).default([]), additionalPlain: z.string().default(''),
   categories: z.object({ location: z.string().optional(), commitment: z.string().optional() }).optional(),
   workplaceType: z.string().optional(), country: z.string().nullable().optional(),
-  salaryRange: SalaryRangeSchema.nullable().optional(), applyUrl: z.url().optional(), hostedUrl: z.url(), createdAt: z.unknown().optional(),
+  salaryRange: SalaryRangeSchema.nullable().optional(), applyUrl: z.url({ protocol: /^https?$/ }).optional(), hostedUrl: z.url({ protocol: /^https?$/ }), createdAt: z.unknown().optional(),
 })
 
 /** undefined: absent. null: present but not a usable amount. */
@@ -43,7 +43,7 @@ function workplacePolicy(value: string | undefined): NormalizedJob['locationPoli
 }
 
 export const leverAdapter: JobSourceAdapter = {
-  key: 'lever', kind: 'ats',
+  key: 'lever', kind: 'ats', volatileKeys: [],
   async fetchPage(source, cursor, fetcher) {
     if (cursor !== null && !/^\d+$/.test(cursor)) return err(domainError('invalid_input', 'Lever cursor must be a decimal offset.'))
     const skip = cursor === null ? 0 : Number(cursor)

@@ -21,7 +21,9 @@
     "ai:smoke": "tsx --env-file=.env.local scripts/ai-smoke.ts",
     "eval:eligibility": "tsx evals/run-eligibility-eval.ts",
     "sources:seed": "tsx --env-file=.env.local scripts/seed-sources.ts",
-    "sources:check": "tsx --env-file=.env.local scripts/check-normalization.ts"
+    "sources:check": "tsx --env-file=.env.local scripts/check-normalization.ts",
+    "jobs:renormalize": "tsx --env-file=.env.local scripts/renormalize.ts",
+    "jobs:sample": "tsx --env-file=.env.local scripts/dedupe-sample.ts"
   },
   "dependencies": {
     "bullmq": "^5.13.0",

@@ -4,7 +4,7 @@ import { getEnv } from '@/lib/env'
 import { connectRedis } from '@/lib/queue'
 import { DISPATCH_EVERY_MS, enqueueSourcePoll, POLL_INTERVAL_MS, sourcePollDispatchQueue, sourcePollKey, sourcePollQueue } from './queues.js'
 
-const payload = () => ({ sourceId: randomUUID(), pollId: `w${Date.now()}`, cursor: null })
+const payload = () => ({ sourceId: randomUUID(), pollId: `w${Date.now()}`, cursor: null, startedAt: new Date('2026-10-21T00:00:00Z') })
 
 describe('source queue identities and scheduling', () => {
   it('keys by source, poll window and page without reserved colons', () => {

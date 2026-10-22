@@ -7,7 +7,9 @@ import { domainError, err, ok, unwrap } from '@/lib/result'
 import type { AdapterKey, Fetcher } from './adapter.js'
 import { POLL_INTERVAL_MS } from './queues.js'
 import { jobSources, rawJobs } from './schema.js'
-import { addSource, checkNormalization, dispatchSourcePolls, listSources, pollSourcePage, setSourceEnabled } from './service.js'
+import {
+  addSource, checkNormalization, dispatchSourcePolls, listLatestRawJobIds, listSources, pollSourcePage, readNormalizedPosting, setSourceEnabled,
+} from './service.js'
 import { greenhouseFixture, leverFixture } from './test-fixtures.js'
 
 async function source(db: Db, adapterKey: AdapterKey = 'greenhouse') {
@@ -16,7 +18,8 @@ async function source(db: Db, adapterKey: AdapterKey = 'greenhouse') {
 const rows = (db: Db, sourceId: string) => db.select().from(rawJobs).where(eq(rawJobs.sourceId, sourceId))
 const fixtureFetcher: Fetcher = async () => Response.json(greenhouseFixture)
 const nextPage = async () => ok(undefined)
-const payload = (sourceId: string) => ({ sourceId, pollId: 'test-poll', cursor: null })
+const startedAt = new Date('2026-10-21T00:00:00Z')
+const payload = (sourceId: string) => ({ sourceId, pollId: 'test-poll', cursor: null, startedAt })
 
 describe('source registration and controls', () => {
   test('registers only healthy sources and rejects duplicate tokens without aborting the transaction', async ({ db }) => {
@@ -57,7 +60,8 @@ describe('page polling and immutable capture', () => {
     expect((await pollSourcePage(db, payload(board.id), { fetcher: fixtureFetcher, enqueueNextPage: nextPage })).ok).toBe(true)
     const initial = await rows(db, board.id)
     expect(initial).toHaveLength(5)
-    expect(initial.map((row) => row.payload)).toEqual(greenhouseFixture.jobs)
+    // The select has no order; compare as sets of payloads.
+    expect(initial.map((row) => row.payload)).toEqual(expect.arrayContaining(greenhouseFixture.jobs))
     const [polled] = await db.select().from(jobSources).where(eq(jobSources.id, board.id))
     expect(polled).toMatchObject({ healthStatus: 'ok', healthMessage: null, cursor: null })
     expect(polled?.lastPolledAt).toBeInstanceOf(Date)
@@ -78,7 +82,7 @@ describe('page polling and immutable capture', () => {
     const enqueueNextPage = vi.fn().mockResolvedValue(ok(undefined))
     expect((await pollSourcePage(db, payload(site.id), { fetcher: async () => Response.json(full), enqueueNextPage })).ok).toBe(true)
     expect(await rows(db, site.id)).toHaveLength(100)
-    expect(enqueueNextPage).toHaveBeenCalledWith({ sourceId: site.id, pollId: 'test-poll', cursor: '100' })
+    expect(enqueueNextPage).toHaveBeenCalledWith({ sourceId: site.id, pollId: 'test-poll', cursor: '100', startedAt })
     const [polling] = await db.select().from(jobSources).where(eq(jobSources.id, site.id))
     expect(polling).toMatchObject({ cursor: '100', lastPolledAt: null, healthStatus: 'ok' })
     await pollSourcePage(db, { ...payload(site.id), cursor: '100' }, { fetcher: async () => Response.json([]), enqueueNextPage })
@@ -111,13 +115,35 @@ describe('page polling and immutable capture', () => {
     const board = await source(db)
     const fetcher = vi.fn<typeof fetch>()
     await setSourceEnabled(db, board.id, false)
-    expect((await pollSourcePage(db, payload(board.id), { fetcher, enqueueNextPage: nextPage })).ok).toBe(true)
+    expect(await pollSourcePage(db, payload(board.id), { fetcher, enqueueNextPage: nextPage })).toEqual({ ok: true, value: { kind: 'disabled' } })
     expect(await pollSourcePage(db, payload(randomUUID()), { fetcher, enqueueNextPage: nextPage })).toMatchObject({ ok: false, error: { code: 'not_found' } })
     await setSourceEnabled(db, board.id, true)
     await db.update(jobSources).set({ config: sql`'{}'::jsonb` }).where(eq(jobSources.id, board.id))
     expect(await pollSourcePage(db, payload(board.id), { fetcher, enqueueNextPage: nextPage })).toMatchObject({ ok: false, error: { code: 'invalid_input' } })
     expect(fetcher).not.toHaveBeenCalled()
     expect((await db.select().from(jobSources).where(eq(jobSources.id, board.id)))[0]?.healthStatus).toBe('failing')
+  })
+  test('a Greenhouse repoll that only bumps updated_at stores nothing new', async ({ db }) => {
+    const board = await source(db)
+    await pollSourcePage(db, payload(board.id), { fetcher: fixtureFetcher, enqueueNextPage: nextPage })
+    const bumped = { jobs: greenhouseFixture.jobs.map((job) => ({ ...job, updated_at: '2026-10-22T09:00:00-04:00' })) }
+    await pollSourcePage(db, payload(board.id), { fetcher: async () => Response.json(bumped), enqueueNextPage: nextPage })
+    expect(await rows(db, board.id)).toHaveLength(5)
+  })
+  test('reports every posting on the page with its current raw version, unchanged ones included', async ({ db }) => {
+    const board = await source(db)
+    const first = unwrap(await pollSourcePage(db, payload(board.id), { fetcher: fixtureFetcher, enqueueNextPage: nextPage }))
+    if (first.kind !== 'page') throw new Error('expected a page')
+    expect(first.isFinalPage).toBe(true)
+    expect(first.postings.map((p) => p.externalId)).toEqual(greenhouseFixture.jobs.map((job) => String(job.id)))
+    const changed = { jobs: greenhouseFixture.jobs.map((job, index) => index === 0 ? { ...job, title: 'Changed title' } : job) }
+    const second = unwrap(await pollSourcePage(db, payload(board.id), { fetcher: async () => Response.json(changed), enqueueNextPage: nextPage }))
+    if (second.kind !== 'page') throw new Error('expected a page')
+    const [newVersion] = await db.select().from(rawJobs).where(and(eq(rawJobs.sourceId, board.id), sql`${rawJobs.payload}->>'title' = 'Changed title'`))
+    expect(second.postings[0]).toEqual({ externalId: String(greenhouseFixture.jobs[0]?.id), rawJobId: newVersion?.id })
+    expect(second.postings.slice(1)).toEqual(first.postings.slice(1))
+    expect([...await listLatestRawJobIds(db)].filter((id) => second.postings.some((p) => p.rawJobId === id)).sort())
+      .toEqual(second.postings.map((p) => p.rawJobId).sort())
   })
   test('the app role cannot UPDATE or DELETE raw jobs', async ({ db }) => {
     const board = await source(db)
@@ -143,7 +169,7 @@ describe('scheduled dispatch', () => {
     const requested = enqueue.mock.calls.map(([entry]) => entry)
     expect(result.enqueued).toBe(2)
     expect(requested.map((entry) => entry.sourceId).sort()).toEqual([never.id, old.id].sort())
-    for (const entry of requested) expect(entry).toMatchObject({ cursor: null, pollId: `w${Math.floor(now.getTime() / POLL_INTERVAL_MS) * POLL_INTERVAL_MS}` })
+    for (const entry of requested) expect(entry).toMatchObject({ cursor: null, startedAt: now, pollId: `w${Math.floor(now.getTime() / POLL_INTERVAL_MS) * POLL_INTERVAL_MS}` })
     const repeated = vi.fn().mockResolvedValue(ok(undefined))
     await dispatchSourcePolls(db, now, repeated)
     expect(repeated.mock.calls).toEqual(enqueue.mock.calls)
@@ -167,5 +193,29 @@ describe('normalization audit', () => {
     expect(report.checked).toBe(11)
     expect(report.failures).toEqual([{ sourceId: board.id, externalId: 'broken', message: expect.stringContaining('title') }])
     expect(await db.select().from(rawJobs).where(and(eq(rawJobs.sourceId, board.id), eq(rawJobs.externalId, 'broken')))).toHaveLength(1)
+  })
+})
+
+describe('reading a stored posting for normalization', () => {
+  test('normalizes the stored version with its source and the time the posting was first seen', async ({ db }) => {
+    const board = await source(db)
+    const first = unwrap(await pollSourcePage(db, payload(board.id), { fetcher: fixtureFetcher, enqueueNextPage: nextPage }))
+    const changed = { jobs: greenhouseFixture.jobs.map((job, index) => index === 0 ? { ...job, title: 'Changed title' } : job) }
+    const second = unwrap(await pollSourcePage(db, payload(board.id), { fetcher: async () => Response.json(changed), enqueueNextPage: nextPage }))
+    if (first.kind !== 'page' || second.kind !== 'page') throw new Error('expected pages')
+    const [original] = await db.select().from(rawJobs).where(eq(rawJobs.id, first.postings[0]?.rawJobId ?? ''))
+    const posting = unwrap(await readNormalizedPosting(db, second.postings[0]?.rawJobId ?? ''))
+    expect(posting).toMatchObject({
+      rawJobId: second.postings[0]?.rawJobId, sourceId: board.id, externalId: String(greenhouseFixture.jobs[0]?.id),
+      firstFetchedAt: original?.fetchedAt, job: { title: 'Changed title', companyName: board.name },
+    })
+  })
+  test('a missing raw job is not_found and an unusable stored config is invalid_input', async ({ db }) => {
+    expect(await readNormalizedPosting(db, randomUUID())).toMatchObject({ ok: false, error: { code: 'not_found' } })
+    const board = await source(db)
+    const page = unwrap(await pollSourcePage(db, payload(board.id), { fetcher: fixtureFetcher, enqueueNextPage: nextPage }))
+    if (page.kind !== 'page') throw new Error('expected a page')
+    await db.update(jobSources).set({ config: sql`'{}'::jsonb` }).where(eq(jobSources.id, board.id))
+    expect(await readNormalizedPosting(db, page.postings[0]?.rawJobId ?? '')).toMatchObject({ ok: false, error: { code: 'invalid_input' } })
   })
 })
