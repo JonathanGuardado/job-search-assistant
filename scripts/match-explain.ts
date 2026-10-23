@@ -3,7 +3,7 @@ import { withTenant } from '@/lib/db/tenancy'
 import { DEV_USER } from '@/lib/dev-user'
 import { assessJobForUser, effectiveVerdict, extractClaimsWithModel, getAssessment } from '@/modules/eligibility'
 import { getJob } from '@/modules/jobs'
-import { assessMatchForUser, extractRequirementsWithModel, getMatchCard, listMatches, type CardSection, type DimensionStatus, type Match } from '@/modules/matching'
+import { assessMatchForUser, compareForReview, extractRequirementsWithModel, getMatchCard, listMatches, REVIEW_ORDER, type CardSection, type DimensionStatus } from '@/modules/matching'
 
 /*
  * `pnpm match:explain [jobId ...]`: prints job cards as the dev user would see them, so
@@ -19,15 +19,6 @@ const MARK: Record<CardSection['status'], string> = { meets: '✓', partial: '~'
 const args = process.argv.slice(2)
 const limit = Number(args.find((arg) => arg.startsWith('--limit='))?.slice('--limit='.length) ?? 10)
 const requested = args.filter((arg) => !arg.startsWith('--'))
-
-// The ordering, stated in the output: role fit first, then required skills shown, then fewest concerns.
-const ROLE_RANK: Record<DimensionStatus, number> = { meets: 0, partial: 1, unknown: 2, not_stated: 2, gap: 3 }
-const shownShare = (match: Match) => {
-  const findings = match.dimensions.requiredSkills.findings
-  return findings.length === 0 ? 0.5 : findings.filter((f) => f.status === 'met').length / findings.length
-}
-const byReviewOrder = (a: Match, b: Match) =>
-  ROLE_RANK[a.dimensions.role.status] - ROLE_RANK[b.dimensions.role.status] || shownShare(b) - shownShare(a) || a.concerns.length - b.concerns.length
 
 async function show(jobId: string, assess: boolean): Promise<void> {
   const db = getDb()
@@ -66,10 +57,10 @@ try {
   if (requested.length > 0) {
     for (const jobId of requested) await show(jobId, true)
   } else {
-    const matches = (await withTenant(getDb(), DEV_USER.id, listMatches)).sort(byReviewOrder)
+    const matches = (await withTenant(getDb(), DEV_USER.id, listMatches)).sort(compareForReview)
     const count = (status: DimensionStatus) => matches.filter((m) => m.dimensions.role.status === status).length
     console.log(`${matches.length} matched jobs: ${count('meets')} match a target role, ${count('partial')} are close, ${count('gap')} are other roles.`)
-    console.log(`Showing ${Math.min(limit, matches.length)}, ordered by role fit, then share of required skills on your record, then fewest concerns.\n`)
+    console.log(`Showing ${Math.min(limit, matches.length)}. ${REVIEW_ORDER}\n`)
     for (const match of matches.slice(0, limit)) await show(match.jobId, false)
   }
 } finally {

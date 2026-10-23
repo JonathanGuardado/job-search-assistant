@@ -6,7 +6,7 @@ import { err, unwrap } from '@/lib/result'
 import { saveCandidateProfile } from '@/modules/profiles'
 import type { ExtractClaims } from './extract.js'
 import { eligibilityAssessments } from './schema.js'
-import { assessJobForUser, enqueueAssessmentsForJob, enqueueAssessmentsForUser, getAssessment } from './service.js'
+import { assessJobForUser, enqueueAssessmentsForJob, enqueueAssessmentsForUser, getAssessment, listAssessments, reviewGroup, setUserOverride } from './service.js'
 import { aBoard, aCandidate, aPosting, latamClaims, publish, remoteSeeker, stubExtract } from './test-fixtures.js'
 
 describe('assessing a job for a candidate', () => {
@@ -132,5 +132,30 @@ describe('queueing assessments', () => {
     expect(keyFor(before.queued)).toContain(`${userId}@${job.id}@`)
     expect(keyFor(after.queued)).not.toBe(keyFor(before.queued))
     expect(keyFor(after.queued)).not.toContain(':')
+  })
+})
+
+describe('the user\'s own verdict', () => {
+  test('sets and clears an override, keeping the engine\'s verdict, and lists every assessment', async ({ db }) => {
+    const job = await publish(db, await aBoard(db), aPosting())
+    const userId = await aCandidate(db, { ...remoteSeeker, allowedRegions: ['emea'], country: 'ES' })
+    expect(unwrap(await assessJobForUser(db, { userId, jobId: job.id }, stubExtract().extract))).toEqual({ kind: 'assessed', verdict: 'not_eligible' })
+
+    const overridden = await withTenant(db, userId, (scope) => setUserOverride(scope, { jobId: job.id, verdict: 'eligible', reason: '  The recruiter said LATAM is fine.  ' }))
+    expect(unwrap(overridden)).toMatchObject({ verdict: 'not_eligible', userOverride: 'eligible', overrideReason: 'The recruiter said LATAM is fine.' })
+    const [listed] = await withTenant(db, userId, listAssessments)
+    expect(listed && reviewGroup(listed)).toBe('can_apply')
+
+    unwrap(await withTenant(db, userId, (scope) => setUserOverride(scope, { jobId: job.id, verdict: null, reason: null })))
+    expect(await withTenant(db, userId, (scope) => getAssessment(scope, job.id))).toMatchObject({ userOverride: null, overrideReason: null })
+  })
+
+  test('an override needs an assessment, and stays the candidate\'s own', async ({ db }) => {
+    const job = await publish(db, await aBoard(db), aPosting())
+    const [owner, other] = [await aCandidate(db), await aCandidate(db)]
+    expect(await withTenant(db, owner, (scope) => setUserOverride(scope, { jobId: job.id, verdict: 'eligible', reason: null }))).toMatchObject({ ok: false, error: { code: 'not_found' } })
+    unwrap(await assessJobForUser(db, { userId: owner, jobId: job.id }, stubExtract().extract))
+    expect(await withTenant(db, other, (scope) => setUserOverride(scope, { jobId: job.id, verdict: 'eligible', reason: null }))).toMatchObject({ ok: false, error: { code: 'not_found' } })
+    expect(await withTenant(db, other, listAssessments)).toEqual([])
   })
 })

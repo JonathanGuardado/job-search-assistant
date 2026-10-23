@@ -2,6 +2,8 @@ import { createHash } from 'node:crypto'
 import { and, eq, sql } from 'drizzle-orm'
 import type { Db } from '@/lib/db/client'
 import { withTenant, type TenantScope } from '@/lib/db/tenancy'
+import { logEvent } from '@/lib/log'
+import { connectRedis } from '@/lib/queue'
 import { domainError, err, ok, type Result } from '@/lib/result'
 import type { AiError } from '@/modules/ai'
 import { listCareerItems } from '@/modules/career-knowledge'
@@ -12,7 +14,7 @@ import { compareRequirements, type MatchCandidate } from './compare.js'
 import { explainMatch, type CardSection } from './explain.js'
 import { postingText, validateRequirements, type ExtractRequirements } from './extract.js'
 import { extractRequirementsTask } from './prompts/extract-requirements.js'
-import { matchKey } from './queues.js'
+import { assessMatchQueue, matchKey } from './queues.js'
 import { jobRequirements, matchAssessments } from './schema.js'
 import { MATCH_ENGINE_VERSION, type JobRequirements } from './types.js'
 
@@ -183,4 +185,23 @@ export async function enqueueMatchesForUser(db: Db, userId: string, enqueue: Enq
   const jobs = (await listAssessableJobs(db)).filter((job) => notRejected.has(job.id))
   for (const job of jobs) await enqueue({ userId, jobId: job.id }, matchKey(userId, job.id, job.fingerprint, inputsHash))
   return jobs.length
+}
+
+/**
+ * Producer for the jobs view: queues one job for matching now, after the candidate
+ * overrides its verdict. A failure leaves the override saved; the next re-match picks it up.
+ */
+export async function queueMatchNow(db: Db, redisUrl: string, payload: { readonly userId: string; readonly jobId: string }): Promise<Result<void>> {
+  const connection = connectRedis(redisUrl, 'producer')
+  const queue = assessMatchQueue.open({ connection })
+  connection.on('error', () => logEvent('matching.enqueue_failed', payload))
+  try {
+    await enqueueMatch(db, payload, async (p, key) => { await queue.enqueue(p, key) })
+    return ok(undefined)
+  } catch {
+    return err(domainError('upstream_failed', 'Your choice is saved, but matching this job could not be queued.'))
+  } finally {
+    await queue.close()
+    connection.disconnect()
+  }
 }

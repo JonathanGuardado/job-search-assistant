@@ -20,6 +20,7 @@ import {
   type EligibilityJob,
   type EligibilityProfile,
   type EligibilityVerdict,
+  type ReviewGroup,
   type Verdict,
 } from './types.js'
 
@@ -197,6 +198,35 @@ export function whyNotWorthMatching(assessment: Pick<Assessment, 'verdict' | 'us
 }
 
 export const isWorthMatching = (assessment: Pick<Assessment, 'verdict' | 'userOverride' | 'reasons'>): boolean => whyNotWorthMatching(assessment) === null
+
+export function reviewGroup(assessment: Pick<Assessment, 'verdict' | 'userOverride' | 'reasons'>): ReviewGroup {
+  if (effectiveVerdict(assessment) === 'eligible') return 'can_apply'
+  return whyNotWorthMatching(assessment) ?? 'needs_review'
+}
+
+/** Every current verdict for the candidate, unordered: for list views. */
+export async function listAssessments(scope: TenantScope): Promise<Assessment[]> {
+  return scope.db.select().from(eligibilityAssessments).where(eq(eligibilityAssessments.engineVersion, ENGINE_VERSION))
+}
+
+const MAX_OVERRIDE_REASON = 500
+
+/**
+ * The candidate's own verdict on a job, or null to go back to the engine's. The engine's
+ * verdict and evidence stay as they were; re-assessment never clears an override. A job the
+ * engine has not assessed cannot be overridden.
+ */
+export async function setUserOverride(
+  scope: TenantScope,
+  { jobId, verdict, reason }: { readonly jobId: string; readonly verdict: Verdict | null; readonly reason: string | null },
+): Promise<Result<Assessment>> {
+  const trimmed = verdict === null ? null : reason?.trim().slice(0, MAX_OVERRIDE_REASON) || null
+  const [row] = await scope.db.update(eligibilityAssessments)
+    .set({ userOverride: verdict, overrideReason: trimmed })
+    .where(and(eq(eligibilityAssessments.jobId, jobId), eq(eligibilityAssessments.engineVersion, ENGINE_VERSION)))
+    .returning()
+  return row ? ok(row) : err(domainError('not_found', `job ${jobId} has not been assessed`))
+}
 
 /** Jobs worth matching for the candidate (isWorthMatching). */
 export async function listJobIdsWorthMatching(scope: TenantScope): Promise<string[]> {

@@ -74,6 +74,13 @@ export async function listAssessableJobs(db: Db): Promise<{ readonly id: string;
     .where(and(isNull(jobs.closedAt), isNull(jobs.canonicalJobId))).orderBy(asc(jobs.firstSeenAt), asc(jobs.id))
 }
 
+/** The jobs with these ids, in no particular order; ids with no job are left out. One query, for list views. */
+export async function getJobs(db: Db, ids: readonly string[]): Promise<Job[]> {
+  if (ids.length === 0) return []
+  const rows = await db.select().from(jobs).where(inArray(jobs.id, [...ids]))
+  return rows.map(toJob)
+}
+
 export async function getJob(db: Db, id: string): Promise<Result<Job>> {
   const [row] = await db.select().from(jobs).where(eq(jobs.id, id))
   return row ? ok(toJob(row)) : err(domainError('not_found', `job ${id} not found`))
@@ -244,6 +251,12 @@ export async function setJobUserState(
     .returning()
   if (!row) throw new Error('upsert ... returning produced no row')
   return ok(toJobUserState(row))
+}
+
+/** Every saved, hidden or applied mark the candidate made, for list views. */
+export async function listJobUserStates(scope: TenantScope): Promise<JobUserState[]> {
+  const rows = await scope.db.select().from(jobUserStates).where(eq(jobUserStates.userId, scope.userId))
+  return rows.map(toJobUserState)
 }
 
 export async function getJobUserState(

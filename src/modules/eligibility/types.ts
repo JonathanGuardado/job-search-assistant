@@ -182,6 +182,14 @@ export const ASSESSMENT_STAGES = ['structured', 'extracted', 'partial'] as const
 export type AssessmentStage = (typeof ASSESSMENT_STAGES)[number]
 
 export const VERDICTS = ['eligible', 'not_eligible', 'needs_review'] as const
+
+/**
+ * Where a job is shown (the jobs view's tabs): can_apply is eligible; location_only and
+ * visa_unknown are reviews matching skips (decision 0009, D10 and D11); needs_review is
+ * every other review. The user's override decides when there is one.
+ */
+export const REVIEW_GROUPS = ['can_apply', 'needs_review', 'location_only', 'visa_unknown', 'not_eligible'] as const
+export type ReviewGroup = (typeof REVIEW_GROUPS)[number]
 export type Verdict = (typeof VERDICTS)[number]
 
 /** Why, stored with every assessment: the deciding rule, or the questions left open. */

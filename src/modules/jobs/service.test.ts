@@ -2,11 +2,13 @@ import { randomUUID } from 'node:crypto'
 import { eq, inArray, sql } from 'drizzle-orm'
 import { describe, expect } from 'vitest'
 import type { Db } from '@/lib/db/client'
+import { withTenant } from '@/lib/db/tenancy'
 import { dbErrorFrom, dbTest as test } from '@/lib/db/testing'
+import { ensureUser } from '@/modules/profiles'
 import { unwrap } from '@/lib/result'
 import { readNormalizedPosting } from '@/modules/job-sources'
 import { jobs } from './schema.js'
-import { closeUnseenJobs, getJob, recordSightings, upsertJobFromRaw } from './service.js'
+import { closeUnseenJobs, getJob, getJobs, listJobUserStates, recordSightings, setJobUserState, upsertJobFromRaw } from './service.js'
 import { aBoard, aPosting, aStoredJob, dedupeCases, poll, storedJobs, type GreenhousePosting } from './test-fixtures.js'
 import type { Job } from './types.js'
 
@@ -198,5 +200,21 @@ describe('sightings and closing', () => {
     await recordSightings(db, { sourceId: board.id, postings: again.postings, seenAt: again.fetchedAt })
     expect(unwrap(await getJob(db, earlyJob.id)).canonicalJobId).toBeNull()
     expect(unwrap(await getJob(db, lateJob.id)).canonicalJobId).toBe(earlyJob.id)
+  })
+})
+
+describe('list reads', () => {
+  test('getJobs returns the jobs asked for in one call, skipping unknown ids', async ({ db }) => {
+    const [a, b] = [await aStoredJob(db), await aStoredJob(db)]
+    expect((await getJobs(db, [a.id, b.id, randomUUID()])).map((j) => j.id).sort()).toEqual([a.id, b.id].sort())
+    expect(await getJobs(db, [])).toEqual([])
+  })
+
+  test('listJobUserStates returns only the candidate\'s own marks', async ({ db }) => {
+    const job = await aStoredJob(db)
+    const [owner, other] = [await ensureUser(db, { email: `${randomUUID()}@test.local` }), await ensureUser(db, { email: `${randomUUID()}@test.local` })]
+    await withTenant(db, owner.id, async (scope) => unwrap(await setJobUserState(scope, { jobId: job.id, state: 'ignored' })))
+    expect(await withTenant(db, owner.id, listJobUserStates)).toEqual([expect.objectContaining({ jobId: job.id, state: 'ignored' })])
+    expect(await withTenant(db, other.id, listJobUserStates)).toEqual([])
   })
 })

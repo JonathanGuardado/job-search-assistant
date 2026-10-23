@@ -13,8 +13,10 @@ export { jobs } from './schema.js'
 export {
   closeUnseenJobs,
   getJob,
+  getJobs,
   getJobUserState,
   listAssessableJobs,
+  listJobUserStates,
   recordSightings,
   setJobUserState,
   upsertJobFromRaw,

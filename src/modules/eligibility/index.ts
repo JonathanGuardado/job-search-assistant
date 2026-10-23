@@ -15,7 +15,7 @@ export {
 } from './engine.js'
 export { eligibilityProfileOf } from './profile.js'
 export { eligibilityAssessments, jobEligibilityClaims } from './schema.js'
-export { assessJobForUser, effectiveVerdict, enqueueAssessmentsForJob, enqueueAssessmentsForUser, getAssessment, isWorthMatching, listJobIdsWorthMatching, whyNotWorthMatching } from './service.js'
+export { assessJobForUser, effectiveVerdict, enqueueAssessmentsForJob, enqueueAssessmentsForUser, getAssessment, isWorthMatching, listAssessments, listJobIdsWorthMatching, reviewGroup, setUserOverride, whyNotWorthMatching } from './service.js'
 export type { Assessment, AssessmentOutcome } from './service.js'
 export { assessEligibilityQueue, enqueueReassessUser, reassessUserQueue } from './queues.js'
 export { extractClaimsTask } from './prompts/extract-claims.js'
@@ -31,6 +31,8 @@ export {
   UNSPECIFIED_CLAIMS,
   ENGINE_VERSION,
   RULE_IDS,
+  REVIEW_GROUPS,
+  VERDICTS,
   HARD_CONSTRAINT_KEYS,
   ALWAYS_HARD,
 } from './types.js'
@@ -44,8 +46,10 @@ export type {
   Evidence,
   HardConstraintKey,
   Region,
+  ReviewGroup,
   Rule,
   RuleId,
   RuleInput,
   RuleOutcome,
+  Verdict,
 } from './types.js'
