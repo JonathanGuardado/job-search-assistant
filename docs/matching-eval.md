@@ -46,6 +46,54 @@ is the safer number here: 97% of extracted skills are ones a label allows, so th
   years of experience.
 - **iOS** was not listed alongside Swift and SwiftUI.
 
+## Prompt v2–v4: "one of these" requirements (after reading real cards)
+
+The owner's first real cards (`pnpm match:explain`) showed failures the v1 metrics did not
+weigh: "AWS, Azure, OCI, or GCP" as four missing required skills; "Missing required: Go" for
+a posting accepting any of six languages the owner mostly has; generic areas ("networking",
+"API design", "data modeling") as skills a resume can never show; a duty ("ensure
+Salesforce hygiene") read as a requirement. Prompt v2 returns a skill requirement as a list
+of names any one of which satisfies it, keeps generic areas in "other", and reads only the
+qualification sections; comparison engine v2 meets a requirement through any of its names.
+
+| Run (25 tuning postings) | Required found | Read as required | Allowed by labels | Years | Languages |
+| --- | --- | --- | --- | --- | --- |
+| v1 | 85.7% | 93.3% | 97.2% | 92% | 100% |
+| v2: any-of skills, generic areas to "other" | 81.4% | 100% | 100% | 96% | 93% |
+| v3: name skills found inside longer sentences | 84.3% | 100% | 100% | 96% | 100% |
+| **v4: anything with a proper name is a skill** | **94.3%** | 98.5% | 99.2% | 92% | 100% |
+
+These 25 postings shaped v2–v4, so their numbers are optimistic.
+
+### Holdout (prompt v4, one run)
+
+20 postings never read by any prompt version, labeled from full text and committed first
+(commit ae7025c): 62 required-skill groups, 8 language requirements.
+
+| Metric | Holdout | Target |
+| --- | --- | --- |
+| Quote validation rate | **100%** (198/198) | ≥ 98% |
+| Required skills found | **83.9%** (52/62) | ≥ 85% |
+| …read as required | 96.2% (50/52) | report |
+| Extracted skills a label allows | 98.9% (181/183) | report |
+| Overall years exactly right | 100% (20/20) | report |
+| Languages found | 100% (8/8) | report |
+
+**Recall misses the target by one requirement** (53 of 62 would pass). The misses:
+
+- **A named skill next to a generic word.** "Database technologies (SQL and NoSQL)" lost
+  SQL and NoSQL: v4 lists "databases" as a generic area. A conflict the prompt created.
+- **Named standards and frameworks filed as "other":** ASC 606, IFRS 15, SOC 2 / ISO 27001
+  / GDPR, MLOps / LLMOps.
+- **Linux, shell scripting, macOS, prompt engineering** were not listed.
+- **"C/C++" returned as one name.** Its key matches neither C nor C++, so a C++ developer
+  would see it as missing. A comparison bug, not counted by this metric.
+
+A miss leaves a requirement off the card; it does not add a false gap. The failures the
+owner saw on real cards (any-of skills, generic areas, duties) are fixed, and 99% of what
+v4 extracts is right. Known limitation found while labeling: spoken languages have no
+any-of form, so "German or French" reads as both required.
+
 ## Caveats
 
 - **One set, now seen.** These 25 postings shaped nothing yet, so this run is unbiased.
