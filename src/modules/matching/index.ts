@@ -5,7 +5,7 @@
  */
 
 export { jobRequirements, matchAssessments } from './schema.js'
-export { assessMatchForUser, enqueueMatch, enqueueMatchesForUser, getMatch, getMatchCard, inputsHashOf } from './service.js'
+export { assessMatchForUser, enqueueMatch, enqueueMatchesForUser, getMatch, getMatchCard, inputsHashOf, listMatches } from './service.js'
 export type { Match, MatchOutcome } from './service.js'
 export { assessMatchQueue, enqueueRematchUser, matchKey, rematchUserQueue } from './queues.js'
 export { extractRequirementsTask } from './prompts/extract-requirements.js'

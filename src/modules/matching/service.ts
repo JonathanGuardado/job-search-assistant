@@ -128,6 +128,11 @@ export async function assessMatchForUser(
   return ok({ kind: 'assessed' })
 }
 
+/** Every current match for the candidate, unordered: ordering is the caller's, and must be shown (docs/domain-model.md). */
+export async function listMatches(scope: TenantScope): Promise<Match[]> {
+  return scope.db.select().from(matchAssessments).where(eq(matchAssessments.engineVersion, MATCH_ENGINE_VERSION))
+}
+
 export async function getMatch(scope: TenantScope, jobId: string): Promise<Match | null> {
   const [row] = await scope.db.select().from(matchAssessments)
     .where(and(eq(matchAssessments.jobId, jobId), eq(matchAssessments.engineVersion, MATCH_ENGINE_VERSION)))
