@@ -32,6 +32,7 @@ export const candidateProfiles = pgTable('candidate_profiles', {
   excludedTech: text('excluded_tech').array().notNull(),
   excludedCompanies: text('excluded_companies').array().notNull(),
   excludedIndustries: text('excluded_industries').array().notNull(),
+  spokenLanguages: text('spoken_languages').array().$type<CandidateProfileInput['spokenLanguages']>().notNull().default(sql`'{}'::text[]`),
   constraintModes: jsonb('constraint_modes').$type<ConstraintModes>().notNull(),
 }, (t) => [
   check('candidate_profiles_salary_check', sql`${t.salaryFloorMinor} >= 0`),

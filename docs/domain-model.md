@@ -7,7 +7,8 @@ deliberately rather than letting the drift stand.
 ## Tenancy
 
 Every table carries `user_id` **except** the shared job catalog: `job_sources`,
-`raw_jobs`, `jobs`, `job_posting_snapshots`. A Greenhouse posting is the same posting for
+`raw_jobs`, `jobs`, `job_posting_snapshots`, and what is read from a posting once for
+everyone (`job_eligibility_claims`, `job_requirements`). A Greenhouse posting is the same posting for
 everyone, so it is stored once and assessed per candidate. This keeps scraping work
 shared and per-user tables small.
 
@@ -43,6 +44,7 @@ One per user. The constraint set that drives every decision.
 | `preferred_tech`, `excluded_tech` | text[] | |
 | `excluded_companies`, `excluded_industries` | text[] | |
 | `constraint_modes` | jsonb | Maps each field above to `hard` or `preferred` |
+| `spoken_languages` | text[] | ISO 639-1 codes from a fixed list. A fact, not a constraint: no mode, read only by matching |
 
 The profile is unique per `user_id`, protected by RLS, and configured at `/settings`.
 All constraint keys use the camelCase service field names. Work authorization and
@@ -191,11 +193,23 @@ Unique on `(user_id, job_id, engine_version)`. Keeping old versions is what lets
 re-run an improved engine and diff it against the previous one. Re-assessment replaces
 the engine's verdict and never the user's override.
 
+### `job_requirements`
+Owned by `matching`. Shared: what a posting asks of a candidate, extracted once per text
+version and reused for every candidate (decision 0010). It holds no candidate data.
+
+`id`, `job_id`, `task_version`, `job_fingerprint`, `requirements` (jsonb: skills with
+importance and years, overall years, spoken languages, other requirements; each with its
+quote, re-validated on every comparison), `traces`, `model`, `cost_micro_usd`,
+`extracted_at`. Unique on `(job_id, task_version)`.
+
 ### `match_assessments`
-`id`, `user_id`, `job_id`, `dimensions` (jsonb: per-dimension verdict + evidence),
-`met_requirements`, `missing_requirements`, `concerns` (text[]),
-`salary_compatibility` (`above` | `within` | `below` | `unknown`), `engine_version`,
-`assessed_at`.
+Owned by `matching`. `id`, `user_id`, `job_id`, `engine_version`, `dimensions` (jsonb:
+per-dimension status, findings and evidence), `met_requirements` and
+`missing_requirements` (jsonb findings), `concerns` (text[], worst first),
+`salary_compatibility` (`above` | `within` | `below` | `unknown`), `requirements_id`
+(null when the posting could not be read), `prompt_version`, `model`, `job_fingerprint`
+and `inputs_hash` (the matching-relevant profile fields and the career record, to detect
+staleness), `assessed_at`. Unique on `(user_id, job_id, engine_version)`.
 
 No single overall score column. If the UI needs an ordering, it derives one at query time
 from the dimensions, and the derivation is visible in the UI.

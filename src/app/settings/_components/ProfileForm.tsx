@@ -2,7 +2,7 @@
 
 import { useState, type ReactNode } from 'react'
 import {
-  CandidateProfileFormSchema, CURRENCIES, EMPLOYMENT_TYPES, profileFormInput, salaryToInput,
+  CandidateProfileFormSchema, CURRENCIES, EMPLOYMENT_TYPES, profileFormInput, salaryToInput, SPOKEN_LANGUAGES,
   type CandidateProfile, type ConstraintField,
 } from '@/modules/profiles'
 import { saveProfileAction } from '../actions'
@@ -19,6 +19,8 @@ const COUNTRIES = Array.from({ length: 26 * 26 }, (_, i) => String.fromCharCode(
   .filter((code) => { const name = regionName.of(code); return name !== undefined && name !== code && !/unknown/i.test(name) })
   .sort((a, b) => countryName(a).localeCompare(countryName(b)))
 const TIMEZONES = Intl.supportedValuesOf('timeZone')
+const languageName = new Intl.DisplayNames('en', { type: 'language' })
+const LANGUAGES = [...SPOKEN_LANGUAGES].sort((a, b) => (languageName.of(a) ?? a).localeCompare(languageName.of(b) ?? b))
 
 function Constraint({ field, label, hint, profile, children }: {
   readonly field: ConstraintField
@@ -89,6 +91,17 @@ export function ProfileForm({ profile, regionCountries }: {
           <button type="button" onClick={() => { setAuthorizations((rows) => [...rows, { key: nextKey, country: '', type: '' }]); setNextKey((key) => key + 1) }}>Add authorization</button>
         </>, 'Only add authorizations you actually hold. Leave the list empty if none apply.')}
         {row('willingToRelocate', 'Relocation', <label className={styles.checkbox}><input name="willingToRelocate" type="checkbox" defaultChecked={defaults?.willingToRelocate ?? false} />I am willing to relocate</label>)}
+      </section>
+      <section className={styles.section}>
+        <h2>Languages</h2>
+        <fieldset className={styles.constraint}>
+          <legend>Languages you can work in</legend>
+          <div className={styles.control}>
+            <div className={styles.options}>{LANGUAGES.map((code) => <label className={styles.checkbox} key={code}><input type="checkbox" name="spokenLanguages" value={code} defaultChecked={defaults?.spokenLanguages.includes(code) ?? false} />{languageName.of(code) ?? code}</label>)}</div>
+            <p className={styles.hint}>Select languages you could use at work. Matching flags postings that require a language you did not select.</p>
+          </div>
+          <div className={styles.mode}><strong>Used for matching</strong><p>Never excludes a job by itself.</p></div>
+        </fieldset>
       </section>
       <section className={styles.section}>
         <h2>Compensation</h2>

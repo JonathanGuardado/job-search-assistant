@@ -50,8 +50,8 @@ pure unit tests, `next build`).
 
 ## Database
 
-- Every table except `users`, `jobs`, `raw_jobs`, `job_sources`, and
-  `job_posting_snapshots` carries `user_id` with an index, and declares
+- Every table except `users`, `jobs`, `raw_jobs`, `job_sources`, `job_posting_snapshots`,
+  `job_eligibility_claims` and `job_requirements` carries `user_id` with an index, and declares
   `tenantIsolation()` in its `schema.ts` (decision 0004).
 - Service functions take the executor as their first argument: `Db` for the shared
   catalog, `TenantScope` for per-user tables. Callers own transaction boundaries, so one

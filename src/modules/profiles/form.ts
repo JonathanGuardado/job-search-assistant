@@ -16,6 +16,7 @@ export const CandidateProfileFormSchema = CandidateProfileInputSchema.omit({ sal
   workAuthorizations: authorizations,
   // Checkboxes: one value per selected region or country.
   allowedRegions: z.array(z.string().max(20)).max(300).transform((values) => [...new Set(values.map((v) => v.trim().toLowerCase()).filter(Boolean))]),
+  spokenLanguages: z.array(z.string().max(10)).max(100).transform((values) => [...new Set(values)]),
   targetRoles: separatedList,
   preferredTech: separatedList,
   excludedTech: separatedList,
@@ -45,6 +46,7 @@ export function profileFormInput(form: FormData) {
     targetRoles: form.get('targetRoles'), seniority: form.get('seniority'),
     preferredTech: form.get('preferredTech'), excludedTech: form.get('excludedTech'),
     excludedCompanies: form.get('excludedCompanies'), excludedIndustries: form.get('excludedIndustries'),
+    spokenLanguages: form.getAll('spokenLanguages'),
     constraintModes: Object.fromEntries(Object.keys(ConstraintModesSchema.shape).map((field) => [field, form.get(`mode.${field}`)])),
   }
 }

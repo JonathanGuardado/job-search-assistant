@@ -17,6 +17,7 @@ import {
   saveCareerItem,
   type CareerItemEdit,
 } from '@/modules/career-knowledge'
+import { enqueueRematchUser } from '@/modules/matching'
 import {
   deleteResume,
   getLatestParse,
@@ -38,6 +39,12 @@ const asDevUser = <T>(work: (scope: TenantScope) => Promise<T>) =>
 
 const withError = (path: string, message: string) =>
   `${path}${path.includes('?') ? '&' : '?'}error=${encodeURIComponent(message)}`
+
+/** The career record changed, so job matches are recompared in the background. The edit itself is already saved. */
+async function rematch(back: string): Promise<void> {
+  const queued = await enqueueRematchUser(getEnv().REDIS_URL, DEV_USER.id)
+  if (!queued.ok) redirect(withError(back, queued.error.message))
+}
 
 async function enqueueParse(resumeId: string, retryNonce?: string): Promise<void> {
   const enqueued = await enqueueResumeParse(
@@ -87,6 +94,7 @@ export async function deleteResumeAction(formData: FormData): Promise<void> {
     removeUnusedResumeFile(scope, storageKey, getEnv().STORAGE_DIR),
   )
   if (!cleaned.ok) redirect(withError('/resumes', cleaned.error.message))
+  await rematch('/resumes')
   redirect('/resumes')
 }
 
@@ -143,6 +151,7 @@ async function applyEdit(
 
   const result = await asDevUser((scope) => apply(scope, ref.data.itemId, edit.data))
   if (!result.ok) redirect(withError(back, result.error.message))
+  await rematch(back)
   redirect(back)
 }
 
@@ -160,5 +169,6 @@ export async function discardItemAction(formData: FormData): Promise<void> {
   const back = `/resumes/${ref.data.resumeId}/review`
   const result = await asDevUser((scope) => discardDraft(scope, ref.data.itemId))
   if (!result.ok) redirect(withError(`${back}?item=${ref.data.itemId}`, result.error.message))
+  await rematch(back)
   redirect(back)
 }

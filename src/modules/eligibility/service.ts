@@ -172,6 +172,16 @@ export async function enqueueAssessmentsForUser(db: Db, userId: string, enqueue:
   return jobs.length
 }
 
+/** Jobs the candidate's current verdict (theirs if they overrode it) does not reject: what matching compares. */
+export async function listJobIdsNotRejected(scope: TenantScope): Promise<string[]> {
+  const rows = await scope.db.select({ jobId: eligibilityAssessments.jobId }).from(eligibilityAssessments)
+    .where(and(eq(eligibilityAssessments.engineVersion, ENGINE_VERSION), sql`coalesce(${eligibilityAssessments.userOverride}, ${eligibilityAssessments.verdict}) <> 'not_eligible'`))
+  return rows.map((row) => row.jobId)
+}
+
+/** The verdict that counts: the user's override when they made one, else the engine's. */
+export const effectiveVerdict = (assessment: Pick<Assessment, 'verdict' | 'userOverride'>): Verdict => assessment.userOverride ?? assessment.verdict
+
 export async function getAssessment(scope: TenantScope, jobId: string): Promise<Assessment | null> {
   const [row] = await scope.db.select().from(eligibilityAssessments)
     .where(and(eq(eligibilityAssessments.jobId, jobId), eq(eligibilityAssessments.engineVersion, ENGINE_VERSION)))

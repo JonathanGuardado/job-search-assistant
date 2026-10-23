@@ -23,7 +23,9 @@
     "sources:seed": "tsx --env-file=.env.local scripts/seed-sources.ts",
     "sources:check": "tsx --env-file=.env.local scripts/check-normalization.ts",
     "jobs:renormalize": "tsx --env-file=.env.local scripts/renormalize.ts",
-    "jobs:sample": "tsx --env-file=.env.local scripts/dedupe-sample.ts"
+    "jobs:sample": "tsx --env-file=.env.local scripts/dedupe-sample.ts",
+    "match:explain": "tsx --env-file=.env.local scripts/match-explain.ts",
+    "eval:matching": "tsx --env-file=.env.local evals/run-matching-eval.ts"
   },
   "dependencies": {
     "bullmq": "^5.13.0",

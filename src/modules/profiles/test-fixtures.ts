@@ -5,6 +5,6 @@ export const profileFixture = CandidateProfileInputSchema.parse({
   workAuthorizations: [{ country: 'SV', type: 'citizen' }, { country: 'MX', type: 'permit', expiresAt: '2027-12-31' }],
   willingToRelocate: false, allowedRegions: ['latam', 'worldwide'], employmentTypes: ['employee', 'contractor'],
   salaryFloorMinor: 12345, salaryCurrency: 'USD', targetRoles: ['Backend Engineer'], seniority: 'Senior',
-  preferredTech: ['TypeScript'], excludedTech: ['COBOL'], excludedCompanies: ['Synthetic Company'], excludedIndustries: [],
+  preferredTech: ['TypeScript'], excludedTech: ['COBOL'], excludedCompanies: ['Synthetic Company'], excludedIndustries: [], spokenLanguages: ['es', 'en'],
   constraintModes: ConstraintModesSchema.parse(Object.fromEntries(Object.keys(ConstraintModesSchema.shape).map((key) => [key, 'hard']))),
 })

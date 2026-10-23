@@ -34,7 +34,7 @@ must survive restarts and run on a schedule; application work is latency-sensiti
 | `job-sources` | Adapters, polling cursors, raw capture | No |
 | `jobs` | Normalization, dedupe, canonical model, open/closed state | No |
 | `eligibility` | Rules, extraction, three-state verdicts | Extraction only |
-| `matching` | Requirement comparison and explanation | Reasoning |
+| `matching` | Requirement extraction, comparison and explanation (decision 0010) | Extraction only |
 | `applications` | Pipeline state, artifacts, status history | No |
 | `application-answers` | Question classification, grounded answers | Generation |
 | `automation` | Playwright flows, submission verification (phase 3) | Fallback only |
@@ -75,7 +75,8 @@ exported from that module's `index.ts`. Queues:
 | `job-normalize` | One raw version → its job, then duplicate links | Per poll page, for new or changed postings |
 | `assess-eligibility` | One candidate × one job | After a job is normalized; after a profile save (via `eligibility-reassess-user`) |
 | `eligibility-reassess-user` | Queue every open job for one candidate | On profile save |
-| `assess-match` | One candidate × one eligible job | After eligibility |
+| `assess-match` | One candidate × one job eligibility did not reject | After eligibility; after a profile or career-record change (via `match-reassess-user`) |
+| `match-reassess-user` | Queue every job not rejected for one candidate | On profile save, career-item edit, resume deletion, finished parse |
 | `resume-parse` | One resume version → draft career items | On upload |
 
 Every job is idempotent and keyed so a retry cannot double-write. Workflows are state

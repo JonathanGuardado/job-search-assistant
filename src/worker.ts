@@ -9,6 +9,9 @@ import {
 } from '@/modules/eligibility'
 import { closeUnseenJobs, jobNormalizeKey, jobNormalizeQueue, recordSightings, upsertJobFromRaw } from '@/modules/jobs'
 import {
+  assessMatchForUser, assessMatchQueue, enqueueMatch, enqueueMatchesForUser, extractRequirementsWithModel, rematchUserQueue,
+} from '@/modules/matching'
+import {
   DISPATCH_EVERY_MS, dispatchSourcePolls, pollSourcePage, sourcePollDispatchQueue, sourcePollKey, sourcePollQueue, type SourcePollPayload,
 } from '@/modules/job-sources'
 import { domainError, err, ok, type Result } from '@/lib/result'
@@ -25,6 +28,9 @@ const dispatchProducer = sourcePollDispatchQueue.open({ connection })
 const normalizeProducer = jobNormalizeQueue.open({ connection })
 const assessProducer = assessEligibilityQueue.open({ connection })
 const enqueueAssessment = async (payload: { userId: string; jobId: string }, key: string) => { await assessProducer.enqueue(payload, key) }
+const matchProducer = assessMatchQueue.open({ connection })
+const rematchProducer = rematchUserQueue.open({ connection })
+const enqueueMatchJob = async (payload: { userId: string; jobId: string }, key: string) => { await matchProducer.enqueue(payload, key) }
 
 /** A normalized job is assessed for every candidate, unless it is closed or a linked duplicate. */
 async function normalizeJob(rawJobId: string): Promise<Result<void>> {
@@ -36,6 +42,43 @@ async function normalizeJob(rawJobId: string): Promise<Result<void>> {
     return ok(undefined)
   } catch {
     return err(domainError('upstream_failed', 'Could not queue eligibility assessments.'))
+  }
+}
+
+/** Eligibility first; a job it does not reject is then queued for matching. */
+async function assessJob(payload: { userId: string; jobId: string }): Promise<Result<void>> {
+  const outcome = await assessJobForUser(db, payload, extractClaimsWithModel)
+  if (!outcome.ok) return outcome
+  const { value } = outcome
+  // A fresh verdict may still need a match: the candidate's record can change without eligibility's inputs changing.
+  if (value.kind === 'skipped' || (value.kind === 'assessed' && value.verdict === 'not_eligible')) return ok(undefined)
+  try {
+    await enqueueMatch(db, payload, enqueueMatchJob)
+    return ok(undefined)
+  } catch {
+    return err(domainError('upstream_failed', 'Could not queue the match.'))
+  }
+}
+
+async function rematchUser(userId: string): Promise<Result<void>> {
+  try {
+    const queued = await enqueueMatchesForUser(db, userId, enqueueMatchJob)
+    logEvent('matching.rematch_queued', { userId, jobs: queued })
+    return ok(undefined)
+  } catch {
+    return err(domainError('upstream_failed', 'Could not queue matches.'))
+  }
+}
+
+/** A finished parse adds draft career items, which matching reads. */
+async function parseResume(payload: { userId: string; resumeId: string }): Promise<Result<void>> {
+  const parsed = await runResumeParse(db, payload)
+  if (!parsed.ok) return parsed
+  try {
+    await rematchProducer.enqueue({ userId: payload.userId }, `${payload.userId}@parse@${payload.resumeId}`)
+    return ok(undefined)
+  } catch {
+    return err(domainError('upstream_failed', 'Could not queue matches after the parse.'))
   }
 }
 
@@ -83,17 +126,20 @@ async function handlePollPage(payload: SourcePollPayload): Promise<Result<void>>
 }
 
 const workers: Worker[] = [
-  resumeParseQueue.work({ connection }, (payload) => runResumeParse(db, payload)),
+  resumeParseQueue.work({ connection }, parseResume),
   sourcePollQueue.work({ connection, concurrency: 1 }, handlePollPage),
   // Concurrency 1: linking reads and rewrites a fingerprint's cluster, so two normalizations
   // of one cluster must not interleave.
   jobNormalizeQueue.work({ connection, concurrency: 1 }, ({ rawJobId }) => normalizeJob(rawJobId)),
   // One at a time: a provider quota error pauses this worker (lib/queue) until the quota resets.
-  assessEligibilityQueue.work({ connection, concurrency: 1 }, async (payload) => {
-    const outcome = await assessJobForUser(db, payload, extractClaimsWithModel)
+  assessEligibilityQueue.work({ connection, concurrency: 1 }, assessJob),
+  reassessUserQueue.work({ connection }, ({ userId }) => reassessUser(userId)),
+  // One at a time, like eligibility: both share the provider's quota.
+  assessMatchQueue.work({ connection, concurrency: 1 }, async (payload) => {
+    const outcome = await assessMatchForUser(db, payload, extractRequirementsWithModel)
     return outcome.ok ? ok(undefined) : outcome
   }),
-  reassessUserQueue.work({ connection }, ({ userId }) => reassessUser(userId)),
+  rematchUserQueue.work({ connection }, ({ userId }) => rematchUser(userId)),
   sourcePollDispatchQueue.work({ connection }, () => dispatchSourcePolls(db, new Date(), enqueuePoll)),
 ]
 
@@ -119,7 +165,9 @@ async function shutdown(signal: string): Promise<void> {
   logEvent('worker.stopping', { signal })
   // Closing waits for in-flight jobs, so nothing is abandoned mid-write.
   await Promise.all(workers.map((w) => w.close()))
-  await Promise.all([pollProducer.close(), dispatchProducer.close(), normalizeProducer.close(), assessProducer.close()])
+  await Promise.all([
+    pollProducer.close(), dispatchProducer.close(), normalizeProducer.close(), assessProducer.close(), matchProducer.close(), rematchProducer.close(),
+  ])
   await connection.quit()
   await closeDb()
   process.exit(0)

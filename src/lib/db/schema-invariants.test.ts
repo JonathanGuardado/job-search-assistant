@@ -9,7 +9,7 @@ import { dbTest as test } from './testing.js'
  */
 
 // Tables without user_id. Adding one is a deliberate decision recorded in docs/domain-model.md.
-const SHARED_TABLES = ['job_eligibility_claims', 'job_posting_snapshots', 'job_sources', 'jobs', 'raw_jobs', 'users']
+const SHARED_TABLES = ['job_eligibility_claims', 'job_posting_snapshots', 'job_requirements', 'job_sources', 'jobs', 'raw_jobs', 'users']
 
 type TableRow = {
   table: string

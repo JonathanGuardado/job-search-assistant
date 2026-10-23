@@ -7,10 +7,11 @@ function formFixture() {
   const form = new FormData()
   for (const [key, value] of Object.entries(profileFixture)) {
     if (typeof value === 'string') form.set(key, value)
-    else if (Array.isArray(value) && !['workAuthorizations', 'employmentTypes', 'allowedRegions'].includes(key)) form.set(key, value.join(', '))
+    else if (Array.isArray(value) && !['workAuthorizations', 'employmentTypes', 'allowedRegions', 'spokenLanguages'].includes(key)) form.set(key, value.join(', '))
   }
   // Allowed regions are checkboxes: one form value per selected region or country.
   for (const region of profileFixture.allowedRegions) form.append('allowedRegions', region)
+  for (const language of profileFixture.spokenLanguages) form.append('spokenLanguages', language)
   form.set('salaryFloor', '123.45')
   for (const kind of profileFixture.employmentTypes) form.append('employmentTypes', kind)
   for (const authorization of profileFixture.workAuthorizations) {
@@ -60,6 +61,15 @@ describe('profile form validation', () => {
       expect(CandidateProfileFormSchema.safeParse(profileFormInput(form)).success).toBe(false)
     },
   )
+  it('takes languages from checkboxes, allows none, and refuses a code outside the list', () => {
+    const form = formFixture()
+    form.delete('spokenLanguages')
+    expect(CandidateProfileFormSchema.parse(profileFormInput(form)).spokenLanguages).toEqual([])
+    for (const value of ['pt', 'pt', 'en']) form.append('spokenLanguages', value)
+    expect(CandidateProfileFormSchema.parse(profileFormInput(form)).spokenLanguages).toEqual(['pt', 'en'])
+    form.append('spokenLanguages', 'klingon')
+    expect(CandidateProfileFormSchema.safeParse(profileFormInput(form)).success).toBe(false)
+  })
   it('rejects invalid authorization expiry and no employment arrangement', () => {
     const form = formFixture()
     form.set('authorizationExpiresAt', '2027-02-31')

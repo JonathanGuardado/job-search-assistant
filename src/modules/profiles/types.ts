@@ -50,6 +50,16 @@ const timezone = z.string().trim().refine((value) => {
 }, 'Enter a valid IANA timezone, such as America/El_Salvador.')
 
 export const EMPLOYMENT_TYPES = ['employee', 'contractor', 'eor'] as const
+/**
+ * Languages a candidate can work in, as ISO 639-1 codes. A fixed list, so the settings
+ * page offers options rather than free text and matching compares codes, not spellings.
+ */
+export const SPOKEN_LANGUAGES = [
+  'en', 'es', 'pt', 'fr', 'de', 'it', 'nl', 'pl', 'ro', 'cs', 'hu', 'el', 'sv', 'da', 'nb', 'fi',
+  'ru', 'uk', 'tr', 'ar', 'he', 'hi', 'zh', 'ja', 'ko', 'vi', 'id', 'th',
+] as const
+export const SpokenLanguageSchema = z.enum(SPOKEN_LANGUAGES)
+export type SpokenLanguage = z.infer<typeof SpokenLanguageSchema>
 export const CandidateProfileInputSchema = z.object({
   country,
   city: z.string().trim().min(1, 'Enter your city.').max(200),
@@ -66,6 +76,8 @@ export const CandidateProfileInputSchema = z.object({
   excludedTech: list,
   excludedCompanies: list,
   excludedIndustries: list,
+  /** Facts about the candidate, not a constraint: matching compares them, eligibility never reads them. */
+  spokenLanguages: z.array(SpokenLanguageSchema).max(SPOKEN_LANGUAGES.length),
   constraintModes: ConstraintModesSchema,
 })
 export type CandidateProfileInput = z.infer<typeof CandidateProfileInputSchema>
