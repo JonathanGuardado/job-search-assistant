@@ -50,6 +50,12 @@ const keyOf = (text: string) => `${extractRequirementsTask.name}@${extractRequir
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 const RATE_LIMIT_WAITS_MS = [5_000, 10_000, 20_000, 40_000, 60_000]
 let modelCalls = 0
+const saveCache = () => {
+  mkdirSync('evals/.cache', { recursive: true })
+  writeFileSync(CACHE_PATH, JSON.stringify(cache))
+}
+// stderr, so progress shows while the report on stdout stays clean.
+const progress = (line: string) => process.stderr.write(`${line}\n`)
 
 async function extractCached(text: string): Promise<JobRequirements | string> {
   const key = keyOf(text)
@@ -60,10 +66,13 @@ async function extractCached(text: string): Promise<JobRequirements | string> {
     const result = await extractRequirementsWithModel(text)
     if (result.ok) {
       cache[key] = { requirements: result.value.value, costMicroUsd: result.value.traces.reduce((s, t) => s + t.costMicroUsd, 0) }
+      // Saved per posting, so a stopped run keeps what it already paid for.
+      saveCache()
       return result.value.value
     }
     const wait = RATE_LIMIT_WAITS_MS[attempt]
     if ((result.error.code === 'upstream_failed' || result.error.code === 'rate_limited') && wait !== undefined) {
+      progress(`  ${result.error.code}, waiting ${wait / 1000}s: ${result.error.message.slice(0, 120)}`)
       await sleep(wait)
       continue
     }
@@ -84,11 +93,13 @@ type Outcome = {
 
 const outcomes: Outcome[] = []
 // One posting at a time: the provider's rate limit is the bottleneck, not this process.
-for (const label of labels) {
+for (const [index, label] of labels.entries()) {
   const posting = postings.get(label.jobId)
   if (!posting) throw new Error(`${label.caseId}: posting not in evals/dataset.jsonl`)
   const text = postingText(posting)
+  const started = Date.now()
   const extracted = await extractCached(text)
+  progress(`[${index + 1}/${labels.length}] ${label.caseId}: ${typeof extracted === 'string' ? `failed (${extracted.slice(0, 120)})` : 'ok'} in ${((Date.now() - started) / 1000).toFixed(1)}s`)
   if (typeof extracted === 'string') {
     outcomes.push({ label, error: extracted, requirements: { skills: [], experience: null, languages: [], other: [] }, quoted: 0, stripped: 0 })
     continue
@@ -96,8 +107,7 @@ for (const label of labels) {
   const { requirements, quoted, stripped } = validateRequirements(extracted, text)
   outcomes.push({ label, error: null, requirements, quoted, stripped })
 }
-mkdirSync('evals/.cache', { recursive: true })
-writeFileSync(CACHE_PATH, JSON.stringify(cache))
+saveCache()
 
 // ---------------------------------------------------------------------------
 // Report
