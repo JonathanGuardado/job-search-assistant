@@ -43,6 +43,7 @@ export default async function ResumesPage({
           <span className={styles.count}>{resumes.length} {resumes.length === 1 ? 'version' : 'versions'}</span>
           <Link className={styles.secondaryButton} href="/settings">Candidate settings</Link>
           <Link className={styles.secondaryButton} href="/sources">Job sources</Link>
+          <Link className={styles.secondaryButton} href="/jobs">Jobs</Link>
         </div>
       </header>
       {searchParams.error && (

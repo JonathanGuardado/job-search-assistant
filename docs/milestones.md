@@ -3,7 +3,11 @@
 Phase 1 only. Later phases are listed at the bottom so their scope stays visible, but
 nothing from them gets built yet.
 
-**Active milestone: 1.8 jobs UI.** 1.1 through 1.7 are closed.
+**Active milestone: 1.8 jobs UI.** 1.1 through 1.7 are closed. The jobs view is built
+(`/jobs`, brief `prompts/codex/m1.8-jobs-ui.md`, implemented by Codex and reviewed): five
+tabs by eligibility plus Hidden, ordered by the stated review order, each job with its
+eligibility evidence and match card, and save, hide and override. **Pending:** the owner
+uses it instead of LinkedIn for a week.
 
 1.7 closed on 2026-10-22: the owner read real job cards and judged that each explains
 itself without a score. Matching (decision 0010) extracts requirements with prompt v4,

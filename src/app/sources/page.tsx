@@ -12,7 +12,7 @@ export default async function SourcesPage({ searchParams }: { readonly searchPar
   const sources = await listSources(getDb())
   return (
     <main className={styles.page}>
-      <Link href="/resumes" className={styles.backLink}>← Resume library</Link>
+      <nav><Link href="/resumes" className={styles.backLink}>← Resume library</Link> · <Link href="/jobs">Jobs</Link></nav>
       <header className={styles.pageHeader}>
         <div><p className={styles.eyebrow}>Job Seeker Assistant · Discovery</p><h1>Job sources</h1><p className={styles.subtitle}>Connect company boards to capture their postings. Enabled sources are polled every six hours.</p></div>
         <span className={styles.count}>{sources.length} sources</span>

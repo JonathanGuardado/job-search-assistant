@@ -15,7 +15,7 @@ export default async function SettingsPage({ searchParams }: {
   const profile = await withTenant(getDb(), DEV_USER.id, getCandidateProfile)
   return (
     <main className={styles.page}>
-      <nav><Link href="/resumes">← Resume library</Link></nav>
+      <nav><Link href="/resumes">← Resume library</Link> · <Link href="/jobs">Jobs</Link></nav>
       <header>
         <p className={styles.eyebrow}>Job Seeker Assistant · Your preferences</p>
         <h1>Candidate settings</h1>

@@ -1,0 +1,31 @@
+.page { min-height: 100vh; padding: 32px max(20px, calc((100vw - 1100px) / 2)) 64px; background: #f6f8fc; color: #202b3e; font: 14px/1.6 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+.page * { box-sizing: border-box; }
+.page nav { margin-bottom: 24px; }
+.page a { color: #4057cf; text-underline-offset: 3px; }
+.page header { margin-bottom: 28px; }
+.page h1 { margin: 0 0 8px; font-size: 34px; letter-spacing: -1px; }
+.page h2 { margin: 0 0 16px; font-size: 19px; }
+.page h3 { margin: 0 0 8px; font-size: 15px; }
+.page header p, .muted { color: #627087; }
+.page .eyebrow { color: #4057cf; font-size: 11px; letter-spacing: 1.4px; font-weight: 700; text-transform: uppercase; }
+.section { padding: 26px; margin-bottom: 22px; background: #fff; border: 1px solid #e1e6ee; border-radius: 12px; overflow-wrap: anywhere; }
+.navigation, .tabs, .pagination { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; }
+.tabs a { padding: 8px 12px; border: 1px solid #dce2ed; border-radius: 8px; background: #fff; text-decoration: none; }
+.tabs a[aria-current=page] { background: #4057cf; color: #fff; border-color: #4057cf; }
+.filter { display: flex; align-items: flex-end; gap: 12px; margin: 24px 0; }
+.filter label { flex: 1; max-width: 420px; }
+.page input:not([type=hidden]) { display: block; width: 100%; padding: 9px 11px; border: 1px solid #dce2ed; border-radius: 7px; background: #fcfdff; color: #202b3e; font: inherit; }
+.page button { min-height: 38px; padding: 8px 14px; border: 1px solid #d5dce7; border-radius: 8px; background: #fff; color: #202b3e; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+.page button:hover { background: #f0f3f9; }
+.page :is(input, button, a):focus-visible { outline: 3px solid #8195ef; outline-offset: 3px; }
+.company { margin: 0 0 4px; font-weight: 600; color: #627087; }
+.actions { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px; margin: 16px 0 22px; }
+.section .actions { margin-bottom: 0; }
+.reason { display: block; margin-bottom: 8px; color: #627087; font-size: 12px; }
+.badges { display: flex; flex-wrap: wrap; gap: 8px; }
+.badge { padding: 3px 9px; border-radius: 6px; color: #4057cf; background: #edf0ff; font-size: 12px; font-weight: 600; }
+.error { padding: 16px 20px; margin-bottom: 20px; border: 1px solid #f0c7cd; border-radius: 10px; background: #fff4f5; color: #942937; }
+.page blockquote { margin: 16px 0; padding-left: 16px; border-left: 3px solid #dce2ed; white-space: pre-wrap; overflow-wrap: anywhere; }
+.matchSection { padding-top: 18px; margin-top: 18px; border-top: 1px solid #edf0f5; }
+.description { white-space: pre-wrap; }
+@media(max-width: 650px) { .section { padding: 20px; } .tabs { gap: 8px; } .page h1 { font-size: 28px; } .filter { align-items: stretch; flex-direction: column; } }
