@@ -99,6 +99,29 @@ describe('onsite and hybrid roles name where they are (D3)', () => {
   })
 })
 
+describe('a remote scope the candidate fits outranks office options (engine v2)', () => {
+  // Real case (Canonical): "Home Based - Americas; Home Based - APAC; Office Based - Beijing,
+  // China; Office Based - Taipei, Taiwan". The offices are options beside a remote role.
+  const homeBasedWithOffices = (regions: Array<'latam' | 'namer' | 'apac'>) => claims({
+    remoteScope: { kind: 'regions', regions, quote: 'Home Based - Americas; Home Based - APAC' },
+    onsite: { kind: 'hybrid', countries: ['CN', 'TW'], quote: 'Office Based - Beijing, China; Office Based - Taipei, Taiwan' },
+  })
+
+  it('does not reject a remote role you fit because offices abroad are also listed', () => {
+    expect(verdictOf(profile(), homeBasedWithOffices(['latam', 'namer', 'apac']), job({ locationPolicy: 'remote' })).verdict).toBe('eligible')
+  })
+
+  it('implies no authorization requirement for those offices either', () => {
+    const relocating = profile({ willingToRelocate: true })
+    expect(verdictOf(relocating, homeBasedWithOffices(['latam', 'namer', 'apac']), job({ locationPolicy: 'remote' })).verdict).toBe('eligible')
+  })
+
+  it('leaves the office requirement in force when the remote scope does not include you', () => {
+    const result = verdictOf(profile(), homeBasedWithOffices(['apac']), job({ locationPolicy: 'remote' }))
+    expect(result.verdict).toBe('not_eligible')
+  })
+})
+
 describe('onsite abroad implies a work authorization requirement (D4)', () => {
   const relocating = profile({ willingToRelocate: true })
   const inIreland = (authorization: EligibilityClaims['authorization']) =>

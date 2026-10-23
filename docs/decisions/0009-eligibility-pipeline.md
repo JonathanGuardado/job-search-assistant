@@ -45,6 +45,14 @@ disagreement, showed several places where the original design would give wrong a
     country they selected, or a region they live in or selected.
   - Selecting a region does not make a candidate resident in every country of it.
   - The settings page offers exactly the countries in the rule's region table.
+- **D9. A remote scope the candidate fits outranks offices listed beside it** (engine
+  v2, added 2026-10-22). "Home Based - Americas; Office Based - Beijing, China" is a
+  remote role with optional offices. When the remote scope includes somewhere the
+  candidate can work, the job counts as remote, and neither the relocation rule nor the
+  authorization implied by D4 applies to the offices. When the scope excludes them, the
+  office requirement stays in force. Found by the first holdout (both of its false
+  rejections were one such Canonical posting), so a second holdout, labeled before any
+  run, measures it.
 - **Unquoted claims are discarded.** A claim stating anything without a verbatim quote
   is reset to `unspecified`, like a claim whose quote is not in the posting. The model's
   output schema makes `quote` a required (nullable) key, because constrained decoding

@@ -188,4 +188,5 @@ export type AssessmentReasons =
   | { readonly openQuestions: readonly string[] }
   | Record<string, never>
 
-export const ENGINE_VERSION = 1
+// v2: a remote scope the candidate fits outranks office options listed beside it.
+export const ENGINE_VERSION = 2

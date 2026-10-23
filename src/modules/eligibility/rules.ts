@@ -50,8 +50,25 @@ function authorizedCountries(input: RuleInput): Set<string> {
   return new Set([input.profile.country, ...input.profile.workAuthorizations.map((a) => a.country)].map((c) => c.toUpperCase()))
 }
 
-/** The arrangement the text states, falling back to the structured field. */
+/** Whether the posting states a remote scope that includes somewhere the candidate can work. */
+function fitsRemoteScope(input: RuleInput): boolean {
+  const scope = input.claims.remoteScope
+  if (scope.kind === 'worldwide') return true
+  const countries = acceptableCountries(input)
+  if (scope.kind === 'countries') return (scope.countries ?? []).some((c) => countries.has(c.toUpperCase()))
+  if (scope.kind !== 'regions') return false
+  const regions = scope.regions ?? []
+  return regions.some((r) => r === 'worldwide' || selectedRegions(input).includes(r))
+    || [...countries].some((c) => countryInAnyRegion(c, regions) === 'in')
+}
+
+/**
+ * The arrangement the text states, falling back to the structured field. A remote scope
+ * the candidate fits outranks offices listed beside it (engine v2): "Home Based - Americas;
+ * Office Based - Beijing" is a remote role with optional offices, not a hybrid one.
+ */
 function workplace(input: RuleInput): 'onsite' | 'hybrid' | 'remote' | 'unknown' {
+  if (fitsRemoteScope(input)) return 'remote'
   return input.claims.onsite.kind !== 'unspecified' ? input.claims.onsite.kind : input.job.locationPolicy
 }
 

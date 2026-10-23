@@ -119,7 +119,7 @@ as a concern, never as a rejection.
 
 | Rule id | Fails when |
 | --- | --- |
-| `onsite-requires-relocation` | Job is onsite/hybrid, candidate will not relocate, and none of its countries (`onsite.countries`, else the structured country) is theirs |
+| `onsite-requires-relocation` | Job is onsite/hybrid, candidate will not relocate, and none of its countries (`onsite.countries`, else the structured country) is theirs. A remote scope the candidate fits makes the job remote, whatever offices are listed beside it (engine v2) |
 | `remote-scope-excludes-country` | `remoteScope` names regions/countries outside where the candidate can work: their country, the countries they selected, and the regions they live in or selected. A selected region is not residence in each of its countries |
 | `authorization-missing` | Authorization is required (stated, or implied by onsite/hybrid work in a country where they hold none) and sponsorship is explicitly refused. Silent on sponsorship → unknown. The candidate's own country always counts as held |
 | `timezone-overlap-impossible` | Required overlap exceeds what the candidate's timezone permits (see below) |
