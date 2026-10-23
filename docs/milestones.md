@@ -3,18 +3,17 @@
 Phase 1 only. Later phases are listed at the bottom so their scope stays visible, but
 nothing from them gets built yet.
 
-**Active milestone: 1.6 eligibility v1.** 1.1 through 1.5 are closed. The engine,
-storage, background jobs and eval harness are built; on 84 labeled postings, prompt v3
-meets every target (precision 98.6%, recall 90.0%, needs_review 13.5%, quotes 99.4%; see
-[eligibility eval](eligibility-eval.md)). The owner reviewed and accepted the labels on
-2026-10-21. On a 60-posting holdout labeled before any run, prompt v3 also meets every
-target (precision 96.4%, recall 87.1%, needs_review 12.1%, quotes 100%). Its two false
-rejections were one posting, fixed by engine v2; on a second 29-posting holdout labeled
-before any run, v2 meets every target with no false rejections (precision 100%, recall
-88.6%, needs_review 15.4%, quotes 100%). **Phase gate pending:** the owner decides
-whether to trust the rejections. Jobs are normalized
-from raw capture, duplicates are linked under decision 0008, and open/closed state follows
-each poll. 1.5's sample measured 2.0%, at the target rather than under it; the owner
+**Active milestone: 1.7 matching.** 1.1 through 1.6 are closed.
+
+1.6 passed the phase gate on 2026-10-22: the owner trusts the engine's rejections. On 84
+tuning postings, prompt v3 meets every target (precision 98.6%, recall 90.0%,
+needs_review 13.5%, quotes 99.4%; see [eligibility eval](eligibility-eval.md)). On a
+60-posting holdout labeled before any run, it also meets every target (precision 96.4%,
+recall 87.1%). Its two false rejections were one posting, fixed by engine v2. On a second
+29-posting holdout labeled before any run, v2 meets every target with no false
+rejections (precision 100%, recall 88.6%, needs_review 15.4%, quotes 100%).
+
+1.5's dedupe sample measured 2.0%, at the target rather than under it; the owner
 accepted it on 2026-10-21 because the only failure mode is one company's bilingual
 postings. See [dedupe sample](dedupe-sample.md).
 
