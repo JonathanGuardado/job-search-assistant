@@ -1,11 +1,81 @@
 # Eligibility labels: review sheet
 
-Generated from `evals/dataset.jsonl` (144 postings). Each label is what a careful reader concludes for that reference profile (`evals/profiles.json`), with the sentence it rests on. *location-only* means the posting gives a city or country and says nothing about remote work.
+Generated from `evals/dataset.jsonl` (173 postings). Each label is what a careful reader concludes for that reference profile (`evals/profiles.json`), with the sentence it rests on. *location-only* means the posting gives a city or country and says nothing about remote work.
 
 - **Tuning set** (84 postings): reviewed and accepted by the owner on 2026-10-21. Prompts were shaped against it.
 - **Holdout set** (60 postings): labeled from full text and committed before any engine run. The prompt is never tuned on it.
+- **Second holdout set** (29 postings): labeled from full text and committed before any run, after engine v2 was fitted to a miss in the first holdout. Weighted toward home-based roles that also list offices.
 
 To dispute a label, note the case id and the verdict you'd give.
+
+# Second holdout set
+
+## ✅ eligible
+
+| Case | Profile | Why | Quote |
+| --- | --- | --- | --- |
+| Canonical: Internal Auditor (Home Based - Americas; Home based - EMEA; Office Based - London, UK)<br>`canonical-internal-auditor-12040359` | sv-remote | Remote in AMER or EMEA time zones; London office optional. | “This role will be based remotely in AMER or EMEA time zones” |
+| Canonical: Internal Auditor (Home Based - Americas; Home based - EMEA; Office Based - London, UK)<br>`canonical-internal-auditor-12040359` | us-remote | Remote in AMER or EMEA time zones; London office optional. | “This role will be based remotely in AMER or EMEA time zones” |
+| Canonical: Linux Devices Software Engineer (Home based - Worldwide; Office Based - Taipei, Taiwan)<br>`canonical-linux-devices-software-engineer-551aeed8` | sv-remote | Home based worldwide; the Taipei office is an option, not a requirement. | “we have remote roles open in every time zone” |
+| Canonical: Linux Devices Software Engineer (Home based - Worldwide; Office Based - Taipei, Taiwan)<br>`canonical-linux-devices-software-engineer-551aeed8` | us-remote | Home based worldwide; the Taipei office is an option, not a requirement. | “we have remote roles open in every time zone” |
+| Elastic: Sr. Salesforce DevOps Engineer (United States)<br>`elastic-sr-salesforce-devops-engineer-f63a4625` | us-remote | Listed in the United States; the candidate is in the US. *location-only* | “United States” |
+| Stripe: Technical Program Manager, Infrastructure (South San Francisco, CA)<br>`stripe-technical-program-manager-infrastructure-e62b9097` | us-remote | Fully telecommuting, US role; the candidate is in the US. | “100% Telecommuting Permitted.” |
+| Coinbase: Manager, SEC Reporting (Remote - USA)<br>`coinbase-manager-sec-reporting-f514f036` | us-remote | Remote, USA; the candidate is in the US. *location-only* | “Remote - USA” |
+| GitLab: Migration Engineer - GitLab Dedicated (Remote, United States)<br>`gitlab-migration-engineer-gitlab-dedicated-e87b1bc8` | us-remote | Remote, United States; 'PubSec/Federal experience a plus' is a preference, not a clearance. *location-only* | “Remote, United States” |
+| GitLab: Senior AI Engineer (Remote, US)<br>`gitlab-senior-ai-engineer-e5b66a20` | us-remote | Remote, US; the candidate is in the US. *location-only* | “Remote, US” |
+| GitLab: Staff Enterprise Architect (Remote, United States)<br>`gitlab-staff-enterprise-architect-8d66d06d` | us-remote | Remote, United States; the candidate is in the US. *location-only* | “Remote, United States” |
+| GitLab: SMB Account Executive, Growth (Remote, Canada; Remote, United States)<br>`gitlab-smb-account-executive-growth-c416980f` | us-remote | Remote, based in the US or Canada; the candidate is in the US. | “This role is 100% remote and will be based in the US and Canada.” |
+| GitLab: SMB New Business Account Executive (Remote, Canada; Remote, United States)<br>`gitlab-smb-new-business-account-executive-af894ab8` | us-remote | Remote, based in the US or Canada; the candidate is in the US. | “This role is 100% remote and will be based in the US and Canada.” |
+| Twilio: Sr AI Architect - Conversational AI (Remote - US)<br>`twilio-sr-ai-architect-conversational-ai-b8cee180` | us-remote | Remote in the US; the state list is pay-transparency boilerplate (New York pay is listed). | “This role will be remote and based in the United States.” |
+
+## ⚠️ needs review
+
+| Case | Profile | Why | Quote |
+| --- | --- | --- | --- |
+| Mozilla: Staff Technical Support Manager, Enterprise (Remote)<br>`mozilla-staff-technical-support-manager-enterprise-a95168b8` | sv-remote | Remote with location-dependent hiring ranges; no scope stated. German fluency is a skill, not a location. | “To learn the Hiring Ranges for this position, please select your location from the Apply Now dropdown menu.” |
+| Stripe: Risk Operations Analyst (Remote)<br>`stripe-risk-operations-analyst-7d5a3916` | sv-remote | Bare 'Remote' with no scope anywhere in the text. *location-only* | “Remote” |
+| Stripe: Risk Operations Analyst (Remote)<br>`stripe-risk-operations-analyst-7d5a3916` | us-remote | Bare 'Remote' with no scope anywhere in the text. *location-only* | “Remote” |
+| Stripe: Specialist Solutions Architect, Billing (Remote)<br>`stripe-specialist-solutions-architect-billing-c86fba1b` | sv-remote | Bare 'Remote' with no scope anywhere in the text. *location-only* | “Remote” |
+
+## ❌ not eligible
+
+| Case | Profile | Why | Quote |
+| --- | --- | --- | --- |
+| Canonical: Global Payroll Manager (Home based - EMEA; Office Based - London, UK)<br>`canonical-global-payroll-manager-73aab177` | sv-remote | Home based in EMEA time zones, or the London office. | “This role is home-based in EMEA time zones, with the option to be based in our London office.” |
+| Canonical: Global Payroll Manager (Home based - EMEA; Office Based - London, UK)<br>`canonical-global-payroll-manager-73aab177` | us-remote | Home based in EMEA time zones, or the London office. | “This role is home-based in EMEA time zones, with the option to be based in our London office.” |
+| Canonical: Group Financial Controller (Home based - EMEA; Office Based - London, UK)<br>`canonical-group-financial-controller-6a1365e7` | sv-remote | Home based in EMEA time zones, or the London office. | “This role is home-based in EMEA time zones, with the option to be based in our London office.” |
+| Canonical: Group Financial Controller (Home based - EMEA; Office Based - London, UK)<br>`canonical-group-financial-controller-6a1365e7` | us-remote | Home based in EMEA time zones, or the London office. | “This role is home-based in EMEA time zones, with the option to be based in our London office.” |
+| Canonical: Ubuntu Linux Kernel Test Engineer (Home Based - APAC; Office Based - Beijing, China; Office Based - Taipei, Taiwan)<br>`canonical-ubuntu-linux-kernel-test-engineer-76b85791` | sv-remote | Remote in APAC, or the Beijing/Taipei offices. | “This role will be based remotely in the APAC region” |
+| Canonical: Ubuntu Linux Kernel Test Engineer (Home Based - APAC; Office Based - Beijing, China; Office Based - Taipei, Taiwan)<br>`canonical-ubuntu-linux-kernel-test-engineer-76b85791` | us-remote | Remote in APAC, or the Beijing/Taipei offices. | “This role will be based remotely in the APAC region” |
+| Brex: Developer Support Specialist (Vancouver, British Columbia, Canada)<br>`brex-developer-support-specialist-510f2e95` | sv-remote | Listed in Vancouver with Vancouver pay; no remote option. ('Hybrid position' describes the duties.) *location-only* | “Vancouver, British Columbia, Canada” |
+| Brex: Developer Support Specialist (Vancouver, British Columbia, Canada)<br>`brex-developer-support-specialist-510f2e95` | us-remote | Listed in Vancouver with Vancouver pay; no remote option. ('Hybrid position' describes the duties.) *location-only* | “Vancouver, British Columbia, Canada” |
+| Datadog: Commercial Customer Success Manager (Key Accounts) - Denver or San Francisco (Denver, Colorado, USA)<br>`datadog-commercial-customer-success-manager-key-accounts-den-8aa307bb` | sv-remote | Hybrid in Denver or San Francisco. | “We operate as a hybrid workplace” |
+| Datadog: Commercial Customer Success Manager (Key Accounts) - Denver or San Francisco (Denver, Colorado, USA)<br>`datadog-commercial-customer-success-manager-key-accounts-den-8aa307bb` | us-remote | Hybrid in Denver or San Francisco; the candidate is in New York and remote only. | “We operate as a hybrid workplace” |
+| MongoDB: HR Generalist (Employee Experience Manager) (Tokyo)<br>`mongodb-hr-generalist-employee-experience-manager-6d29f40a` | sv-remote | Hybrid, based in Tokyo. | “We are looking to speak to candidates who are based in Tokyo for our hybrid working model.” |
+| Clara: Product Designer Associate (Diseñador asociado de Producto) - Bogotá [Hybrid] (Bogota D.C. / DC / Colombia)<br>`clara-product-designer-associate-disen-ador-asociado-de-prod-a02fe01f` | sv-remote | Hybrid in Bogotá. | “This is a hybrid role: you'll split your time between the office, customers and home.” |
+| Wellhub: Business Development Representative (UK (London - Hybrid))<br>`wellhub-business-development-representative-6a120331` | sv-remote | Hybrid in London; the flexible-work note is benefits boilerplate. *location-only* | “UK (London - Hybrid)” |
+| Wellhub: Senior Security Engineer / AppSec (Brazil (Remote))<br>`wellhub-senior-security-engineer-appsec-c01e61a0` | sv-remote | Remote within Brazil only. | “Please note that this role is only open to candidates in Brazil.” |
+| Wellhub: Senior Security Engineer / AppSec (Brazil (Remote))<br>`wellhub-senior-security-engineer-appsec-c01e61a0` | us-remote | Remote within Brazil only. | “Please note that this role is only open to candidates in Brazil.” |
+| Wellhub: SMB Success Junior Account Executive (France (Paris - Hybrid))<br>`wellhub-smb-success-junior-account-executive-e76b2953` | sv-remote | Hybrid, at least two days a week in the Paris office. | “This is a hybrid role, requiring a minimum of two days per week in our Paris office.” |
+| Elastic: Sr. Salesforce DevOps Engineer (United States)<br>`elastic-sr-salesforce-devops-engineer-f63a4625` | sv-remote | Listed in the United States with US pay; never opened elsewhere. *location-only* | “United States” |
+| Stripe: Technical Program Manager, Infrastructure (South San Francisco, CA)<br>`stripe-technical-program-manager-infrastructure-e62b9097` | sv-remote | Telecommuting permitted, but anchored to South San Francisco with a US entity and US pay; no wider scope. *location-only* | “South San Francisco, CA” |
+| Coinbase: Manager, SEC Reporting (Remote - USA)<br>`coinbase-manager-sec-reporting-f514f036` | sv-remote | Remote, USA (location line is the only scope). *location-only* | “Remote - USA” |
+| GitLab: Migration Engineer - GitLab Dedicated (Remote, United States)<br>`gitlab-migration-engineer-gitlab-dedicated-e87b1bc8` | sv-remote | Remote, United States (location line is the only scope). *location-only* | “Remote, United States” |
+| GitLab: Migration Engineer - GitLab Dedicated (Remote, United States)<br>`gitlab-migration-engineer-gitlab-dedicated-e87b1bc8` | sv-us-authorized | Remote within the US; US authorization does not satisfy residence. *location-only* | “Remote, United States” |
+| GitLab: Senior AI Engineer (Remote, US)<br>`gitlab-senior-ai-engineer-e5b66a20` | sv-remote | Remote, US (location line is the only scope). *location-only* | “Remote, US” |
+| GitLab: Staff Enterprise Architect (Remote, United States)<br>`gitlab-staff-enterprise-architect-8d66d06d` | sv-remote | Remote, United States (location line is the only scope). *location-only* | “Remote, United States” |
+| GitLab: Staff Enterprise Architect (Remote, United States)<br>`gitlab-staff-enterprise-architect-8d66d06d` | sv-us-authorized | Remote within the US; US authorization does not satisfy residence. *location-only* | “Remote, United States” |
+| MongoDB: Senior Specialist 2, Payroll (Gurugram)<br>`mongodb-senior-specialist-2-payroll-a2ac0e2f` | sv-remote | Hybrid, based in Gurugram. | “We are looking to speak to candidates who are based in Gurugram for our hybrid working model.” |
+| Stripe: Engineering Manager, Money as a Service (MaaS) (Singapore)<br>`stripe-engineering-manager-money-as-a-service-maas-6ee7bdab` | sv-remote | Team based in Singapore. | “is a newly formed team, based in Singapore” |
+| Stripe: Engineering Manager, Money as a Service (MaaS) (Singapore)<br>`stripe-engineering-manager-money-as-a-service-maas-6ee7bdab` | us-remote | Team based in Singapore. | “is a newly formed team, based in Singapore” |
+| GitLab: SMB Account Executive, Growth (Remote, Canada; Remote, United States)<br>`gitlab-smb-account-executive-growth-c416980f` | sv-remote | Remote, based in the US or Canada. | “This role is 100% remote and will be based in the US and Canada.” |
+| GitLab: SMB Account Executive, Growth (Remote, Canada; Remote, United States)<br>`gitlab-smb-account-executive-growth-c416980f` | sv-us-authorized | Must be based in the US or Canada; US authorization does not satisfy residence. | “This role is 100% remote and will be based in the US and Canada.” |
+| GitLab: SMB New Business Account Executive (Remote, Canada; Remote, United States)<br>`gitlab-smb-new-business-account-executive-af894ab8` | sv-remote | Remote, based in the US or Canada. | “This role is 100% remote and will be based in the US and Canada.” |
+| Twilio: Sr AI Architect - Conversational AI (Remote - US)<br>`twilio-sr-ai-architect-conversational-ai-b8cee180` | sv-remote | Remote, based in the United States. | “This role will be remote and based in the United States.” |
+| Twilio: Sr AI Architect - Conversational AI (Remote - US)<br>`twilio-sr-ai-architect-conversational-ai-b8cee180` | sv-us-authorized | Must be based in the US; US authorization does not satisfy residence. | “This role will be remote and based in the United States.” |
+| dLocal: Compliance Officer / MLRO- Senegal (Dakar)<br>`dlocal-compliance-officer-mlro-senegal-22c1e52b` | sv-remote | Based in Senegal; open to the whole of Senegal only. | “This role is open to the whole of Senegal” |
+| Wellhub: Senior MLOps Engineer (Brazil (Remote))<br>`wellhub-senior-mlops-engineer-0a50c642` | sv-remote | Remote within Brazil only. | “Please note that this role is only open to candidates in Brazil.” |
+| Wellhub: Staff Platform Engineer / Service Mesh (Brazil (Remote))<br>`wellhub-staff-platform-engineer-service-mesh-25287f71` | sv-remote | Remote within Brazil only. | “Please note that this role is only open to candidates in Brazil.” |
 
 # Holdout set
 

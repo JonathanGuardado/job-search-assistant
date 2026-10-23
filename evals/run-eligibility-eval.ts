@@ -32,12 +32,15 @@ const LabelSchema = z.object({
   quote: z.string(),
   basis: z.enum(['stated', 'location-only']),
 })
-const SPLITS = ['tuning', 'holdout'] as const
+const SPLITS = ['tuning', 'holdout', 'holdout-2'] as const
 const CaseSchema = z.object({
   id: z.string(),
   jobId: z.uuid(),
   category: z.string(),
-  /** tuning: prompts and rules were shaped against it. holdout: labeled before any run, never tuned on. */
+  /**
+   * tuning: prompts and rules were shaped against it. holdout: labeled before any run, never tuned on.
+   * holdout-2: labeled before any run after engine v2 was fitted to a holdout miss.
+   */
   split: z.enum(SPLITS),
   posting: z.object({
     company: z.string(),
@@ -69,7 +72,7 @@ const TARGETS = { precision: 0.95, recall: 0.8, reviewShare: 0.25, quoteRate: 0.
 const CACHE_PATH = 'evals/.cache/claims.json'
 
 const profiles = ProfilesSchema.parse(JSON.parse(readFileSync('evals/profiles.json', 'utf8')))
-// `pnpm eval:eligibility -- --split=holdout` runs one split; the default runs both.
+// `pnpm eval:eligibility -- --split=holdout` runs one split; the default runs all of them.
 const splitArg = process.argv.find((arg) => arg.startsWith('--split='))?.slice('--split='.length)
 const split = splitArg === undefined ? null : z.enum(SPLITS).parse(splitArg)
 const cases = readFileSync('evals/dataset.jsonl', 'utf8').trim().split('\n').map((line) => CaseSchema.parse(JSON.parse(line)))
