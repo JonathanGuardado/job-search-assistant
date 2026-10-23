@@ -99,12 +99,56 @@ set (Canonical's FP&A role), but this holdout has now shown the failure too. If 
 made, measuring it on this holdout no longer counts as unseen: confirming it needs a
 second fresh set.
 
+## Engine v2 and the second holdout
+
+Engine v2 (decision 0009, D9) makes that rule: when the stated remote scope includes
+somewhere the candidate can work, offices listed beside it no longer trigger the
+relocation rule. Prompt v3 is unchanged.
+
+Re-scored on cached extractions (no new model calls):
+
+| Set | Precision v1 → v2 | Recall | needs_review | Correct eligible |
+| --- | --- | --- | --- | --- |
+| Tuning (84) | 98.6% → 98.6% (72/73) | 90.0% | 13.5% → 12.7% | 36 → 37 of 38 |
+| Holdout (60) | 96.4% → **100%** (54/54) | 87.1% | 12.1% | 26 → 28 of 30 |
+
+The holdout was used to find this fix, so its v2 number is no longer an unseen
+measurement. A second holdout replaces it: 29 new postings (none of the 144 already
+used, at most five per company), weighted toward home-based roles that also list
+offices, with 52 labels (24 / 3 / 2 for `sv-remote`, 7 / 1 / 11 for `us-remote`, 4 / 0 / 0
+for `sv-us-authorized`). Labeled from full text and committed before the run (commit
+a9211c4). One run, no changes.
+
+| Metric | Second holdout (engine v2, prompt v3) | Target |
+| --- | --- | --- |
+| Precision on not_eligible | **100%** (31/31) | ≥ 95% |
+| Recall on not_eligible | **88.6%** (31/35) | ≥ 80% |
+| needs_review share | **15.4%** | ≤ 25% |
+| Quote validation rate | **100%** (50/50) | ≥ 98% |
+
+Every target met, with no false rejections. All five home-based-with-office postings
+were judged correctly: eligible where the remote scope includes the candidate (Americas,
+worldwide), rejected where it does not (EMEA, APAC). The extractions cost $0.035.
+
+- **One wrong "eligible".** Datadog's hybrid role in Denver or San Francisco, for the New
+  York candidate. The relocation rule compares countries, and both are in the US. It is
+  the city-level limitation already seen in the first holdout.
+- **Four "needs review" where a verdict was labeled.** Stripe's "100% Telecommuting
+  Permitted" role in South San Francisco never states a scope (two labels). Stripe's
+  Singapore team says "based in Singapore" without saying the role is onsite (two
+  labels). These are cautious misses.
+
 ## Caveats before the phase gate
+
 
 - **Tuned on its own test set.** v2 and v3 were shaped by disagreements in the 84 tuning
   postings. The holdout run above is the unbiased measurement.
-- **Size.** The spec aims for ~200 cases. 84 is enough to find failure modes, not to pin
-  precision down: one false rejection moves it by about 1.4 points.
+- **Size.** The spec aims for ~200 cases. There are now 173 postings (277 labels), 89 of
+  them never tuned on. The holdouts are big enough to find failure modes, not to pin
+  precision down: one false rejection moves the second holdout by about 3 points.
+- **City and state restrictions are invisible.** Rules compare countries, so a role in
+  Denver reads as acceptable to a candidate in New York. This only produces wrong
+  "eligible" verdicts, never false rejections.
 - **The pure US-only trap is thin.** No captured posting says only "must be authorized to
   work in the US" with no location restriction. It is covered by unit tests, not yet by
   real postings.
