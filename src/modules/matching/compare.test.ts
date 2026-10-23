@@ -87,6 +87,11 @@ describe('skills', () => {
     expect(none.missing).toHaveLength(1)
   })
 
+  it('reads a name written "C/C++" as either skill', () => {
+    const result = compareRequirements(job(), requires({ skills: [skill('C/C++')] }), candidate({}, [item({ technologies: ['C++'] })]), today)
+    expect(result.dimensions.requiredSkills.findings[0]).toMatchObject({ requirement: 'C or C++', status: 'met' })
+  })
+
   it('drops from a nice-to-have the skills the posting already requires', () => {
     // Wizeline: "Kubernetes." required; "working knowledge of Docker and/or Kubernetes" a plus.
     const result = compareRequirements(job(), requires({ skills: [skill('Kubernetes'), anyOf(['Docker', 'K8s'], { importance: 'preferred' })] }), candidate(), today)

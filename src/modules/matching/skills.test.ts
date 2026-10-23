@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { impliedSkills, skillKey, skillsMentioned } from './skills.js'
+import { alternativesIn, impliedSkills, skillKey, skillsMentioned } from './skills.js'
 
 describe('skillKey: one key per skill, however it is written', () => {
   it.each([
@@ -55,5 +55,21 @@ describe('skillsMentioned: skills named in free text', () => {
     const found = skillsMentioned('Wrote JavaScript daily.')
     expect(found.has('javascript')).toBe(true)
     expect(found.has('java')).toBe(false)
+  })
+})
+
+describe('alternativesIn: a name written "A/B" is either skill', () => {
+  it.each([
+    ['C/C++', ['C', 'C++']],
+    ['SOQL/SOSL', ['SOQL', 'SOSL']],
+    ['AWS / GCP', ['AWS', 'GCP']],
+    ['Grafana/DataDog/Prometheus', ['Grafana', 'DataDog', 'Prometheus']],
+    ['React', ['React']],
+  ])('%s → %j', (name, names) => {
+    expect(alternativesIn(name)).toEqual(names)
+  })
+
+  it.each(['CI/CD', 'TCP/IP', 'PL/SQL', 'A/B testing', 'I/O', 'UI/UX'])('keeps the single term %s whole', (name) => {
+    expect(alternativesIn(name)).toEqual([name])
   })
 })

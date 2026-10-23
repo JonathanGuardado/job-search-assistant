@@ -86,13 +86,18 @@ These 25 postings shaped v2–v4, so their numbers are optimistic.
 - **Named standards and frameworks filed as "other":** ASC 606, IFRS 15, SOC 2 / ISO 27001
   / GDPR, MLOps / LLMOps.
 - **Linux, shell scripting, macOS, prompt engineering** were not listed.
-- **"C/C++" returned as one name.** Its key matches neither C nor C++, so a C++ developer
-  would see it as missing. A comparison bug, not counted by this metric.
+- **"C/C++" returned as one name.** Its key matched neither C nor C++, so a C++ developer
+  would have seen it as missing. Fixed in comparison engine v3: a name written "A/B" offers
+  each skill, except single terms such as CI/CD and TCP/IP.
 
 A miss leaves a requirement off the card; it does not add a false gap. The failures the
 owner saw on real cards (any-of skills, generic areas, duties) are fixed, and 99% of what
 v4 extracts is right. Known limitation found while labeling: spoken languages have no
 any-of form, so "German or French" reads as both required.
+
+**Decision (owner, 2026-10-22): ship v4.** The remaining misses hide requirements rather
+than invent gaps; the next prompt change waits for feedback from real cards (decision 0010,
+M7a).
 
 ## Caveats
 

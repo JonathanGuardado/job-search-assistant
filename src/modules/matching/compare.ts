@@ -1,7 +1,7 @@
 import type { Job, Seniority } from '@/modules/jobs'
 import type { CandidateProfileInput } from '@/modules/profiles'
 import { experienceMonths, yearsLabel } from './experience.js'
-import { impliedSkills, skillKey, skillsMentioned } from './skills.js'
+import { alternativesIn, impliedSkills, skillKey, skillsMentioned } from './skills.js'
 import type {
   CandidateEvidence,
   Dimension,
@@ -283,8 +283,9 @@ const UNREAD: Dimension = { status: 'unknown', findings: [] }
  * `requirements` is null when the posting could not be read: the text-based dimensions
  * are unknown, never guessed, and the structured ones still compare.
  */
-export function compareRequirements(job: MatchJob, requirements: JobRequirements | null, candidate: MatchCandidate, today: Date): MatchResult {
+export function compareRequirements(job: MatchJob, extracted: JobRequirements | null, candidate: MatchCandidate, today: Date): MatchResult {
   const { profile, careerItems } = candidate
+  const requirements = extracted && { ...extracted, skills: extracted.skills.map((skill) => ({ ...skill, names: skill.names.flatMap(alternativesIn) })) }
   const bySkill = evidenceBySkill(careerItems)
   // A requirement listed twice ("Node", "Node.js") is one, and a skill the posting requires
   // anywhere is not also a nice-to-have, even where it calls it a plus.

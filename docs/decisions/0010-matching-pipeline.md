@@ -21,8 +21,9 @@ posting's requirements in a structured form to do that.
     not required versus nice-to-have, or which skill "5+ years" belongs to, across 26
     boards' free-form sections ("WHO YOU ARE", "Requisitos"), some in Spanish or
     Portuguese.
-- **M2. What is extracted:** skills (name, required or preferred, years if tied to that
-  skill), overall years of experience, spoken languages (ISO 639-1), and other
+- **M2. What is extracted:** skills (names, required or preferred, years if tied to that
+  skill; since prompt v2 a requirement lists every skill the posting accepts in its place,
+  any one of which satisfies it, and a name written "C/C++" offers each), overall years of experience, spoken languages (ISO 639-1), and other
   requirements (degrees, certifications, domain). Other requirements are shown on the
   card as *not compared*. Requirements are stored per job and prompt version in the shared
   `job_requirements` table, like eligibility claims (0009, D6). Quotes are re-validated on
@@ -54,6 +55,11 @@ posting's requirements in a structured form to do that.
 - **M7. A small extraction eval** (`pnpm eval:matching`, 25 postings labeled before the
   first run) measures quote validity and how many required skills are found. The
   comparison itself is covered by unit tests.
+- **M7a. Prompt v4 ships one requirement short of the recall target** (decided by the
+  owner, 2026-10-22). On 20 unseen postings it finds 83.9% of required skills (target 85%)
+  with 98.9% of extractions correct. A miss leaves a requirement off the card rather than
+  adding a false gap, and v4 fixes the failures real cards showed. The next prompt change
+  waits for feedback from real use and needs a fresh labeled set (`docs/matching-eval.md`).
 - **M8. The card is a service output** (`getMatchCard`), shown by `pnpm match:explain`
   until the jobs UI (1.8) renders it.
 

@@ -114,5 +114,6 @@ export type MatchResult = {
 /**
  * Bump on any change to how requirements are compared or explained: stored matches are per version.
  * v2: a skill requirement is met by any one of the skills it names.
+ * v3: a name written "C/C++" offers each skill.
  */
-export const MATCH_ENGINE_VERSION = 2
+export const MATCH_ENGINE_VERSION = 3

@@ -5,10 +5,12 @@ nothing from them gets built yet.
 
 **Active milestone: 1.7 matching.** 1.1 through 1.6 are closed. Matching is built
 (decision 0010): requirement extraction, a nine-dimension comparison with evidence and no
-score, and the card text, shown by `pnpm match:explain`. Requirement extraction meets its
-targets on 25 postings labeled before the run (quotes 100%, required skills found 85.7%;
-see [matching eval](matching-eval.md)). **Pending:** the owner reads real job cards and
-decides whether they explain themselves, which needs live eligibility verdicts first.
+score, and the card text, shown by `pnpm match:explain`. After the owner's first real
+cards, prompt v4 reads "one of these" requirements as one; on 20 unseen postings it finds
+83.9% of required skills (target 85%) with 98.9% of extractions correct, and the owner
+chose to ship it (see [matching eval](matching-eval.md)). Eligibility engine v3 flags
+postings that name only a place, which matching skips. **Pending:** the owner reads real
+job cards and decides whether they explain themselves.
 
 1.6 passed the phase gate on 2026-10-22: the owner trusts the engine's rejections. On 84
 tuning postings, prompt v3 meets every target (precision 98.6%, recall 90.0%,

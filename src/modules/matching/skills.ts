@@ -77,6 +77,19 @@ export function impliedSkills(key: string): string[] {
   return [...found]
 }
 
+/** Terms written with a slash that name one thing, not a choice between two. */
+const SLASHED_TERMS = new Set(['cicd', 'tcpip', 'plsql', 'abtesting', 'io', 'uiux', 'uxui'])
+
+/**
+ * The skills a name offers as alternatives: "C/C++" is C or C++, while "CI/CD" is one
+ * practice. Models often return the posting's own "A/B" spelling as a single name.
+ */
+export function alternativesIn(name: string): string[] {
+  if (!name.includes('/') || SLASHED_TERMS.has(normalize(name))) return [name]
+  const parts = name.split('/').map((part) => part.trim())
+  return parts.every((part) => part.length > 0) ? parts : [name]
+}
+
 const MAX_WORDS = 4
 
 /**
