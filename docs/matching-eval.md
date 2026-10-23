@@ -96,9 +96,8 @@ any-of form, so "German or French" reads as both required.
 
 ## Caveats
 
-- **One set, now seen.** These 25 postings shaped nothing yet, so this run is unbiased.
-  A prompt v2 aimed at the misses above would be measured on them and would need fresh
-  labels to confirm, as eligibility did (`docs/eligibility-eval.md`).
-- **Size.** 70 required-skill groups: one miss moves recall by about 1.4 points.
-- **Aliases were added before the run**, from spellings seen while labeling ("K8",
+- **The holdout is now seen.** Any prompt v5 aimed at its misses would need another fresh,
+  pre-labeled set to measure it honestly, as eligibility did (`docs/eligibility-eval.md`).
+- **Size.** 62 holdout required-skill groups: one miss moves recall by about 1.6 points.
+- **Aliases were added before the first run**, from spellings seen while labeling ("K8",
   "Apache Kafka", "OOP"), not from the model's output.
