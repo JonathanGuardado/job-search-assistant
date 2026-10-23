@@ -1,7 +1,7 @@
 import { closeDb, getDb } from '@/lib/db/client'
 import { withTenant } from '@/lib/db/tenancy'
 import { DEV_USER } from '@/lib/dev-user'
-import { assessJobForUser, extractClaimsWithModel } from '@/modules/eligibility'
+import { assessJobForUser, effectiveVerdict, extractClaimsWithModel, getAssessment } from '@/modules/eligibility'
 import { getJob } from '@/modules/jobs'
 import { assessMatchForUser, extractRequirementsWithModel, getMatchCard, listMatches, type CardSection, type DimensionStatus, type Match } from '@/modules/matching'
 
@@ -41,8 +41,15 @@ async function show(jobId: string, assess: boolean): Promise<void> {
     if (match.value.kind === 'skipped') return console.log(`━━ ${job.value.companyName} · ${job.value.title}\n   Not matched: ${match.value.reason.replaceAll('_', ' ')}\n`)
   }
   const card = await getMatchCard(db, DEV_USER.id, jobId)
+  const eligibility = await withTenant(db, DEV_USER.id, (scope) => getAssessment(scope, jobId))
   console.log(`━━ ${job.value.companyName} · ${job.value.title} · ${job.value.locationText ?? 'no location'}`)
   console.log(`   ${job.value.applyUrl}`)
+  // Eligibility first: a card full of checks says nothing if the candidate cannot take the job.
+  if (eligibility) {
+    const verdict = effectiveVerdict(eligibility)
+    const why = 'openQuestions' in eligibility.reasons ? eligibility.reasons.openQuestions.join(' / ') : 'reason' in eligibility.reasons ? eligibility.reasons.reason : ''
+    console.log(`   Eligibility: ${verdict === 'eligible' ? 'you can take this job' : verdict === 'needs_review' ? 'needs review' : 'not eligible'}${why ? ` — ${why}` : ''}`)
+  }
   if (!card) return console.log('   Not matched yet.\n')
   if (card.match.concerns.length > 0) {
     console.log('   Before you apply:')
