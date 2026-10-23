@@ -61,6 +61,14 @@ disagreement, showed several places where the original design would give wrong a
   `needs_review` and its reasons record `isLocationOnly`. Matching skips them unless the
   user overrides the verdict, and the jobs view (1.8) can group them as "probably onsite".
   Verdicts are unchanged: all three labeled sets score as under v2.
+- **D11. A review held open only by work authorization is not matched** (engine v4, added
+  2026-10-22). With relocation on, the owner's first ~500 re-checked verdicts were almost
+  all "you would need work authorization in US, and the posting does not say whether it
+  sponsors visas", and every one of the 386 jobs matched was such a review. `needs_review`
+  now records the rules that could not decide (`unresolvedRules`). When the only one is
+  `authorization-missing`, matching skips the job unless the user overrides the verdict;
+  the jobs view (1.8) shows these as their own group. The owner chose this over paying to
+  match them all. Verdicts are unchanged: all three labeled sets score as before.
 - **Unquoted claims are discarded.** A claim stating anything without a verbatim quote
   is reset to `unspecified`, like a claim whose quote is not in the posting. The model's
   output schema makes `quote` a required (nullable) key, because constrained decoding

@@ -130,7 +130,9 @@ as a concern, never as a rejection.
 Rules return `unknown` when the claim they depend on is `unspecified`. If any rule
 returns `unknown` and no rule returns `fail`, the verdict is `needs_review` with those
 questions attached. When the posting was read and names a place but never states an arrangement
-or a remote scope, the stored reasons also carry `isLocationOnly: true` (engine v3).
+or a remote scope, the stored reasons also carry `isLocationOnly: true` (engine v3). The
+reasons of every `needs_review` also list the rules that could not decide
+(`unresolvedRules`, engine v4).
 
 Which rules may reject comes from the profile, never from code: `location` follows the
 "where you can work" (`allowedRegions`) mode, `timezone`, `employmentType` and `salary`

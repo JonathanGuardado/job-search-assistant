@@ -54,6 +54,14 @@ describe('matching a job for a candidate', () => {
     expect(calls).toHaveLength(1)
   })
 
+  test('does not match a review whose only open matter is a visa the posting is silent on', async ({ db }) => {
+    const job = await publish(db, await aBoard(db), aPosting({ location: 'Dublin, Ireland' }))
+    const userId = await aCandidate(db, { ...seeker, willingToRelocate: true })
+    expect(await assessEligibility(db, userId, job.id, 'onsiteIreland')).toEqual({ kind: 'assessed', verdict: 'needs_review' })
+    expect(await withTenant(db, userId, (scope) => getAssessment(scope, job.id))).toMatchObject({ reasons: { unresolvedRules: ['authorization-missing'] } })
+    expect(unwrap(await assessMatchForUser(db, { userId, jobId: job.id }, stubExtract().extract))).toEqual({ kind: 'skipped', reason: 'visa_unknown' })
+  })
+
   test('reads a posting once for every candidate, and does nothing when no input changed', async ({ db }) => {
     const job = await publish(db, await aBoard(db), aPosting())
     const { extract, calls } = stubExtract()

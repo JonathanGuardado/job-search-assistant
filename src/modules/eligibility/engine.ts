@@ -6,6 +6,7 @@ import type {
   EligibilityProfile,
   EligibilityVerdict,
   Evidence,
+  RuleId,
   RuleInput,
 } from './types.js'
 
@@ -38,6 +39,7 @@ export function evaluateRules(
   const input: RuleInput = { profile, job, claims }
   const confidence = CONFIDENCE_BY_STAGE[stage]
   const openQuestions: string[] = []
+  const unresolvedRules: RuleId[] = []
   const evidence: Evidence[] = []
 
   for (const rule of RULES) {
@@ -46,6 +48,7 @@ export function evaluateRules(
 
     if (outcome.kind === 'unknown') {
       openQuestions.push(outcome.question)
+      unresolvedRules.push(rule.id)
       continue
     }
 
@@ -55,6 +58,7 @@ export function evaluateRules(
         openQuestions.push(
           `${outcome.reason} (no supporting sentence was found in the posting)`,
         )
+        unresolvedRules.push(rule.id)
         continue
       }
       if (outcome.quote !== undefined) {
@@ -79,6 +83,7 @@ export function evaluateRules(
         openQuestions.length > 0
           ? openQuestions
           : ['Extraction confidence was too low to decide.'],
+      unresolvedRules,
     }
   }
 

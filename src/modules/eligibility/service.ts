@@ -55,7 +55,7 @@ export async function currentProfileHash(db: Db, userId: string): Promise<string
 
 function reasonsOf(verdict: EligibilityVerdict, isLocationOnly: boolean): AssessmentReasons {
   if (verdict.verdict === 'not_eligible') return { ruleId: verdict.ruleId, reason: verdict.reason }
-  if (verdict.verdict === 'needs_review') return { openQuestions: verdict.openQuestions, isLocationOnly }
+  if (verdict.verdict === 'needs_review') return { openQuestions: verdict.openQuestions, isLocationOnly, unresolvedRules: verdict.unresolvedRules }
   return {}
 }
 
@@ -129,7 +129,7 @@ export async function assessJobForUser(
     const { code, message } = error.error
     if (code === 'rate_limited' || code === 'upstream_failed') return err(domainError(code, message))
     assessed = {
-      verdict: { verdict: 'needs_review', confidence: 0, openQuestions: [`The posting could not be read automatically (${code}).`] },
+      verdict: { verdict: 'needs_review', confidence: 0, openQuestions: [`The posting could not be read automatically (${code}).`], unresolvedRules: [] },
       claims: UNSPECIFIED_CLAIMS,
       stage: 'partial',
     }
@@ -178,14 +178,23 @@ export async function enqueueAssessmentsForUser(db: Db, userId: string, enqueue:
 export const effectiveVerdict = (assessment: Pick<Assessment, 'verdict' | 'userOverride'>): Verdict => assessment.userOverride ?? assessment.verdict
 
 /**
- * A job worth comparing with the candidate: not rejected, and not a review whose only
- * open matter is a posting that names nothing but a place. The user's override counts.
+ * Why a job is not worth comparing with the candidate, or null when it is. Rejected jobs
+ * are not; nor, unless the user overrode the verdict, are reviews whose only open matter is
+ * a posting that names nothing but a place (D10), or a work authorization the posting is
+ * silent on sponsoring (D11): matching those would mostly describe jobs the candidate
+ * cannot take, at a model call each.
  */
-export function isWorthMatching(assessment: Pick<Assessment, 'verdict' | 'userOverride' | 'reasons'>): boolean {
+export function whyNotWorthMatching(assessment: Pick<Assessment, 'verdict' | 'userOverride' | 'reasons'>): 'not_eligible' | 'location_only' | 'visa_unknown' | null {
   const verdict = effectiveVerdict(assessment)
-  if (verdict === 'not_eligible') return false
-  return !(assessment.userOverride === null && verdict === 'needs_review' && 'isLocationOnly' in assessment.reasons && assessment.reasons.isLocationOnly === true)
+  if (verdict === 'not_eligible') return 'not_eligible'
+  if (assessment.userOverride !== null || verdict !== 'needs_review' || !('openQuestions' in assessment.reasons)) return null
+  const { isLocationOnly, unresolvedRules = [] } = assessment.reasons
+  if (isLocationOnly === true) return 'location_only'
+  if (unresolvedRules.length > 0 && unresolvedRules.every((rule) => rule === 'authorization-missing')) return 'visa_unknown'
+  return null
 }
+
+export const isWorthMatching = (assessment: Pick<Assessment, 'verdict' | 'userOverride' | 'reasons'>): boolean => whyNotWorthMatching(assessment) === null
 
 /** Jobs worth matching for the candidate (isWorthMatching). */
 export async function listJobIdsWorthMatching(scope: TenantScope): Promise<string[]> {

@@ -244,6 +244,13 @@ describe('onsite', () => {
     )
     expect(result).toMatchObject({ verdict: 'needs_review', openQuestions: [expect.stringContaining('DE')] })
   })
+
+  it('names the rules that left the verdict open (engine v4)', () => {
+    const visa = evaluateRules(profile({ willingToRelocate: true }), job({ locationPolicy: 'onsite', locationCountry: 'DE' }), claims(), 'structured')
+    expect(visa).toMatchObject({ verdict: 'needs_review', unresolvedRules: ['authorization-missing'] })
+    const unquoted = evaluateRules(profile(), job(), claims({ remoteScope: { kind: 'countries', countries: ['US'] } }), 'extracted')
+    expect(unquoted).toMatchObject({ verdict: 'needs_review', unresolvedRules: expect.arrayContaining(['remote-scope-excludes-country']) })
+  })
 })
 
 describe('listsOnlyALocation: a posting that names a place and never says remote, hybrid or onsite (engine v3)', () => {

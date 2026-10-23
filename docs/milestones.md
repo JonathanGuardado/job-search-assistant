@@ -3,14 +3,16 @@
 Phase 1 only. Later phases are listed at the bottom so their scope stays visible, but
 nothing from them gets built yet.
 
-**Active milestone: 1.7 matching.** 1.1 through 1.6 are closed. Matching is built
-(decision 0010): requirement extraction, a nine-dimension comparison with evidence and no
-score, and the card text, shown by `pnpm match:explain`. After the owner's first real
-cards, prompt v4 reads "one of these" requirements as one; on 20 unseen postings it finds
-83.9% of required skills (target 85%) with 98.9% of extractions correct, and the owner
-chose to ship it (see [matching eval](matching-eval.md)). Eligibility engine v3 flags
-postings that name only a place, which matching skips. **Pending:** the owner reads real
-job cards and decides whether they explain themselves.
+**Active milestone: 1.8 jobs UI.** 1.1 through 1.7 are closed.
+
+1.7 closed on 2026-10-22: the owner read real job cards and judged that each explains
+itself without a score. Matching (decision 0010) extracts requirements with prompt v4,
+which on 20 unseen postings finds 83.9% of required skills (target 85%, shipped by the
+owner's choice) with 98.9% of extractions correct (see [matching eval](matching-eval.md)).
+It compares them in nine dimensions with evidence, and skips reviews that only name a
+place or only wait on visa sponsorship (decision 0009, D10 and D11). Known before 1.8:
+salaries stated only in a posting's text are never parsed, so every card says "no salary
+posted".
 
 1.6 passed the phase gate on 2026-10-22: the owner trusts the engine's rejections. On 84
 tuning postings, prompt v3 meets every target (precision 98.6%, recall 90.0%,

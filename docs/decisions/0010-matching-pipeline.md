@@ -47,7 +47,8 @@ posting's requirements in a structured form to do that.
   a predefined list of ISO 639-1 codes). They are a fact about the candidate, not a
   constraint, so they have no hard/preferred mode, and eligibility never reads them.
 - **M6. Matching runs on jobs eligibility did not reject** (the user's override counts),
-  except reviews whose posting names only a place (0009, D10).
+  except reviews whose posting names only a place (0009, D10) or whose only open matter is a
+  work authorization the posting is silent on sponsoring (0009, D11).
   A match is stale when the job's text, the matching-relevant profile fields, the career
   record, or the engine version changes. Eligibility queues a match after each verdict
   that is not a rejection; a profile save, a career-item edit, a resume deletion and a

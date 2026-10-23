@@ -5,7 +5,7 @@ import { withTenant, type TenantScope } from '@/lib/db/tenancy'
 import { domainError, err, ok, type Result } from '@/lib/result'
 import type { AiError } from '@/modules/ai'
 import { listCareerItems } from '@/modules/career-knowledge'
-import { effectiveVerdict, getAssessment, isWorthMatching, listJobIdsWorthMatching } from '@/modules/eligibility'
+import { getAssessment, listJobIdsWorthMatching, whyNotWorthMatching } from '@/modules/eligibility'
 import { getJob, listAssessableJobs, type Job } from '@/modules/jobs'
 import { getCandidateProfile } from '@/modules/profiles'
 import { compareRequirements, type MatchCandidate } from './compare.js'
@@ -22,7 +22,7 @@ export type MatchOutcome =
   | { readonly kind: 'assessed' }
   /** The stored match already reflects this job text, candidate record and engine version. */
   | { readonly kind: 'fresh' }
-  | { readonly kind: 'skipped'; readonly reason: 'no_profile' | 'job_not_assessable' | 'not_assessed' | 'not_eligible' | 'location_only' }
+  | { readonly kind: 'skipped'; readonly reason: 'no_profile' | 'job_not_assessable' | 'not_assessed' | 'not_eligible' | 'location_only' | 'visa_unknown' }
 
 /** Everything the comparison reads about the candidate. */
 async function candidateOf(scope: TenantScope): Promise<MatchCandidate | null> {
@@ -99,8 +99,8 @@ export async function assessMatchForUser(
   })
   if (!read.candidate) return ok({ kind: 'skipped', reason: 'no_profile' })
   if (!read.eligibility) return ok({ kind: 'skipped', reason: 'not_assessed' })
-  if (effectiveVerdict(read.eligibility) === 'not_eligible') return ok({ kind: 'skipped', reason: 'not_eligible' })
-  if (!isWorthMatching(read.eligibility)) return ok({ kind: 'skipped', reason: 'location_only' })
+  const notWorth = whyNotWorthMatching(read.eligibility)
+  if (notWorth !== null) return ok({ kind: 'skipped', reason: notWorth })
   const inputsHash = inputsHashOf(read.candidate)
   if (read.existing && read.existing.jobFingerprint === job.value.fingerprint && read.existing.inputsHash === inputsHash) return ok({ kind: 'fresh' })
 

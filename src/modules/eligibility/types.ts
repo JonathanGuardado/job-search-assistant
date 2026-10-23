@@ -174,6 +174,8 @@ export type EligibilityVerdict =
       readonly verdict: 'needs_review'
       readonly confidence: number
       readonly openQuestions: readonly string[]
+      /** The rules that could not decide (engine v4); empty when only low confidence held the verdict open. */
+      readonly unresolvedRules: readonly RuleId[]
     }
 
 export const ASSESSMENT_STAGES = ['structured', 'extracted', 'partial'] as const
@@ -185,10 +187,14 @@ export type Verdict = (typeof VERDICTS)[number]
 /** Why, stored with every assessment: the deciding rule, or the questions left open. */
 export type AssessmentReasons =
   | { readonly ruleId: RuleId; readonly reason: string }
-  /** isLocationOnly: the posting names only a place (engine v3); absent on older rows. */
-  | { readonly openQuestions: readonly string[]; readonly isLocationOnly?: boolean }
+  /**
+   * isLocationOnly: the posting names only a place (engine v3). unresolvedRules: the rules
+   * that could not decide (engine v4). Both absent on older rows.
+   */
+  | { readonly openQuestions: readonly string[]; readonly isLocationOnly?: boolean; readonly unresolvedRules?: readonly RuleId[] }
   | Record<string, never>
 
 // v2: a remote scope the candidate fits outranks office options listed beside it.
 // v3: needs_review records whether the posting names only a place. Verdicts are unchanged.
-export const ENGINE_VERSION = 3
+// v4: needs_review records which rules could not decide. Verdicts are unchanged.
+export const ENGINE_VERSION = 4

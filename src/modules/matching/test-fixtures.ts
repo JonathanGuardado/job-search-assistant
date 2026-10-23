@@ -83,7 +83,8 @@ const latam: EligibilityClaims = {
 }
 const emea: EligibilityClaims = { ...latam, remoteScope: { kind: 'regions', regions: ['emea'], quote: 'Remote - LATAM' } }
 
-const READINGS = { open: latam, rejected: emea, silent: UNSPECIFIED_CLAIMS } as const
+const onsiteIreland: EligibilityClaims = { ...UNSPECIFIED_CLAIMS, onsite: { kind: 'onsite', countries: ['IE'], quote: 'Dublin, Ireland' } }
+const READINGS = { open: latam, rejected: emea, silent: UNSPECIFIED_CLAIMS, onsiteIreland } as const
 
 /** Runs eligibility for real, with a stand-in that reads the posting as open to the candidate, closed, or silent on where. */
 export async function assessEligibility(db: Db, userId: string, jobId: string, reading: keyof typeof READINGS = 'open') {
