@@ -14,6 +14,7 @@ export {
   closeUnseenJobs,
   getJob,
   getJobs,
+  getJobRawVersion,
   getJobUserState,
   listAssessableJobs,
   listJobUserStates,

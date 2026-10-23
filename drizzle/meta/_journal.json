@@ -92,6 +92,20 @@
       "when": 1792722261962,
       "tag": "0012_salary-from-text",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1792798886806,
+      "tag": "0013_applications",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1792798887386,
+      "tag": "0014_applications-append-only",
+      "breakpoints": true
     }
   ]
 }

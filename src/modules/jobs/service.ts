@@ -81,6 +81,12 @@ export async function getJobs(db: Db, ids: readonly string[]): Promise<Job[]> {
   return rows.map(toJob)
 }
 
+/** The raw version a job was last normalized from: what an application records it applied to. */
+export async function getJobRawVersion(db: Db, id: string): Promise<Result<string>> {
+  const [row] = await db.select({ rawJobId: jobs.rawJobId }).from(jobs).where(eq(jobs.id, id))
+  return row ? ok(row.rawJobId) : err(domainError('not_found', `job ${id} not found`))
+}
+
 export async function getJob(db: Db, id: string): Promise<Result<Job>> {
   const [row] = await db.select().from(jobs).where(eq(jobs.id, id))
   return row ? ok(toJob(row)) : err(domainError('not_found', `job ${id} not found`))

@@ -7,8 +7,8 @@ deliberately rather than letting the drift stand.
 ## Tenancy
 
 Every table carries `user_id` **except** the shared job catalog: `job_sources`,
-`raw_jobs`, `jobs`, `job_posting_snapshots`, and what is read from a posting once for
-everyone (`job_eligibility_claims`, `job_requirements`). A Greenhouse posting is the same posting for
+`raw_jobs`, `jobs`, and what is read from a posting once for everyone
+(`job_eligibility_claims`, `job_requirements`). A Greenhouse posting is the same posting for
 everyone, so it is stored once and assessed per candidate. This keeps scraping work
 shared and per-user tables small.
 
@@ -169,9 +169,6 @@ enforces this in the database: an unknown salary carries no numbers, and a poste
 carries a currency and at least one bound. Salary columns are `bigint`, because minor
 units of weak currencies overflow 32 bits.
 
-### `job_posting_snapshots`
-`id`, `job_id`, `full_text`, `captured_at`. Postings disappear; applications must not.
-
 ### `job_eligibility_claims`
 Owned by `eligibility`. Shared: what a posting states, extracted once per text version and
 reused for every candidate (decision 0009). It holds no candidate data.
@@ -216,16 +213,25 @@ No single overall score column. If the UI needs an ordering, it derives one at q
 from the dimensions, and the derivation is visible in the UI.
 
 ### `applications`
-`id`, `user_id`, `job_id`, `status`, `mode` (`manual` | `approval` | `automatic`),
-`resume_id`, `cover_letter`, `answers` (jsonb), `salary_submitted_minor`,
-`applied_at`, `source_url`, `snapshot_id`, `contact` (jsonb), `notes`,
-`outcome_reason`, `created_at`.
+Owned by `applications` (decision 0012). One per job the candidate applied to; never
+deleted (the app role has no DELETE): a mistaken entry is withdrawn.
 
-`resume_id` points at the exact immutable version submitted.
+`id`, `user_id`, `job_id`, `raw_job_id` (the posting version applied to; the posting is
+rebuilt from it after the job closes), `status` (`applied` | `interviewing` | `offer` |
+`accepted` | `rejected` | `withdrawn` | `no_response`), `applied_on` (date),
+`resume_id` (the exact immutable version sent; null if not stored here, or set null if that
+version is later deleted), `salary_asked_minor` and `salary_asked_currency` (both or
+neither), `source_url`, `contact` (jsonb: name, email, url), `notes`, `outcome_reason`,
+`created_at`, `updated_at`. Unique on `(user_id, job_id)`.
+
+`mode`, `cover_letter` and `answers` arrive with phases 2 and 3.
 
 ### `application_events`
-Append-only. `id`, `application_id`, `from_status`, `to_status`, `actor`
-(`user` | `system`), `note`, `occurred_at`.
+Owned by `applications`. Append-only: the app role has no UPDATE or DELETE. `id`,
+`user_id`, `application_id`, `from_status` (null on creation), `to_status`, `note`,
+`occurred_on` (the day it happened, which the candidate may backdate), `recorded_at`.
+References its application by `(application_id, user_id)`, so an event cannot attach to
+another candidate's application.
 
 Time-in-stage and conversion rates come from this log. Never overwrite `status` without
 writing the event.

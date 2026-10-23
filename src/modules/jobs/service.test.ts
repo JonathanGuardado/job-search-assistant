@@ -8,7 +8,7 @@ import { ensureUser } from '@/modules/profiles'
 import { unwrap } from '@/lib/result'
 import { readNormalizedPosting } from '@/modules/job-sources'
 import { jobs } from './schema.js'
-import { closeUnseenJobs, getJob, getJobs, listJobUserStates, recordSightings, setJobUserState, upsertJobFromRaw } from './service.js'
+import { closeUnseenJobs, getJob, getJobRawVersion, getJobs, listJobUserStates, recordSightings, setJobUserState, upsertJobFromRaw } from './service.js'
 import { aBoard, aPosting, aStoredJob, dedupeCases, poll, storedJobs, type GreenhousePosting } from './test-fixtures.js'
 import type { Job } from './types.js'
 
@@ -204,6 +204,13 @@ describe('sightings and closing', () => {
 })
 
 describe('list reads', () => {
+  test('getJobRawVersion names the raw version a job was normalized from', async ({ db }) => {
+    const job = await aStoredJob(db)
+    const [row] = await db.select({ rawJobId: jobs.rawJobId }).from(jobs).where(eq(jobs.id, job.id))
+    expect(unwrap(await getJobRawVersion(db, job.id))).toBe(row?.rawJobId)
+    expect(await getJobRawVersion(db, randomUUID())).toMatchObject({ ok: false, error: { code: 'not_found' } })
+  })
+
   test('getJobs returns the jobs asked for in one call, skipping unknown ids', async ({ db }) => {
     const [a, b] = [await aStoredJob(db), await aStoredJob(db)]
     expect((await getJobs(db, [a.id, b.id, randomUUID()])).map((j) => j.id).sort()).toEqual([a.id, b.id].sort())
