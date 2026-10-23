@@ -68,6 +68,13 @@ describe('skills', () => {
     expect(enough.dimensions.requiredSkills.findings[0]).toMatchObject({ status: 'met', note: 'asks 2+ years; your record shows at least 3 years' })
   })
 
+  it('lists a skill the posting both requires and calls a plus only as required', () => {
+    // Wizeline: "Kubernetes." under must-haves and "Docker and/or Kubernetes" under nice-to-haves.
+    const result = compareRequirements(job(), requires({ skills: [skill('Kubernetes', { importance: 'preferred' }), skill('K8s'), skill('Docker', { importance: 'preferred' })] }), candidate(), today)
+    expect(result.dimensions.requiredSkills.findings.map((f) => f.requirement)).toEqual(['K8s'])
+    expect(result.dimensions.preferredSkills.findings.map((f) => f.requirement)).toEqual(['Docker'])
+  })
+
   it('keeps preferred skills in their own dimension', () => {
     const result = compareRequirements(job(), requires({ skills: [skill('GraphQL', { importance: 'preferred' })] }), candidate(), today)
     expect(result.dimensions.requiredSkills.status).toBe('not_stated')

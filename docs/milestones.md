@@ -3,7 +3,12 @@
 Phase 1 only. Later phases are listed at the bottom so their scope stays visible, but
 nothing from them gets built yet.
 
-**Active milestone: 1.7 matching.** 1.1 through 1.6 are closed.
+**Active milestone: 1.7 matching.** 1.1 through 1.6 are closed. Matching is built
+(decision 0010): requirement extraction, a nine-dimension comparison with evidence and no
+score, and the card text, shown by `pnpm match:explain`. Requirement extraction meets its
+targets on 25 postings labeled before the run (quotes 100%, required skills found 85.7%;
+see [matching eval](matching-eval.md)). **Pending:** the owner reads real job cards and
+decides whether they explain themselves, which needs live eligibility verdicts first.
 
 1.6 passed the phase gate on 2026-10-22: the owner trusts the engine's rejections. On 84
 tuning postings, prompt v3 meets every target (precision 98.6%, recall 90.0%,

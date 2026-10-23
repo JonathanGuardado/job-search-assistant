@@ -271,11 +271,16 @@ const UNREAD: Dimension = { status: 'unknown', findings: [] }
 export function compareRequirements(job: MatchJob, requirements: JobRequirements | null, candidate: MatchCandidate, today: Date): MatchResult {
   const { profile, careerItems } = candidate
   const bySkill = evidenceBySkill(careerItems)
-  // A skill listed twice ("Node", "Node.js") is one requirement.
+  // A skill listed twice ("Node", "Node.js") is one requirement, and one the posting
+  // requires anywhere is required, even where it also calls it a plus.
+  const requiredKeys = new Set((requirements?.skills ?? []).filter((s) => s.importance === 'required').map((s) => skillKey(s.name)))
   const findingsFor = (importance: Importance) => {
     const byKey = new Map<string, SkillRequirement>()
     for (const skill of requirements?.skills ?? []) {
-      if (skill.importance === importance && !byKey.has(skillKey(skill.name))) byKey.set(skillKey(skill.name), skill)
+      const key = skillKey(skill.name)
+      if (skill.importance !== importance || byKey.has(key)) continue
+      if (importance === 'preferred' && requiredKeys.has(key)) continue
+      byKey.set(key, skill)
     }
     return [...byKey.values()].map((skill) => skillFinding(skill, bySkill, today))
   }

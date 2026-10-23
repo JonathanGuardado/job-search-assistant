@@ -131,7 +131,12 @@ const details: string[] = []
 for (const o of outcomes) {
   quoted += o.quoted
   stripped += o.stripped
-  const byKey = new Map(o.requirements.skills.map((s) => [skillKey(s.name), s]))
+  // As matching reads them: a skill required anywhere in the posting is required (decision 0010).
+  const byKey = new Map<string, JobRequirements['skills'][number]>()
+  for (const s of o.requirements.skills) {
+    const current = byKey.get(skillKey(s.name))
+    if (!current || (current.importance === 'preferred' && s.importance === 'required')) byKey.set(skillKey(s.name), s)
+  }
   const missed: string[] = []
   const demoted: string[] = []
   for (const group of o.label.required) {

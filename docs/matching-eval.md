@@ -1,0 +1,56 @@
+# Matching eval — milestone 1.7
+
+**Date:** 2026-10-22
+**Dataset:** `evals/matching-labels.jsonl`, 25 postings from `evals/dataset.jsonl` (20
+engineering and data roles; 5 others: finance, support, sales, design, SEC reporting),
+labeled from full text and committed before the prompt read any of them (commit 0766ff5).
+**Model:** `gemini-3.5-flash-lite`. **Run:** `pnpm eval:matching`. **Cost:** $0.05.
+
+The comparison that follows extraction is deterministic and unit-tested; this measures
+whether the model returns the skills, years and languages a careful reader would list.
+Each label lists required and preferred skills ("A | B": naming either counts), skills
+that are not wrong to extract, overall years, and spoken languages.
+
+## Results (prompt v1, one run)
+
+| Metric | Value | Target |
+| --- | --- | --- |
+| Quote validation rate | **100%** (236/236) | ≥ 98% |
+| Required skills found | **85.7%** (60/70) | ≥ 85% |
+| …of those, read as required | 93.3% (56/60) | report |
+| Preferred skills found | 86.5% (32/37) | report |
+| Extracted skills a label allows | 97.2% (139/143) | report |
+| Overall years exactly right | 92.0% (23/25) | report |
+| Languages found | 100% (15/15) | report |
+
+Both targets are met, recall by a narrow margin: one more miss would fail it.
+
+The first scoring counted "read as required" at 88.3%. Tracing it found a comparison bug,
+not a model error: a posting that requires a skill and also lists it as a plus (Wizeline's
+Kubernetes) put it on the card twice, once under each heading. A skill required anywhere
+is now required (engine change before any user saw a card; re-scored from cache).
+
+## What the misses are
+
+A missed requirement is left off the card; it never becomes a false "missing". Precision
+is the safer number here: 97% of extracted skills are ones a label allows, so the
+"missing" lists rarely show something the posting does not ask for.
+
+- **Concepts rather than tools are skipped.** Microservices (twice), REST, object-oriented
+  programming.
+- **Standards land in "other".** Coinbase's "US GAAP" and "SOX" were returned inside one
+  long other-requirement sentence, so the card shows them as *not compared*.
+- **A platform named only through its parts.** Elastic's Salesforce DevOps role yielded
+  Apex, LWC and SOQL but not Salesforce itself, nor Git or CI/CD.
+- **Years tied to a skill read as overall** (twice): "5+ years with .NET/C#" became 5+
+  years of experience.
+- **iOS** was not listed alongside Swift and SwiftUI.
+
+## Caveats
+
+- **One set, now seen.** These 25 postings shaped nothing yet, so this run is unbiased.
+  A prompt v2 aimed at the misses above would be measured on them and would need fresh
+  labels to confirm, as eligibility did (`docs/eligibility-eval.md`).
+- **Size.** 70 required-skill groups: one miss moves recall by about 1.4 points.
+- **Aliases were added before the run**, from spellings seen while labeling ("K8",
+  "Apache Kafka", "OOP"), not from the model's output.
