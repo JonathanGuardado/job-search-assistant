@@ -22,6 +22,14 @@ describe('assessing a job for a candidate', () => {
     expect(stored?.claimsId).not.toBeNull()
   })
 
+  test('never rejects on a salary read from the posting text, even below a hard floor (decision 0011)', async ({ db }) => {
+    const content = '&lt;p&gt;This role is remote across LATAM.&lt;/p&gt;&lt;p&gt;The base salary range for this role is $100,000 - $120,000 USD.&lt;/p&gt;'
+    const job = await publish(db, await aBoard(db), aPosting({ content }))
+    expect(job.salaryQuote).not.toBeNull()
+    const userId = await aCandidate(db, { ...remoteSeeker, salaryFloorMinor: 20_000_000, constraintModes: { ...remoteSeeker.constraintModes, salaryFloorMinor: 'hard' } })
+    expect(unwrap(await assessJobForUser(db, { userId, jobId: job.id }, stubExtract().extract))).toEqual({ kind: 'assessed', verdict: 'eligible' })
+  })
+
   test('extracts a posting once and reuses its claims for every candidate', async ({ db }) => {
     const job = await publish(db, await aBoard(db), aPosting())
     const { extract, calls } = stubExtract()

@@ -152,7 +152,8 @@ external_id)` and normalized from the newest raw version of that posting.
 | `unknown`), `location_text`, `location_country` (ISO alpha-2, structured sources only),
 `remote_scope` (jsonb, nullable, unused until 1.6), `employment_type`,
 `salary_min_minor`, `salary_max_minor`, `salary_currency`, `salary_source` (`posted` |
-`unknown`), `apply_url` (http(s) only), `posted_at`, `fingerprint`, `canonical_job_id`
+`unknown`), `salary_quote` (the description's line when the salary was read from text,
+decision 0011; matching shows it, eligibility does not reject on it), `apply_url` (http(s) only), `posted_at`, `fingerprint`, `canonical_job_id`
 (self-ref for duplicates), `first_seen_at`, `last_seen_at`, `closed_at`.
 
 - **Replayable.** Normalization is a pure function of the raw version, so `pnpm

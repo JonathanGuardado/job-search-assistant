@@ -61,6 +61,11 @@ export const JobSchema = z.object({
   locationCountry: z.string().regex(/^[A-Z]{2}$/).nullable(),
   employmentType: EmploymentTypeSchema,
   salary: SalarySchema,
+  /**
+   * The posting's own words when the salary was read from its description rather than a
+   * structured field. Matching shows such a salary; eligibility does not reject on it.
+   */
+  salaryQuote: z.string().nullable(),
   applyUrl: z.url({ protocol: /^https?$/ }),
   postedAt: z.date().nullable(),
   fingerprint: z.string().min(1),

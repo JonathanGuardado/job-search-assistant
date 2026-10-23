@@ -8,7 +8,7 @@ const today = new Date('2026-10-15T00:00:00Z')
 describe('explainMatch', () => {
   it('turns each dimension with something to say into a headline and its evidence lines', () => {
     const result = compareRequirements(
-      { title: 'Senior Backend Engineer', companyName: 'Globex', seniority: 'senior', employmentType: 'unknown', salary: { source: 'unknown' } },
+      { title: 'Senior Backend Engineer', companyName: 'Globex', seniority: 'senior', employmentType: 'unknown', salary: { source: 'unknown' }, salaryQuote: null },
       {
         ...NO_REQUIREMENTS,
         skills: [

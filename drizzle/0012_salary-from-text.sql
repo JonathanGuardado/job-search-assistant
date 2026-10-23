@@ -1,0 +1,2 @@
+ALTER TABLE "jobs" ADD COLUMN "salary_quote" text;--> statement-breakpoint
+ALTER TABLE "jobs" ADD CONSTRAINT "jobs_salary_quote_check" CHECK ("jobs"."salary_quote" is null or "jobs"."salary_source" = 'posted');

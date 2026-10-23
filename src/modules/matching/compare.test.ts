@@ -20,7 +20,7 @@ const candidate = (overrides: Partial<MatchCandidate['profile']> = {}, careerIte
 })
 
 const job = (overrides: Partial<MatchJob> = {}): MatchJob => ({
-  title: 'Senior Software Engineer', companyName: 'Globex', seniority: 'senior', employmentType: 'unknown', salary: { source: 'unknown' }, ...overrides,
+  title: 'Senior Software Engineer', companyName: 'Globex', seniority: 'senior', employmentType: 'unknown', salary: { source: 'unknown' }, salaryQuote: null, ...overrides,
 })
 
 const skill = (name: string, overrides: Partial<SkillRequirement> = {}): SkillRequirement => ({

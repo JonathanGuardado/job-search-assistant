@@ -6,6 +6,7 @@ import { readNormalizedPosting, type PagePosting } from '@/modules/job-sources'
 import { fingerprint, locationKey } from './fingerprint.js'
 import { normalizeCompany } from './normalize-company.js'
 import { normalizeTitle } from './normalize-title.js'
+import { salaryFromText } from './salary-text.js'
 import { jobs, jobUserStates } from './schema.js'
 import type { Job, JobUserState, JobUserStateValue, Salary } from './types.js'
 
@@ -53,6 +54,7 @@ function toJob(row: JobRow): Job {
     locationCountry: row.locationCountry,
     employmentType: row.employmentType,
     salary: toSalary(row),
+    salaryQuote: row.salaryQuote,
     applyUrl: row.applyUrl,
     postedAt: row.postedAt,
     fingerprint: row.fingerprint,
@@ -138,11 +140,14 @@ export async function upsertJobFromRaw(db: Db, rawJobId: string): Promise<Result
   const { job, sourceId, externalId, fetchedAt, firstFetchedAt } = posting.value
   const companyNormalized = normalizeCompany(job.companyName)
   const { titleNormalized, seniority } = normalizeTitle(job.title)
+  // A structured salary wins; otherwise the range the posting states in its text, if any.
+  const stated = job.salary.source === 'unknown' ? salaryFromText(job.description) : null
   const fields = {
     rawJobId, rawFetchedAt: fetchedAt,
     companyName: job.companyName, companyNormalized, title: job.title, titleNormalized, seniority,
     description: job.description, locationPolicy: job.locationPolicy, locationText: job.locationText,
-    locationCountry: job.locationCountry, employmentType: job.employmentType, ...salaryColumns(job.salary),
+    locationCountry: job.locationCountry, employmentType: job.employmentType,
+    ...salaryColumns(stated?.salary ?? job.salary), salaryQuote: stated?.quote ?? null,
     applyUrl: job.applyUrl, postedAt: job.postedAt,
     fingerprint: fingerprint({
       companyNormalized, titleNormalized, seniority, locationPolicy: job.locationPolicy,

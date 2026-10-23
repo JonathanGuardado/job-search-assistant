@@ -32,12 +32,14 @@ export type AssessmentOutcome =
   | { readonly kind: 'skipped'; readonly reason: 'no_profile' | 'job_not_assessable' }
 
 function eligibilityJobOf(job: Job): EligibilityJob {
-  const posted = job.salary.source === 'posted' ? job.salary : null
+  // A salary read from the posting's text is shown by matching but never rejected on:
+  // a parsing slip must not hide a job (decision 0011).
+  const posted = job.salary.source === 'posted' && job.salaryQuote === null ? job.salary : null
   return {
     id: job.id, title: job.title, locationText: job.locationText, description: job.description,
     locationPolicy: job.locationPolicy, locationCountry: job.locationCountry,
     salaryMinMinor: posted?.minMinor ?? null, salaryMaxMinor: posted?.maxMinor ?? null,
-    salaryCurrency: posted?.currency ?? null, salarySource: job.salary.source,
+    salaryCurrency: posted?.currency ?? null, salarySource: posted ? 'posted' : 'unknown',
   }
 }
 

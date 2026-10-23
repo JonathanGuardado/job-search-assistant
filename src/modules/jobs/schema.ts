@@ -52,6 +52,8 @@ export const jobs = pgTable(
     salaryMaxMinor: bigint('salary_max_minor', { mode: 'number' }),
     salaryCurrency: text('salary_currency'),
     salarySource: text('salary_source', { enum: ['posted', 'unknown'] }).notNull(),
+    /** The posting's own line when the salary was read from its text; null when a structured field gave it. */
+    salaryQuote: text('salary_quote'),
     applyUrl: text('apply_url').notNull(),
     postedAt: timestamptz('posted_at'),
     fingerprint: text('fingerprint').notNull(),
@@ -69,6 +71,7 @@ export const jobs = pgTable(
     check('jobs_employment_type_check', oneOf(t.employmentType, EMPLOYMENT_TYPES)),
     check('jobs_seniority_check', oneOf(t.seniority, SENIORITIES)),
     check('jobs_location_country_check', sql`${t.locationCountry} ~ '^[A-Z]{2}$'`),
+    check('jobs_salary_quote_check', sql`${t.salaryQuote} is null or ${t.salarySource} = 'posted'`),
     // The database refuses an "unknown" salary that carries numbers, and a "posted" one without them.
     check(
       'jobs_salary_check',

@@ -44,6 +44,20 @@ describe('normalizing a raw posting into a job', () => {
       .toContain('jobs_salary_check')
   })
 
+  test('reads a salary range the posting states in its text, with the line it came from', async ({ db }) => {
+    const content = '&lt;p&gt;We hire anywhere in LATAM.&lt;/p&gt;&lt;p&gt;The reasonably estimated yearly salary for this role is:&lt;/p&gt;&lt;p&gt;$143,000—$190,000 USD&lt;/p&gt;'
+    const job = await aStoredJob(db, { content })
+    expect(job).toMatchObject({ salary: { source: 'posted', minMinor: 14_300_000, maxMinor: 19_000_000, currency: 'USD' }, salaryQuote: '$143,000—$190,000 USD' })
+    expect(unwrap(await getJob(db, job.id))).toEqual(job)
+    expect((await aStoredJob(db)).salaryQuote).toBeNull()
+  })
+
+  test('the database refuses a salary quote on an unknown salary', async ({ db }) => {
+    const job = await aStoredJob(db)
+    expect(await dbErrorFrom(db, (d) => d.execute(sql`update jobs set salary_quote = 'x' where id = ${job.id}`)))
+      .toContain('jobs_salary_quote_check')
+  })
+
   test('replaying a version rewrites the same row', async ({ db }) => {
     const board = await aBoard(db)
     const [posting] = (await poll(db, board, [aPosting()])).postings

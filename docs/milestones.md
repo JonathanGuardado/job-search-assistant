@@ -10,9 +10,8 @@ itself without a score. Matching (decision 0010) extracts requirements with prom
 which on 20 unseen postings finds 83.9% of required skills (target 85%, shipped by the
 owner's choice) with 98.9% of extractions correct (see [matching eval](matching-eval.md)).
 It compares them in nine dimensions with evidence, and skips reviews that only name a
-place or only wait on visa sponsorship (decision 0009, D10 and D11). Known before 1.8:
-salaries stated only in a posting's text are never parsed, so every card says "no salary
-posted".
+place or only wait on visa sponsorship (decision 0009, D10 and D11). Salaries stated in a
+posting's text are parsed since decision 0011 (1,292 of 4,176 open postings).
 
 1.6 passed the phase gate on 2026-10-22: the owner trusts the engine's rejections. On 84
 tuning postings, prompt v3 meets every target (precision 98.6%, recall 90.0%,

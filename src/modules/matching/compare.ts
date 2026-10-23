@@ -22,7 +22,7 @@ import type {
  * (CLAUDE.md rule 3). There is no overall score: each dimension stands on its evidence.
  */
 
-export type MatchJob = Pick<Job, 'title' | 'companyName' | 'seniority' | 'employmentType' | 'salary'>
+export type MatchJob = Pick<Job, 'title' | 'companyName' | 'seniority' | 'employmentType' | 'salary' | 'salaryQuote'>
 
 export type MatchCareerItem = {
   readonly id: string
@@ -206,7 +206,7 @@ function salaryOf(job: MatchJob, profile: MatchCandidate['profile']): { compatib
   if (floor === null) return { compatibility: 'unknown', dimension: { status: 'not_stated', findings: [] } }
   const floorText = money(floor, profile.salaryCurrency)
   const one = (status: DimensionStatus, findingStatus: Finding['status'], note: string) =>
-    ({ status, findings: [{ requirement: `your ${floorText} floor`, importance: 'preferred' as const, quote: null, status: findingStatus, note, evidence: [] }] })
+    ({ status, findings: [{ requirement: `your ${floorText} floor`, importance: 'preferred' as const, quote: job.salaryQuote, status: findingStatus, note, evidence: [] }] })
   if (job.salary.source === 'unknown') return { compatibility: 'unknown', dimension: one('unknown', 'unknown', 'no salary posted') }
   const { minMinor, maxMinor, currency } = job.salary
   const range = minMinor !== null && maxMinor !== null ? `${money(minMinor, currency)}–${money(maxMinor, currency)}`
