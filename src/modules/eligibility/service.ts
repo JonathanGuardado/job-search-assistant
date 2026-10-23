@@ -6,7 +6,7 @@ import { domainError, err, ok, type Result } from '@/lib/result'
 import type { AiError } from '@/modules/ai'
 import { getJob, listAssessableJobs, type Job } from '@/modules/jobs'
 import { getCandidateProfile, listUserIds } from '@/modules/profiles'
-import { assessEligibility } from './engine.js'
+import { assessEligibility, listsOnlyALocation } from './engine.js'
 import type { ExtractClaims } from './extract.js'
 import { eligibilityProfileOf } from './profile.js'
 import { extractClaimsTask } from './prompts/extract-claims.js'
@@ -53,9 +53,9 @@ export async function currentProfileHash(db: Db, userId: string): Promise<string
   return profile ? profileHashOf(eligibilityProfileOf(profile)) : null
 }
 
-function reasonsOf(verdict: EligibilityVerdict): AssessmentReasons {
+function reasonsOf(verdict: EligibilityVerdict, isLocationOnly: boolean): AssessmentReasons {
   if (verdict.verdict === 'not_eligible') return { ruleId: verdict.ruleId, reason: verdict.reason }
-  if (verdict.verdict === 'needs_review') return { openQuestions: verdict.openQuestions }
+  if (verdict.verdict === 'needs_review') return { openQuestions: verdict.openQuestions, isLocationOnly }
   return {}
 }
 
@@ -137,7 +137,9 @@ export async function assessJobForUser(
 
   const { verdict, stage } = assessed
   const fields = {
-    verdict: verdict.verdict, confidence: verdict.confidence, stage, reasons: reasonsOf(verdict),
+    // Only a posting the model read can be said to name nothing but a place.
+    verdict: verdict.verdict, confidence: verdict.confidence, stage,
+    reasons: reasonsOf(verdict, read.claims !== null && listsOnlyALocation(assessed.claims, eligibilityJobOf(job.value))),
     evidence: verdict.verdict === 'needs_review' ? [] : [...verdict.evidence],
     claimsId: read.claims?.id ?? null, promptVersion: read.claims ? extractClaimsTask.version : null, model: read.claims?.model ?? null,
     jobFingerprint: job.value.fingerprint, profileHash, assessedAt: new Date(),
@@ -172,15 +174,25 @@ export async function enqueueAssessmentsForUser(db: Db, userId: string, enqueue:
   return jobs.length
 }
 
-/** Jobs the candidate's current verdict (theirs if they overrode it) does not reject: what matching compares. */
-export async function listJobIdsNotRejected(scope: TenantScope): Promise<string[]> {
-  const rows = await scope.db.select({ jobId: eligibilityAssessments.jobId }).from(eligibilityAssessments)
-    .where(and(eq(eligibilityAssessments.engineVersion, ENGINE_VERSION), sql`coalesce(${eligibilityAssessments.userOverride}, ${eligibilityAssessments.verdict}) <> 'not_eligible'`))
-  return rows.map((row) => row.jobId)
-}
-
 /** The verdict that counts: the user's override when they made one, else the engine's. */
 export const effectiveVerdict = (assessment: Pick<Assessment, 'verdict' | 'userOverride'>): Verdict => assessment.userOverride ?? assessment.verdict
+
+/**
+ * A job worth comparing with the candidate: not rejected, and not a review whose only
+ * open matter is a posting that names nothing but a place. The user's override counts.
+ */
+export function isWorthMatching(assessment: Pick<Assessment, 'verdict' | 'userOverride' | 'reasons'>): boolean {
+  const verdict = effectiveVerdict(assessment)
+  if (verdict === 'not_eligible') return false
+  return !(assessment.userOverride === null && verdict === 'needs_review' && 'isLocationOnly' in assessment.reasons && assessment.reasons.isLocationOnly === true)
+}
+
+/** Jobs worth matching for the candidate (isWorthMatching). */
+export async function listJobIdsWorthMatching(scope: TenantScope): Promise<string[]> {
+  const rows = await scope.db.select({ jobId: eligibilityAssessments.jobId, verdict: eligibilityAssessments.verdict, userOverride: eligibilityAssessments.userOverride, reasons: eligibilityAssessments.reasons })
+    .from(eligibilityAssessments).where(eq(eligibilityAssessments.engineVersion, ENGINE_VERSION))
+  return rows.filter(isWorthMatching).map((row) => row.jobId)
+}
 
 export async function getAssessment(scope: TenantScope, jobId: string): Promise<Assessment | null> {
   const [row] = await scope.db.select().from(eligibilityAssessments)

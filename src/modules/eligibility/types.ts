@@ -185,8 +185,10 @@ export type Verdict = (typeof VERDICTS)[number]
 /** Why, stored with every assessment: the deciding rule, or the questions left open. */
 export type AssessmentReasons =
   | { readonly ruleId: RuleId; readonly reason: string }
-  | { readonly openQuestions: readonly string[] }
+  /** isLocationOnly: the posting names only a place (engine v3); absent on older rows. */
+  | { readonly openQuestions: readonly string[]; readonly isLocationOnly?: boolean }
   | Record<string, never>
 
 // v2: a remote scope the candidate fits outranks office options listed beside it.
-export const ENGINE_VERSION = 2
+// v3: needs_review records whether the posting names only a place. Verdicts are unchanged.
+export const ENGINE_VERSION = 3

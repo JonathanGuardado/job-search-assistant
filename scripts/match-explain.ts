@@ -1,7 +1,7 @@
 import { closeDb, getDb } from '@/lib/db/client'
 import { withTenant } from '@/lib/db/tenancy'
 import { DEV_USER } from '@/lib/dev-user'
-import { assessJobForUser, extractClaimsWithModel, listJobIdsNotRejected } from '@/modules/eligibility'
+import { assessJobForUser, extractClaimsWithModel, listJobIdsWorthMatching } from '@/modules/eligibility'
 import { getJob } from '@/modules/jobs'
 import { assessMatchForUser, extractRequirementsWithModel, getMatchCard, type CardSection } from '@/modules/matching'
 
@@ -45,7 +45,7 @@ async function show(jobId: string): Promise<void> {
 }
 
 try {
-  const jobIds = requested.length > 0 ? requested : (await withTenant(getDb(), DEV_USER.id, listJobIdsNotRejected)).slice(0, limit)
+  const jobIds = requested.length > 0 ? requested : (await withTenant(getDb(), DEV_USER.id, listJobIdsWorthMatching)).slice(0, limit)
   if (jobIds.length === 0) console.log('No jobs to show: eligibility has not assessed any job for the dev user yet, or rejected them all.')
   for (const jobId of jobIds) await show(jobId)
 } finally {

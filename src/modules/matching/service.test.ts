@@ -1,7 +1,9 @@
+import { eq } from 'drizzle-orm'
 import { describe, expect } from 'vitest'
 import { withTenant } from '@/lib/db/tenancy'
 import { dbTest as test } from '@/lib/db/testing'
 import { err, unwrap } from '@/lib/result'
+import { eligibilityAssessments, getAssessment } from '@/modules/eligibility'
 import { saveCandidateProfile } from '@/modules/profiles'
 import type { ExtractRequirements } from './extract.js'
 import { assessMatchForUser, enqueueMatchesForUser, getMatch, getMatchCard } from './service.js'
@@ -29,12 +31,26 @@ describe('matching a job for a candidate', () => {
     const rejected = await publish(db, board, aPosting())
     const unassessed = await publish(db, board, aPosting({ title: 'Staff Platform Engineer' }))
     const userId = await aCandidate(db)
-    await assessEligibility(db, userId, rejected.id, { isOpen: false })
+    await assessEligibility(db, userId, rejected.id, 'rejected')
     const { extract, calls } = stubExtract()
 
     expect(unwrap(await assessMatchForUser(db, { userId, jobId: rejected.id }, extract))).toEqual({ kind: 'skipped', reason: 'not_eligible' })
     expect(unwrap(await assessMatchForUser(db, { userId, jobId: unassessed.id }, extract))).toEqual({ kind: 'skipped', reason: 'not_assessed' })
     expect(calls).toHaveLength(0)
+  })
+
+  test('does not match a review whose posting names only a place, unless the user overrode it', async ({ db }) => {
+    const job = await publish(db, await aBoard(db), aPosting({ location: 'Bucharest, Romania' }))
+    const userId = await aCandidate(db)
+    expect(await assessEligibility(db, userId, job.id, 'silent')).toEqual({ kind: 'assessed', verdict: 'needs_review' })
+    expect(await withTenant(db, userId, (scope) => getAssessment(scope, job.id))).toMatchObject({ reasons: { isLocationOnly: true } })
+    const { extract, calls } = stubExtract()
+    expect(unwrap(await assessMatchForUser(db, { userId, jobId: job.id }, extract))).toEqual({ kind: 'skipped', reason: 'location_only' })
+    expect(await enqueueMatchesForUser(db, userId, async () => {})).toBe(0)
+
+    await withTenant(db, userId, (scope) => scope.db.update(eligibilityAssessments).set({ userOverride: 'eligible' }).where(eq(eligibilityAssessments.jobId, job.id)))
+    expect(unwrap(await assessMatchForUser(db, { userId, jobId: job.id }, extract))).toEqual({ kind: 'assessed' })
+    expect(calls).toHaveLength(1)
   })
 
   test('reads a posting once for every candidate, and does nothing when no input changed', async ({ db }) => {
@@ -130,7 +146,7 @@ describe('re-matching a candidate', () => {
     const rejected = await publish(db, board, aPosting({ title: 'Staff Platform Engineer' }))
     const userId = await aCandidate(db)
     await assessEligibility(db, userId, open.id)
-    await assessEligibility(db, userId, rejected.id, { isOpen: false })
+    await assessEligibility(db, userId, rejected.id, 'rejected')
 
     const queued: string[] = []
     expect(await enqueueMatchesForUser(db, userId, async (payload) => { queued.push(payload.jobId) })).toBe(1)

@@ -5,7 +5,7 @@ import { withTenant, type TenantScope } from '@/lib/db/tenancy'
 import { domainError, err, ok, type Result } from '@/lib/result'
 import type { AiError } from '@/modules/ai'
 import { listCareerItems } from '@/modules/career-knowledge'
-import { effectiveVerdict, getAssessment, listJobIdsNotRejected } from '@/modules/eligibility'
+import { effectiveVerdict, getAssessment, isWorthMatching, listJobIdsWorthMatching } from '@/modules/eligibility'
 import { getJob, listAssessableJobs, type Job } from '@/modules/jobs'
 import { getCandidateProfile } from '@/modules/profiles'
 import { compareRequirements, type MatchCandidate } from './compare.js'
@@ -22,7 +22,7 @@ export type MatchOutcome =
   | { readonly kind: 'assessed' }
   /** The stored match already reflects this job text, candidate record and engine version. */
   | { readonly kind: 'fresh' }
-  | { readonly kind: 'skipped'; readonly reason: 'no_profile' | 'job_not_assessable' | 'not_assessed' | 'not_eligible' }
+  | { readonly kind: 'skipped'; readonly reason: 'no_profile' | 'job_not_assessable' | 'not_assessed' | 'not_eligible' | 'location_only' }
 
 /** Everything the comparison reads about the candidate. */
 async function candidateOf(scope: TenantScope): Promise<MatchCandidate | null> {
@@ -100,6 +100,7 @@ export async function assessMatchForUser(
   if (!read.candidate) return ok({ kind: 'skipped', reason: 'no_profile' })
   if (!read.eligibility) return ok({ kind: 'skipped', reason: 'not_assessed' })
   if (effectiveVerdict(read.eligibility) === 'not_eligible') return ok({ kind: 'skipped', reason: 'not_eligible' })
+  if (!isWorthMatching(read.eligibility)) return ok({ kind: 'skipped', reason: 'location_only' })
   const inputsHash = inputsHashOf(read.candidate)
   if (read.existing && read.existing.jobFingerprint === job.value.fingerprint && read.existing.inputsHash === inputsHash) return ok({ kind: 'fresh' })
 
@@ -169,11 +170,11 @@ export async function enqueueMatch(db: Db, { userId, jobId }: { readonly userId:
   return true
 }
 
-/** Queues a match of every open job not rejected for one candidate. Run after their profile or career record changes. */
+/** Queues a match of every open job worth matching for one candidate. Run after their profile or career record changes. */
 export async function enqueueMatchesForUser(db: Db, userId: string, enqueue: Enqueue): Promise<number> {
   const inputsHash = await currentInputsHash(db, userId)
   if (inputsHash === null) return 0
-  const notRejected = new Set(await withTenant(db, userId, listJobIdsNotRejected))
+  const notRejected = new Set(await withTenant(db, userId, listJobIdsWorthMatching))
   const jobs = (await listAssessableJobs(db)).filter((job) => notRejected.has(job.id))
   for (const job of jobs) await enqueue({ userId, jobId: job.id }, matchKey(userId, job.id, job.fingerprint, inputsHash))
   return jobs.length

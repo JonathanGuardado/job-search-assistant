@@ -53,6 +53,14 @@ disagreement, showed several places where the original design would give wrong a
   office requirement stays in force. Found by the first holdout (both of its false
   rejections were one such Canonical posting), so a second holdout, labeled before any
   run, measures it.
+- **D10. A posting that names only a place is flagged, not rejected** (engine v3, added
+  2026-10-22). Live data showed 77% of the owner's first 877 verdicts as `needs_review`,
+  almost all "does not say whether the role is remote or onsite": postings like "Bucharest,
+  Romania" are far more common on real boards than in the labeled sets. Treating them as
+  onsite would reject on an inference (CLAUDE.md rule 2), so the verdict stays
+  `needs_review` and its reasons record `isLocationOnly`. Matching skips them unless the
+  user overrides the verdict, and the jobs view (1.8) can group them as "probably onsite".
+  Verdicts are unchanged: all three labeled sets score as under v2.
 - **Unquoted claims are discarded.** A claim stating anything without a verbatim quote
   is reset to `unspecified`, like a claim whose quote is not in the posting. The model's
   output schema makes `quote` a required (nullable) key, because constrained decoding

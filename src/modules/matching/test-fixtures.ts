@@ -83,9 +83,11 @@ const latam: EligibilityClaims = {
 }
 const emea: EligibilityClaims = { ...latam, remoteScope: { kind: 'regions', regions: ['emea'], quote: 'Remote - LATAM' } }
 
-/** Runs eligibility for real, with a stand-in that reads the posting as open to the candidate, or not. */
-export async function assessEligibility(db: Db, userId: string, jobId: string, { isOpen }: { readonly isOpen: boolean } = { isOpen: true }) {
-  const extract: ExtractClaims = async () => ok({ value: isOpen ? latam : emea, traces: [trace('eligibility.extract-claims', 3)] })
+const READINGS = { open: latam, rejected: emea, silent: UNSPECIFIED_CLAIMS } as const
+
+/** Runs eligibility for real, with a stand-in that reads the posting as open to the candidate, closed, or silent on where. */
+export async function assessEligibility(db: Db, userId: string, jobId: string, reading: keyof typeof READINGS = 'open') {
+  const extract: ExtractClaims = async () => ok({ value: READINGS[reading], traces: [trace('eligibility.extract-claims', 3)] })
   return unwrap(await assessJobForUser(db, { userId, jobId }, extract))
 }
 

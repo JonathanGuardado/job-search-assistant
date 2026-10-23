@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { evaluateRules, validateQuotes } from './engine.js'
+import { evaluateRules, listsOnlyALocation, validateQuotes } from './engine.js'
 import { UNSPECIFIED_CLAIMS } from './types.js'
 import type { EligibilityClaims, EligibilityJob, EligibilityProfile } from './types.js'
 
@@ -243,5 +243,24 @@ describe('onsite', () => {
       'structured',
     )
     expect(result).toMatchObject({ verdict: 'needs_review', openQuestions: [expect.stringContaining('DE')] })
+  })
+})
+
+describe('listsOnlyALocation: a posting that names a place and never says remote, hybrid or onsite (engine v3)', () => {
+  const stripe = job({ locationText: 'Bucharest, Romania', locationPolicy: 'unknown' })
+
+  it('is true when only a place is named, in the location line or as an extracted country', () => {
+    expect(listsOnlyALocation(claims(), stripe)).toBe(true)
+    expect(listsOnlyALocation(claims({ onsite: { kind: 'unspecified', countries: ['RO'], quote: 'Bucharest, Romania' } }), job({ locationPolicy: 'unknown' }))).toBe(true)
+  })
+
+  it('is false once the posting states an arrangement or a remote scope', () => {
+    expect(listsOnlyALocation(claims({ onsite: { kind: 'hybrid', countries: ['RO'], quote: 'hybrid' } }), stripe)).toBe(false)
+    expect(listsOnlyALocation(claims({ remoteScope: { kind: 'countries', countries: ['RO'], quote: 'Remote, Romania' } }), stripe)).toBe(false)
+    expect(listsOnlyALocation(claims(), job({ locationText: 'Bucharest', locationPolicy: 'hybrid' }))).toBe(false)
+  })
+
+  it('is false when the posting names no place at all', () => {
+    expect(listsOnlyALocation(claims(), job({ locationText: null, locationPolicy: 'unknown' }))).toBe(false)
   })
 })

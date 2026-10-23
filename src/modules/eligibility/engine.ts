@@ -148,6 +148,17 @@ export function validateQuotes(
   return { claims: sanitized, stripped, unquoted }
 }
 
+/**
+ * The posting names a place but never says remote, hybrid or onsite, nor where a remote
+ * worker may live (engine v3). Such a verdict stays needs_review: a location is not proof
+ * of an office (CLAUDE.md rule 2). The flag lets matching skip it and the jobs view group it.
+ */
+export function listsOnlyALocation(claims: EligibilityClaims, job: EligibilityJob): boolean {
+  const statesArrangement = claims.onsite.kind !== 'unspecified' || claims.remoteScope.kind !== 'unspecified' || job.locationPolicy !== 'unknown'
+  const namesPlace = job.locationText !== null || (claims.onsite.countries ?? []).length > 0
+  return !statesArrangement && namesPlace
+}
+
 /** Everything the model reads, and so everything a quote may come from. */
 export function postingText(job: EligibilityJob): string {
   return [`Title: ${job.title}`, `Location: ${job.locationText ?? 'not stated'}`, '', job.description].join('\n')
