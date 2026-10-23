@@ -94,8 +94,8 @@ export async function assessEligibility(db: Db, userId: string, jobId: string, r
 export const postingRequirements: JobRequirements = {
   ...NO_REQUIREMENTS,
   skills: [
-    { name: 'TypeScript', importance: 'required', minYears: 5, quote: 'You have 5+ years with TypeScript.' },
-    { name: 'Kubernetes', importance: 'preferred', minYears: null, quote: 'Kubernetes is a plus.' },
+    { names: ['TypeScript'], importance: 'required', minYears: 5, quote: 'You have 5+ years with TypeScript.' },
+    { names: ['Kubernetes'], importance: 'preferred', minYears: null, quote: 'Kubernetes is a plus.' },
   ],
 }
 

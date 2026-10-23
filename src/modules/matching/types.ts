@@ -10,8 +10,11 @@ export type Importance = z.infer<typeof ImportanceSchema>
 const quote = z.string().min(1)
 
 export const SkillRequirementSchema = z.object({
-  /** The skill as commonly written ("PostgreSQL", "React"), one skill per entry. */
-  name: z.string().trim().min(1).max(80),
+  /**
+   * The skill as commonly written ("PostgreSQL"), or the skills a posting accepts in its
+   * place ("AWS, Azure, or GCP"): any one of them satisfies the requirement (prompt v2).
+   */
+  names: z.array(z.string().trim().min(1).max(80)).min(1).max(12),
   importance: ImportanceSchema,
   minYears: z.number().min(0).max(40).nullable(),
   quote,
@@ -108,5 +111,8 @@ export type MatchResult = {
   readonly concerns: readonly string[]
 }
 
-/** Bump on any change to how requirements are compared or explained: stored matches are per version. */
-export const MATCH_ENGINE_VERSION = 1
+/**
+ * Bump on any change to how requirements are compared or explained: stored matches are per version.
+ * v2: a skill requirement is met by any one of the skills it names.
+ */
+export const MATCH_ENGINE_VERSION = 2

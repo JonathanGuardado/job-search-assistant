@@ -87,9 +87,25 @@ function byStrength(a: { item: MatchCareerItem }, b: { item: MatchCareerItem }):
 
 const yearsNote = (minYears: number, months: number) => `asks ${minYears}+ years; your record shows at least ${yearsLabel(months)}`
 
+/** "Go", "Go or Java", "Go, Ruby or Java". */
+export const requirementLabel = (names: readonly string[]) =>
+  names.length <= 1 ? names.join('') : `${names.slice(0, -1).join(', ')} or ${names.at(-1)}`
+
+/** The best evidence per career item across every skill the requirement accepts. */
+function evidenceFor(names: readonly string[], bySkill: ReturnType<typeof evidenceBySkill>) {
+  const byItem = new Map<string, { item: MatchCareerItem; evidence: CandidateEvidence }>()
+  for (const key of new Set(names.map(skillKey))) {
+    for (const shown of bySkill.get(key) ?? []) {
+      const current = byItem.get(shown.item.id)
+      if (!current || VIA_RANK[shown.evidence.via] < VIA_RANK[current.evidence.via]) byItem.set(shown.item.id, shown)
+    }
+  }
+  return [...byItem.values()].sort(byStrength)
+}
+
 function skillFinding(requirement: SkillRequirement, bySkill: ReturnType<typeof evidenceBySkill>, today: Date): Finding {
-  const shown = [...(bySkill.get(skillKey(requirement.name)) ?? [])].sort(byStrength)
-  const base = { requirement: requirement.name, importance: requirement.importance, quote: requirement.quote, evidence: shown.map((s) => s.evidence) }
+  const shown = evidenceFor(requirement.names, bySkill)
+  const base = { requirement: requirementLabel(requirement.names), importance: requirement.importance, quote: requirement.quote, evidence: shown.map((s) => s.evidence) }
   if (shown.length === 0) return { ...base, status: 'missing', note: null }
   if (requirement.minYears === null) return { ...base, status: 'met', note: null }
   const months = experienceMonths(shown.filter((s) => s.item.type === 'role').map((s) => s.item), today)
@@ -225,14 +241,13 @@ function preferencesDimension(job: MatchJob, skills: readonly SkillRequirement[]
   if (profile.excludedCompanies.some((company) => companyKey(company) === companyKey(job.companyName))) {
     hit(`Not ${job.companyName}`, 'missing', `${job.companyName} is on your excluded companies`, null)
   }
-  const named = new Map(skills.map((skill) => [skillKey(skill.name), skill]))
-  for (const tech of profile.excludedTech) {
-    const skill = named.get(skillKey(tech))
-    if (skill) hit(`Uses ${skill.name}`, 'missing', `uses ${skill.name}, which you excluded`, skill.quote)
-  }
-  for (const tech of profile.preferredTech) {
-    const skill = named.get(skillKey(tech))
-    if (skill) hit(`Uses ${skill.name}`, 'met', `uses ${skill.name}, which you prefer`, skill.quote)
+  const excluded = new Set(profile.excludedTech.map(skillKey))
+  const preferred = new Set(profile.preferredTech.map(skillKey))
+  for (const skill of skills) {
+    const label = requirementLabel(skill.names)
+    // A posting that also accepts something else does not force the excluded technology on anyone.
+    if (skill.names.every((name) => excluded.has(skillKey(name)))) hit(`Uses ${label}`, 'missing', `uses ${label}, which you excluded`, skill.quote)
+    else if (skill.names.some((name) => preferred.has(skillKey(name)))) hit(`Uses ${label}`, 'met', `uses ${label}, which you prefer`, skill.quote)
   }
   if (findings.length === 0) return { status: 'not_stated', findings }
   return { status: findings.some((f) => f.status === 'missing') ? 'gap' : 'meets', findings }
@@ -271,18 +286,18 @@ const UNREAD: Dimension = { status: 'unknown', findings: [] }
 export function compareRequirements(job: MatchJob, requirements: JobRequirements | null, candidate: MatchCandidate, today: Date): MatchResult {
   const { profile, careerItems } = candidate
   const bySkill = evidenceBySkill(careerItems)
-  // A skill listed twice ("Node", "Node.js") is one requirement, and one the posting
-  // requires anywhere is required, even where it also calls it a plus.
-  const requiredKeys = new Set((requirements?.skills ?? []).filter((s) => s.importance === 'required').map((s) => skillKey(s.name)))
+  // A requirement listed twice ("Node", "Node.js") is one, and a skill the posting requires
+  // anywhere is not also a nice-to-have, even where it calls it a plus.
+  const requiredKeys = new Set((requirements?.skills ?? []).filter((s) => s.importance === 'required').flatMap((s) => s.names.map(skillKey)))
   const findingsFor = (importance: Importance) => {
-    const byKey = new Map<string, SkillRequirement>()
+    const byKeys = new Map<string, SkillRequirement>()
     for (const skill of requirements?.skills ?? []) {
-      const key = skillKey(skill.name)
-      if (skill.importance !== importance || byKey.has(key)) continue
-      if (importance === 'preferred' && requiredKeys.has(key)) continue
-      byKey.set(key, skill)
+      if (skill.importance !== importance) continue
+      const names = importance === 'preferred' ? skill.names.filter((name) => !requiredKeys.has(skillKey(name))) : skill.names
+      const keys = [...new Set(names.map(skillKey))].sort().join('|')
+      if (names.length > 0 && !byKeys.has(keys)) byKeys.set(keys, { ...skill, names })
     }
-    return [...byKey.values()].map((skill) => skillFinding(skill, bySkill, today))
+    return [...byKeys.values()].map((skill) => skillFinding(skill, bySkill, today))
   }
   const salary = salaryOf(job, profile)
   const dimensions: Dimensions = {

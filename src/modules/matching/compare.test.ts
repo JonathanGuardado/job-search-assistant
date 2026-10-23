@@ -24,7 +24,10 @@ const job = (overrides: Partial<MatchJob> = {}): MatchJob => ({
 })
 
 const skill = (name: string, overrides: Partial<SkillRequirement> = {}): SkillRequirement => ({
-  name, importance: 'required', minYears: null, quote: `Experience with ${name}`, ...overrides,
+  names: [name], importance: 'required', minYears: null, quote: `Experience with ${name}`, ...overrides,
+})
+const anyOf = (names: string[], overrides: Partial<SkillRequirement> = {}): SkillRequirement => ({
+  names, importance: 'required', minYears: null, quote: `Experience with ${names.join(', ')}`, ...overrides,
 })
 const requires = (overrides: Partial<JobRequirements>): JobRequirements => ({ ...NO_REQUIREMENTS, ...overrides })
 
@@ -73,6 +76,27 @@ describe('skills', () => {
     const result = compareRequirements(job(), requires({ skills: [skill('Kubernetes', { importance: 'preferred' }), skill('K8s'), skill('Docker', { importance: 'preferred' })] }), candidate(), today)
     expect(result.dimensions.requiredSkills.findings.map((f) => f.requirement)).toEqual(['K8s'])
     expect(result.dimensions.preferredSkills.findings.map((f) => f.requirement)).toEqual(['Docker'])
+  })
+
+  it('meets a requirement that accepts several skills through any one of them, and names them together', () => {
+    // Stripe: "languages such as JavaScript, TypeScript, React, Ruby, Go, or Java".
+    const result = compareRequirements(job(), requires({ skills: [anyOf(['Go', 'Ruby', 'Java'])] }), candidate({}, [item({ technologies: ['Ruby on Rails'] })]), today)
+    expect(result.dimensions.requiredSkills).toMatchObject({ status: 'meets', findings: [{ requirement: 'Go, Ruby or Java', status: 'met', evidence: [{ via: 'implied' }] }] })
+    const none = compareRequirements(job(), requires({ skills: [anyOf(['AWS', 'Azure', 'OCI', 'GCP'])] }), candidate(), today)
+    expect(none.concerns).toContain('Missing required: AWS, Azure, OCI or GCP.')
+    expect(none.missing).toHaveLength(1)
+  })
+
+  it('drops from a nice-to-have the skills the posting already requires', () => {
+    // Wizeline: "Kubernetes." required; "working knowledge of Docker and/or Kubernetes" a plus.
+    const result = compareRequirements(job(), requires({ skills: [skill('Kubernetes'), anyOf(['Docker', 'K8s'], { importance: 'preferred' })] }), candidate(), today)
+    expect(result.dimensions.preferredSkills.findings.map((f) => f.requirement)).toEqual(['Docker'])
+  })
+
+  it('flags an excluded technology only when the posting accepts nothing else', () => {
+    const prefs = candidate({ excludedTech: ['PHP'] })
+    expect(compareRequirements(job(), requires({ skills: [anyOf(['PHP', 'Python'])] }), prefs, today).dimensions.preferences.status).toBe('not_stated')
+    expect(compareRequirements(job(), requires({ skills: [skill('PHP')] }), prefs, today).dimensions.preferences.status).toBe('gap')
   })
 
   it('keeps preferred skills in their own dimension', () => {

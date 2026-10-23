@@ -21,9 +21,12 @@ import {
 
 const TARGETS = { quoteRate: 0.98, requiredRecall: 0.85 }
 
+const SPLITS = ['tuning', 'holdout'] as const
 const LabelSchema = z.object({
   jobId: z.uuid(),
   caseId: z.string(),
+  /** tuning: prompts v2–v4 were shaped against it. holdout: labeled before v4 read it, never tuned on. */
+  split: z.enum(SPLITS),
   /** Each entry is one requirement; "A | B" means naming either satisfies it. */
   required: z.array(z.string()),
   preferred: z.array(z.string()),
@@ -41,10 +44,19 @@ const CacheEntrySchema = z.object({ requirements: JobRequirementsSchema, costMic
 type CacheEntry = z.infer<typeof CacheEntrySchema>
 const CACHE_PATH = 'evals/.cache/matching-extractions.json'
 
+// `pnpm eval:matching -- --split=holdout` runs one split; the default runs both.
+const splitArg = process.argv.find((arg) => arg.startsWith('--split='))?.slice('--split='.length)
+const split = splitArg === undefined ? null : z.enum(SPLITS).parse(splitArg)
 const labels = readFileSync('evals/matching-labels.jsonl', 'utf8').trim().split('\n').map((line) => LabelSchema.parse(JSON.parse(line)))
+  .filter((label) => split === null || label.split === split)
 const postings = new Map(readFileSync('evals/dataset.jsonl', 'utf8').trim().split('\n')
   .map((line) => PostingSchema.parse(JSON.parse(line))).map((c) => [c.jobId, c.posting]))
-const cache: Record<string, CacheEntry> = existsSync(CACHE_PATH) ? z.record(z.string(), CacheEntrySchema).parse(JSON.parse(readFileSync(CACHE_PATH, 'utf8'))) : {}
+// Entries for every prompt version share the file; only the current version's are read, since
+// the output shape can change between versions.
+const cache: Record<string, unknown> = existsSync(CACHE_PATH) ? z.record(z.string(), z.unknown()).parse(JSON.parse(readFileSync(CACHE_PATH, 'utf8'))) : {}
+const currentEntries = (): CacheEntry[] => Object.entries(cache)
+  .filter(([key]) => key.startsWith(`${extractRequirementsTask.name}@${extractRequirementsTask.version}:`))
+  .map(([, entry]) => CacheEntrySchema.parse(entry))
 
 const keyOf = (text: string) => `${extractRequirementsTask.name}@${extractRequirementsTask.version}:${createHash('sha256').update(text).digest('hex')}`
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
@@ -60,7 +72,7 @@ const progress = (line: string) => process.stderr.write(`${line}\n`)
 async function extractCached(text: string): Promise<JobRequirements | string> {
   const key = keyOf(text)
   const hit = cache[key]
-  if (hit) return hit.requirements
+  if (hit !== undefined) return CacheEntrySchema.parse(hit).requirements
   for (let attempt = 0; ; attempt++) {
     modelCalls++
     const result = await extractRequirementsWithModel(text)
@@ -131,11 +143,14 @@ const details: string[] = []
 for (const o of outcomes) {
   quoted += o.quoted
   stripped += o.stripped
-  // As matching reads them: a skill required anywhere in the posting is required (decision 0010).
-  const byKey = new Map<string, JobRequirements['skills'][number]>()
+  // Every skill named, with the importance matching reads it at: a skill required anywhere
+  // in the posting is required (decision 0010). A requirement naming several skills names each.
+  const byKey = new Map<string, { name: string; importance: 'required' | 'preferred' }>()
   for (const s of o.requirements.skills) {
-    const current = byKey.get(skillKey(s.name))
-    if (!current || (current.importance === 'preferred' && s.importance === 'required')) byKey.set(skillKey(s.name), s)
+    for (const name of s.names) {
+      const current = byKey.get(skillKey(name))
+      if (!current || (current.importance === 'preferred' && s.importance === 'required')) byKey.set(skillKey(name), { name, importance: s.importance })
+    }
   }
   const missed: string[] = []
   const demoted: string[] = []
@@ -177,9 +192,9 @@ const pct = (n: number, d: number) => (d === 0 ? 'n/a' : `${((n / d) * 100).toFi
 const quoteRate = quoted === 0 ? 1 : (quoted - stripped) / quoted
 const requiredRecall = requiredGroups === 0 ? 1 : requiredFound / requiredGroups
 const passes = { quoteRate: quoteRate >= TARGETS.quoteRate, requiredRecall: requiredRecall >= TARGETS.requiredRecall }
-const cost = Object.values(cache).reduce((s, e) => s + e.costMicroUsd, 0) / 1e6
+const cost = currentEntries().reduce((s, e) => s + e.costMicroUsd, 0) / 1e6
 
-say(`Matching eval: ${outcomes.length} postings, prompt ${extractRequirementsTask.name}@${extractRequirementsTask.version}`)
+say(`Matching eval (${split ?? 'all splits'}): ${outcomes.length} postings, prompt ${extractRequirementsTask.name}@${extractRequirementsTask.version}`)
 say(`Model calls this run: ${modelCalls} (cached extractions cost $${cost.toFixed(4)} in total)`)
 say()
 say('| Metric | Value | Target | |')

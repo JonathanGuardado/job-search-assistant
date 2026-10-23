@@ -6,6 +6,7 @@ import { err, unwrap } from '@/lib/result'
 import { eligibilityAssessments, getAssessment } from '@/modules/eligibility'
 import { saveCandidateProfile } from '@/modules/profiles'
 import type { ExtractRequirements } from './extract.js'
+import { extractRequirementsTask } from './prompts/extract-requirements.js'
 import { assessMatchForUser, enqueueMatchesForUser, getMatch, getMatchCard } from './service.js'
 import { aBoard, aCandidate, aPosting, assessEligibility, publish, seeker, stubExtract, withCareerItems } from './test-fixtures.js'
 
@@ -20,7 +21,7 @@ describe('matching a job for a candidate', () => {
     expect(unwrap(await assessMatchForUser(db, { userId, jobId: job.id }, extract))).toEqual({ kind: 'assessed' })
     expect(calls[0]).toContain('Title: Senior Backend Engineer')
     const match = await withTenant(db, userId, (scope) => getMatch(scope, job.id))
-    expect(match).toMatchObject({ promptVersion: 1, model: 'fake-model', salaryCompatibility: 'unknown' })
+    expect(match).toMatchObject({ promptVersion: extractRequirementsTask.version, model: 'fake-model', salaryCompatibility: 'unknown' })
     expect(match?.dimensions.requiredSkills).toMatchObject({ status: 'meets', findings: [{ requirement: 'TypeScript', status: 'met' }] })
     expect(match?.missingRequirements).toEqual([expect.objectContaining({ requirement: 'Kubernetes', status: 'missing' })])
     expect(Object.keys(match ?? {})).not.toContain('score')
@@ -101,7 +102,7 @@ describe('matching a job for a candidate', () => {
     const userId = await aCandidate(db)
     await assessEligibility(db, userId, job.id)
     const { extract } = stubExtract({
-      skills: [{ name: 'Rust', importance: 'required', minYears: null, quote: 'Expert in Rust' }],
+      skills: [{ names: ['Rust'], importance: 'required', minYears: null, quote: 'Expert in Rust' }],
       experience: null, languages: [], other: [],
     })
     unwrap(await assessMatchForUser(db, { userId, jobId: job.id }, extract))
@@ -123,7 +124,7 @@ describe('the job card', () => {
     const userId = await aCandidate(db)
     await assessEligibility(db, userId, job.id)
     const { extract } = stubExtract({
-      skills: [{ name: 'TypeScript', importance: 'required', minYears: 5, quote: 'You have 5+ years with TypeScript.' }],
+      skills: [{ names: ['TypeScript'], importance: 'required', minYears: 5, quote: 'You have 5+ years with TypeScript.' }],
       experience: null, languages: [], other: [{ text: 'CS degree', importance: 'required', quote: 'BS in Computer Science' }],
     })
     unwrap(await assessMatchForUser(db, { userId, jobId: job.id }, extract))

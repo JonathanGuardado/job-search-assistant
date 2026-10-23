@@ -20,7 +20,7 @@ describe('validateRequirements', () => {
   it('keeps entries whose quote is in the posting, ignoring case and spacing', () => {
     const { requirements, stripped, quoted } = validateRequirements({
       ...NO_REQUIREMENTS,
-      skills: [{ name: 'Node.js', importance: 'required', minYears: 5, quote: '5+ years of experience with node.js' }],
+      skills: [{ names: ['Node.js'], importance: 'required', minYears: 5, quote: '5+ years of experience with node.js' }],
       experience: { minYears: 5, quote: 'You have 5+ years of experience' },
       languages: [{ language: 'pt', importance: 'required', quote: 'Fluent Portuguese' }],
     }, text)
@@ -34,13 +34,13 @@ describe('validateRequirements', () => {
     const { requirements, stripped } = validateRequirements({
       ...NO_REQUIREMENTS,
       skills: [
-        { name: 'Kubernetes', importance: 'preferred', minYears: null, quote: 'Nice to have: Kubernetes' },
-        { name: 'Go', importance: 'required', minYears: null, quote: 'Strong Go skills' },
+        { names: ['Kubernetes'], importance: 'preferred', minYears: null, quote: 'Nice to have: Kubernetes' },
+        { names: ['Go'], importance: 'required', minYears: null, quote: 'Strong Go skills' },
       ],
       experience: { minYears: 8, quote: '8+ years' },
       other: [{ text: 'CS degree', importance: 'required', quote: 'BS in Computer Science' }],
     }, text)
-    expect(requirements.skills.map((s) => s.name)).toEqual(['Kubernetes'])
+    expect(requirements.skills.map((s) => s.names)).toEqual([['Kubernetes']])
     expect(requirements.experience).toBeNull()
     expect(requirements.other).toEqual([])
     expect(stripped).toBe(3)

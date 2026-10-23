@@ -12,8 +12,8 @@ describe('explainMatch', () => {
       {
         ...NO_REQUIREMENTS,
         skills: [
-          { name: 'TypeScript', importance: 'required', minYears: null, quote: 'Strong TypeScript' },
-          { name: 'Kubernetes', importance: 'required', minYears: null, quote: 'Deep knowledge of Kubernetes' },
+          { names: ['TypeScript'], importance: 'required', minYears: null, quote: 'Strong TypeScript' },
+          { names: ['Kubernetes'], importance: 'required', minYears: null, quote: 'Deep knowledge of Kubernetes' },
         ],
         other: [{ text: "Bachelor's degree in Computer Science", importance: 'required', quote: "Bachelor's degree in Computer Science" }],
       },
