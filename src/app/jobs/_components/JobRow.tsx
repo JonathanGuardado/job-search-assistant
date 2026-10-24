@@ -32,6 +32,7 @@ export function JobRow({ row, tab, back }: { readonly row: Row; readonly tab: Jo
       <MatchPreview row={row} />
       <div className={styles.badges}>
         {row.userState?.state === 'saved' && <span className={styles.badge}>Saved</span>}
+        {row.userState?.state === 'applied' && <span className={styles.badge}>Applied</span>}
         {row.assessment.userOverride !== null && <span className={styles.badge}>Your verdict</span>}
       </div>
       <JobActions assessment={row.assessment} userState={row.userState} tab={tab} back={back} />

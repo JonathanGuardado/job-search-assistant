@@ -37,7 +37,7 @@ export default async function JobsPage({ searchParams }: {
 
   return (
     <main className={styles.page}>
-      <nav className={styles.navigation}><Link href="/resumes">Resume library</Link><Link href="/settings">Candidate settings</Link><Link href="/sources">Job sources</Link></nav>
+      <nav className={styles.navigation}><Link href="/resumes">Resume library</Link><Link href="/settings">Candidate settings</Link><Link href="/sources">Job sources</Link><Link href="/applications">Applications</Link></nav>
       <header><p className={styles.eyebrow}>Job Seeker Assistant · Your search</p><h1>Jobs</h1></header>
       {query.error && <p role="alert" className={styles.error}>{query.error}</p>}
       <nav aria-label="Jobs by eligibility" className={styles.tabs}>

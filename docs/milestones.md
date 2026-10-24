@@ -9,6 +9,13 @@ tabs by eligibility plus Hidden, ordered by the stated review order, each job wi
 eligibility evidence and match card, and save, hide and override. **Pending:** the owner
 uses it instead of LinkedIn for a week.
 
+1.9 application tracking is built (`/applications`, decision 0012, brief
+`prompts/codex/m1.9-application-tracking.md`, implemented by Codex and reviewed): mark a
+job applied with the date, resume version, salary asked, contact and notes; move it
+through stages in a history the database will not let anyone rewrite; read the posting
+as applied to after it goes offline. **Pending:** the owner logs a real application end
+to end.
+
 1.7 closed on 2026-10-22: the owner read real job cards and judged that each explains
 itself without a score. Matching (decision 0010) extracts requirements with prompt v4,
 which on 20 unseen postings finds 83.9% of required skills (target 85%, shipped by the

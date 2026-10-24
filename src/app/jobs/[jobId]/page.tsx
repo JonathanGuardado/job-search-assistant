@@ -4,9 +4,14 @@ import { z } from 'zod'
 import { getDb } from '@/lib/db/client'
 import { withTenant } from '@/lib/db/tenancy'
 import { DEV_USER } from '@/lib/dev-user'
+import { getApplicationForJob } from '@/modules/applications'
 import { getAssessment, reviewGroup } from '@/modules/eligibility'
 import { getJob, getJobUserState } from '@/modules/jobs'
 import { getMatchCard } from '@/modules/matching'
+import { getCandidateProfile } from '@/modules/profiles'
+import { listResumes } from '@/modules/resumes'
+import { LogApplicationForm } from '../../applications/_components/ApplicationForms'
+import { STATUS_LABELS } from '../../applications/_components/ApplicationStatus'
 import { EligibilityDetails } from '../_components/EligibilityDetails'
 import { JobActions } from '../_components/JobActions'
 import { MatchDetails } from '../_components/MatchDetails'
@@ -33,6 +38,11 @@ export default async function JobPage({ params, searchParams }: {
   const userState = state.ok ? state.value : null
   const card = await getMatchCard(db, DEV_USER.id, jobId)
   const tab = userState?.state === 'ignored' ? 'hidden' : reviewGroup(assessment)
+  const applicationContext = await withTenant(db, DEV_USER.id, async (scope) => ({
+    application: await getApplicationForJob(scope, jobId),
+    resumes: await listResumes(scope), profile: await getCandidateProfile(scope),
+  }))
+  const application = applicationContext.application
 
   return (
     <main className={styles.page}>
@@ -48,11 +58,19 @@ export default async function JobPage({ params, searchParams }: {
       {error && <p role="alert" className={styles.error}>{error}</p>}
       <div className={styles.badges}>
         {userState?.state === 'saved' && <span className={styles.badge}>Saved</span>}
+        {userState?.state === 'applied' && <span className={styles.badge}>Applied</span>}
         {assessment.userOverride !== null && <span className={styles.badge}>Your verdict</span>}
       </div>
       <JobActions assessment={assessment} userState={userState} tab={tab} back={`/jobs/${jobId}`} offerReason />
       <EligibilityDetails assessment={assessment} />
       <MatchDetails card={card} />
+      <section className={styles.section} aria-labelledby="application-heading">
+        <h2 id="application-heading">Your application</h2>
+        {application !== null ? <>
+          <p>Applied on {application.appliedOn} · {STATUS_LABELS[application.status]}</p>
+          <Link href={`/applications/${application.id}`}>Open application</Link>
+        </> : <LogApplicationForm jobId={jobId} applyUrl={job.applyUrl} resumes={applicationContext.resumes} defaultCurrency={applicationContext.profile?.salaryCurrency ?? 'USD'} />}
+      </section>
       <section className={styles.section} aria-labelledby="description-heading">
         <h2 id="description-heading">Full description</h2>
         <div className={styles.description}>{job.description}</div>

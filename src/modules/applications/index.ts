@@ -8,6 +8,17 @@
 export { applicationEvents, applications } from './schema.js'
 
 export {
+  changeStatus,
+  createApplication,
+  getApplication,
+  getApplicationForJob,
+  listApplications,
+  postingAsApplied,
+  updateApplication,
+} from './service.js'
+export type { ApplicationListItem } from './service.js'
+
+export {
   APPLICATION_STATUSES,
   ApplicationEditSchema,
   ApplicationStatusSchema,
