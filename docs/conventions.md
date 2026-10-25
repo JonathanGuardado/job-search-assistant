@@ -93,7 +93,13 @@ beyond one fixture-based happy path and one malformed-payload case.
 
 ## Git
 
-- Branch per milestone: `m1.4-greenhouse-adapter`.
+- Branch per milestone from an up-to-date `main`: `m1.4-greenhouse-adapter`.
+- Merge a milestone into `main` once it is built, reviewed, and `pnpm typecheck && pnpm test
+  && pnpm lint` pass, not when its owner trial ends. Fixes a trial turns up go on a small
+  follow-up branch (`m1.8-fixes`). A milestone never starts from another unmerged one, so
+  `main` always holds everything built.
+- Merges are fast-forward: each milestone's commits stay as written. Delete the branch
+  once merged.
 - Commit messages: imperative subject under 70 chars, body explaining *why*.
 - A PR description states: what changed, what decision was made that the task brief did
   not specify, and the output of `pnpm typecheck && pnpm test && pnpm lint`.
