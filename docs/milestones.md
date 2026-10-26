@@ -77,13 +77,27 @@ acceptance checks. A brief that leaves an architectural decision open is not rea
 5. A decision record added if an architectural choice was made
 6. The milestone's own "done when" is demonstrably true, not assumed
 
+## Phase 2 — Assisted applications (decision 0013)
+
+Reordered at the owner's request: the system sends the applications it can complete on its
+own, hands back the rest, and keeps the tracker current from email. Starts once phase 1's
+gates close; 2.1 can be planned before then.
+
+| # | Milestone | Owner | Done when |
+| --- | --- | --- | --- |
+| 2.1 | Saved answers and readiness | Claude Code | Every "Can apply" job shows whether its form could be filled from the owner's saved answers, and names each blocking question |
+| 2.2 | Form filling, approval mode | Claude Code + Codex | The owner submits a real Greenhouse application that the system filled, after seeing exactly what it sends |
+| 2.3 | Automatic submission | Claude Code + Codex | Applications go out under the owner's rules with a stored confirmation; blocked jobs show "Apply yourself" and the reason |
+| 2.4 | Read-only email | Claude Code | A real follow-up email becomes a suggested stage change the owner confirms |
+
+Never sent automatically: anything not in "Can apply", any form with a CAPTCHA, any
+required question without a saved answer, any written answer for a posting that requires
+the candidate's own words.
+
 ## Later phases (do not build)
 
-**Phase 2 — Application copilot.** Career knowledge base, resume tailoring with diffs,
-cover letters, question classification and grounded answers, approval queue, history.
+**Phase 3 — Application copilot.** Grounded written answers, resume tailoring with diffs,
+cover letters, never for postings that require the candidate's own words.
 
-**Phase 3 — Agentic applications.** Playwright flows per ATS, form understanding,
-verified submission with screenshots, retries, rule-gated auto-apply.
-
-**Phase 4 — Intelligence.** Email status parsing, analytics funnel, outcome analysis by
-source and resume version, daily brief.
+**Phase 4 — Intelligence.** Analytics funnel, outcome analysis by source and resume
+version, daily brief.
