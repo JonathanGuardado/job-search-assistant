@@ -85,19 +85,24 @@ gates close; 2.1 can be planned before then.
 
 | # | Milestone | Owner | Done when |
 | --- | --- | --- | --- |
-| 2.1 | Saved answers and readiness | Claude Code | Every "Can apply" job shows whether its form could be filled from the owner's saved answers, and names each blocking question |
-| 2.2 | Form filling, approval mode | Claude Code + Codex | The owner submits a real Greenhouse application that the system filled, after seeing exactly what it sends |
-| 2.3 | Automatic submission | Claude Code + Codex | Applications go out under the owner's rules with a stored confirmation; blocked jobs show "Apply yourself" and the reason |
-| 2.4 | Read-only email | Claude Code | A real follow-up email becomes a suggested stage change the owner confirms |
+| 2.1 | Saved answers, readiness, "same question" suggestions | Claude Code + Codex | Every "Can apply" job shows whether its form could be filled from the owner's answers, names each blocking question, and suggests reusing an answer the owner gave to a differently worded question |
+| 2.2 | Drafted answers | Claude Code | Answers drafted from confirmed career items pass the grounding check, and the owner approves or edits them |
+| 2.3 | Form filling, approval mode | Claude Code + Codex | The owner submits a real Greenhouse application that the system filled, after seeing exactly what it sends |
+| 2.4 | Automatic submission | Claude Code + Codex | Applications go out under the owner's rules with a stored confirmation; blocked jobs show "Apply yourself" and the reason |
+| 2.5 | Read-only email | Claude Code | A real follow-up email becomes a suggested stage change the owner confirms |
+
+Sources track, alongside (Codex): **S.1** We Work Remotely; **S.2** one remote-job API
+plus cross-source duplicate detection; **S.3** adding a job by pasting its link. LinkedIn is
+out of scope. Each site's terms are checked before it is added.
 
 Never sent automatically: anything not in "Can apply", any form with a CAPTCHA, any
-required question without a saved answer, any written answer for a posting that requires
-the candidate's own words.
+required question without an answer, a drafted answer unless the owner opted in, and any
+drafted text for a posting that requires the candidate's own words.
 
 ## Later phases (do not build)
 
-**Phase 3 — Application copilot.** Grounded written answers, resume tailoring with diffs,
-cover letters, never for postings that require the candidate's own words.
+**Phase 3 — Application copilot.** Resume tailoring with diffs and cover letters, never
+for postings that require the candidate's own words.
 
 **Phase 4 — Intelligence.** Analytics funnel, outcome analysis by source and resume
 version, daily brief.

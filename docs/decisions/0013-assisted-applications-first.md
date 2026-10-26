@@ -61,3 +61,32 @@ Rules that hold throughout:
 - Applications gain a submission mode (`manual` or `automatic`), added with 2.3.
 - Most Canonical postings will be blocked until written answers exist, and those that
   require the candidate's own words stay manual by design.
+
+## Amendment (2026-10-26): suggested answers and job sources
+
+After reviewing the 2.1 plan, the owner asked for the system to suggest answers rather than
+only reuse saved ones, and to find jobs on more sites.
+
+- **Suggestions, three kinds.** (1) A question worded differently from one the owner
+  already answered: a model recognizes the match (structured output), and the owner's own
+  answer is reused verbatim. (2) A question answered by the profile or career record
+  (country, years of experience): filled by code. (3) A written answer drafted by a model
+  from confirmed career items only, checked by a grounding validation pass that rejects any
+  technology, employer, date or metric not in `career_items` (CLAUDE.md rule 1). Questions
+  no record answers (school results, personal preferences) are always asked of the owner,
+  once.
+- **Automatic sending of suggestions is opt-in.** Reused and profile answers may go out
+  automatically under the owner's rules; drafted answers are off by default and switched on
+  by the owner.
+- **Postings that require the candidate's own words** get no automatically sent drafted
+  text. (How suggestions are shown for them is recorded when the owner decides.)
+- **Job sources.** LinkedIn is out of scope: its terms prohibit scraping and automation.
+  New sources are sites with a public feed or API whose terms permit use, checked one by
+  one; scraping only where the terms allow it. Applications still happen on the employer's
+  own system, so a job from a board can be sent automatically only when that system is one
+  the assistant supports.
+
+Revised order: 2.1 saved answers, readiness and "same question" suggestions; 2.2 drafted
+answers with the grounding check; 2.3 form filling in approval mode; 2.4 automatic sending;
+2.5 read-only email. A sources track runs alongside (Codex): S.1 We Work Remotely, S.2 one
+remote-job API plus cross-source duplicate detection, S.3 adding a job by pasting its link.
