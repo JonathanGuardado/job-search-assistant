@@ -3,6 +3,7 @@ import { closeDb, getDb } from '@/lib/db/client'
 import { getEnv } from '@/lib/env'
 import { logEvent } from '@/lib/log'
 import { connectRedis } from '@/lib/queue'
+import { formFetchRequest, matchQuestionsWithModel, questionMatchQueue, refreshQuestionMatches } from '@/modules/application-answers'
 import { resumeParseQueue, runResumeParse } from '@/modules/career-knowledge'
 import {
   assessEligibilityQueue, assessJobForUser, enqueueAssessmentsForJob, enqueueAssessmentsForUser, extractClaimsWithModel, reassessUserQueue,
@@ -12,7 +13,8 @@ import {
   assessMatchForUser, assessMatchQueue, enqueueMatch, enqueueMatchesForUser, extractRequirementsWithModel, rematchUserQueue,
 } from '@/modules/matching'
 import {
-  DISPATCH_EVERY_MS, dispatchSourcePolls, pollSourcePage, sourcePollDispatchQueue, sourcePollKey, sourcePollQueue, type SourcePollPayload,
+  applicationFormFetchQueue, DISPATCH_EVERY_MS, dispatchSourcePolls, pollSourcePage, refreshApplicationForm, sourcePollDispatchQueue, sourcePollKey,
+  sourcePollQueue, type SourcePollPayload,
 } from '@/modules/job-sources'
 import { domainError, err, ok, type Result } from '@/lib/result'
 
@@ -31,6 +33,7 @@ const enqueueAssessment = async (payload: { userId: string; jobId: string }, key
 const matchProducer = assessMatchQueue.open({ connection })
 const rematchProducer = rematchUserQueue.open({ connection })
 const enqueueMatchJob = async (payload: { userId: string; jobId: string }, key: string) => { await matchProducer.enqueue(payload, key) }
+const formProducer = applicationFormFetchQueue.open({ connection })
 
 /** A normalized job is assessed for every candidate, unless it is closed or a linked duplicate. */
 async function normalizeJob(rawJobId: string): Promise<Result<void>> {
@@ -54,6 +57,11 @@ async function assessJob(payload: { userId: string; jobId: string }): Promise<Re
   if (value.kind === 'skipped' || (value.kind === 'assessed' && value.verdict === 'not_eligible')) return ok(undefined)
   try {
     await enqueueMatch(db, payload, enqueueMatchJob)
+    // A job the candidate can apply to needs its application form (decision 0013).
+    if (value.kind === 'assessed' && value.verdict === 'eligible') {
+      const request = await formFetchRequest(db, payload.jobId)
+      if (request) await formProducer.enqueue(request.payload, request.key)
+    }
     return ok(undefined)
   } catch {
     return err(domainError('upstream_failed', 'Could not queue the match.'))
@@ -140,6 +148,21 @@ const workers: Worker[] = [
     return outcome.ok ? ok(undefined) : outcome
   }),
   rematchUserQueue.work({ connection }, ({ userId }) => rematchUser(userId)),
+  // One at a time: a public API shared by every board, polled politely.
+  applicationFormFetchQueue.work({ connection, concurrency: 1 }, async (posting) => {
+    const fetched = await refreshApplicationForm(db, posting, fetch)
+    // A posting that is gone, or a form that cannot be read, is not worth retrying.
+    if (!fetched.ok && (fetched.error.code === 'not_found' || fetched.error.code === 'invalid_input')) {
+      logEvent('application_form.skipped', { ...posting, reason: fetched.error.message })
+      return ok(undefined)
+    }
+    return fetched.ok ? ok(undefined) : fetched
+  }),
+  // One at a time, like the other model queues: they share the provider's quota.
+  questionMatchQueue.work({ connection, concurrency: 1 }, async ({ userId }) => {
+    const matched = await refreshQuestionMatches(db, userId, matchQuestionsWithModel)
+    return matched.ok ? ok(undefined) : matched
+  }),
   sourcePollDispatchQueue.work({ connection }, () => dispatchSourcePolls(db, new Date(), enqueuePoll)),
 ]
 
@@ -167,6 +190,7 @@ async function shutdown(signal: string): Promise<void> {
   await Promise.all(workers.map((w) => w.close()))
   await Promise.all([
     pollProducer.close(), dispatchProducer.close(), normalizeProducer.close(), assessProducer.close(), matchProducer.close(), rematchProducer.close(),
+    formProducer.close(),
   ])
   await connection.quit()
   await closeDb()

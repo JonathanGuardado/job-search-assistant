@@ -11,7 +11,7 @@ import {
   uuid,
   type AnyPgColumn,
 } from 'drizzle-orm/pg-core'
-import { ADAPTER_KEYS, type AdapterConfig } from './adapter.js'
+import { ADAPTER_KEYS, type AdapterConfig, type ApplicationForm } from './adapter.js'
 import { SOURCE_HEALTH_STATUSES } from './types.js'
 
 const oneOf = (column: AnyPgColumn, values: readonly string[]): SQL =>
@@ -64,4 +64,24 @@ export const rawJobs = pgTable(
     fetchedAt: timestamptz('fetched_at').notNull(),
   },
   (t) => [unique('raw_jobs_source_external_hash_key').on(t.sourceId, t.externalId, t.contentHash)],
+)
+
+/**
+ * Shared catalog: each posting's application form as the source last published it
+ * (decision 0013). Holds no candidate data. Unlike raw_jobs it is a refreshed copy, not a
+ * log: the payload is kept verbatim so the form can be re-read, and replaced on refresh.
+ */
+export const applicationForms = pgTable(
+  'application_forms',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    sourceId: uuid('source_id')
+      .notNull()
+      .references(() => jobSources.id),
+    externalId: text('external_id').notNull(),
+    payload: jsonb('payload').notNull(),
+    form: jsonb('form').$type<ApplicationForm>().notNull(),
+    fetchedAt: timestamptz('fetched_at').notNull(),
+  },
+  (t) => [unique('application_forms_source_external_key').on(t.sourceId, t.externalId)],
 )

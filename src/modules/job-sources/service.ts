@@ -1,11 +1,11 @@
 import { and, asc, count, eq, getTableColumns, inArray, lte, min, or, isNull, sql } from 'drizzle-orm'
 import type { Db } from '@/lib/db/client'
 import { domainError, err, ok, type Result } from '@/lib/result'
-import { AdapterConfigSchema, type Fetcher, type FetchResult } from './adapter.js'
+import { AdapterConfigSchema, type ApplicationForm, type Fetcher, type FetchResult } from './adapter.js'
 import { contentHash } from './content-hash.js'
 import { POLL_INTERVAL_MS } from './queues.js'
 import { getAdapter } from './registry.js'
-import { jobSources, rawJobs } from './schema.js'
+import { applicationForms, jobSources, rawJobs } from './schema.js'
 import type {
   JobSource, JobSourceSummary, NewSource, NormalizationReport, NormalizedPosting, PagePosting, PollOutcome, SourcePollPayload,
 } from './types.js'
@@ -161,4 +161,53 @@ export async function readNormalizedPosting(db: Db, rawJobId: string): Promise<R
     rawJobId: row.raw.id, sourceId: row.raw.sourceId, externalId: row.raw.externalId,
     fetchedAt: row.raw.fetchedAt, firstFetchedAt: first?.at ?? row.raw.fetchedAt, job: job.value,
   })
+}
+
+// ---------------------------------------------------------------------------
+// Application forms (decision 0013)
+
+export type PostingRef = { readonly sourceId: string; readonly externalId: string }
+export type StoredApplicationForm = { readonly form: ApplicationForm; readonly fetchedAt: Date }
+
+/**
+ * Fetches a posting's application form and stores it, replacing any earlier copy.
+ * `unsupported`: the source publishes no structured form. `not_found` from the source
+ * usually means the posting closed.
+ */
+export async function refreshApplicationForm(
+  db: Db,
+  posting: PostingRef,
+  fetcher: Fetcher,
+): Promise<Result<{ readonly kind: 'stored'; readonly form: ApplicationForm } | { readonly kind: 'unsupported' }>> {
+  const [source] = await db.select().from(jobSources).where(eq(jobSources.id, posting.sourceId))
+  if (!source) return err(domainError('not_found', `source ${posting.sourceId} not found`))
+  const adapter = getAdapter(source.adapterKey)
+  if (!adapter.fetchApplicationForm) return ok({ kind: 'unsupported' })
+  const config = AdapterConfigSchema.safeParse(source.config)
+  if (!config.success) return err(domainError('invalid_input', `source ${source.id} has an invalid configuration`))
+  const fetched = await adapter.fetchApplicationForm({ name: source.name, config: config.data }, posting.externalId, fetcher)
+  if (!fetched.ok) return fetched
+  const fields = { payload: fetched.value.payload, form: fetched.value.form, fetchedAt: new Date() }
+  await db.insert(applicationForms).values({ ...posting, ...fields })
+    .onConflictDoUpdate({ target: [applicationForms.sourceId, applicationForms.externalId], set: fields })
+  return ok({ kind: 'stored', form: fetched.value.form })
+}
+
+/** The stored form of each posting asked for that has one, keyed "sourceId:externalId". One query, for list views. */
+export async function getApplicationForms(db: Db, postings: readonly PostingRef[]): Promise<Map<string, StoredApplicationForm>> {
+  const found = new Map<string, StoredApplicationForm>()
+  if (postings.length === 0) return found
+  const rows = await db.select({ sourceId: applicationForms.sourceId, externalId: applicationForms.externalId, form: applicationForms.form, fetchedAt: applicationForms.fetchedAt })
+    .from(applicationForms)
+    .where(or(...postings.map((p) => and(eq(applicationForms.sourceId, p.sourceId), eq(applicationForms.externalId, p.externalId)))))
+  for (const row of rows) found.set(postingKey(row), { form: row.form, fetchedAt: row.fetchedAt })
+  return found
+}
+
+export const postingKey = (posting: PostingRef): string => `${posting.sourceId}:${posting.externalId}`
+
+/** Whether the posting's source publishes a structured application form at all. */
+export async function sourcePublishesForms(db: Db, sourceId: string): Promise<boolean> {
+  const [source] = await db.select({ adapterKey: jobSources.adapterKey }).from(jobSources).where(eq(jobSources.id, sourceId))
+  return source !== undefined && getAdapter(source.adapterKey).fetchApplicationForm !== undefined
 }

@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { and, eq, sql } from 'drizzle-orm'
+import { readFileSync } from 'node:fs'
 import { describe, expect, vi } from 'vitest'
 import type { Db } from '@/lib/db/client'
 import { dbErrorFrom, dbTest as test } from '@/lib/db/testing'
@@ -8,7 +9,8 @@ import type { AdapterKey, Fetcher } from './adapter.js'
 import { POLL_INTERVAL_MS } from './queues.js'
 import { jobSources, rawJobs } from './schema.js'
 import {
-  addSource, checkNormalization, dispatchSourcePolls, listLatestRawJobIds, listSources, pollSourcePage, readNormalizedPosting, setSourceEnabled,
+  addSource, checkNormalization, dispatchSourcePolls, getApplicationForms, listLatestRawJobIds, listSources, pollSourcePage, postingKey,
+  readNormalizedPosting, refreshApplicationForm, setSourceEnabled, sourcePublishesForms,
 } from './service.js'
 import { greenhouseFixture, leverFixture } from './test-fixtures.js'
 
@@ -217,5 +219,35 @@ describe('reading a stored posting for normalization', () => {
     if (page.kind !== 'page') throw new Error('expected a page')
     await db.update(jobSources).set({ config: sql`'{}'::jsonb` }).where(eq(jobSources.id, board.id))
     expect(await readNormalizedPosting(db, page.postings[0]?.rawJobId ?? '')).toMatchObject({ ok: false, error: { code: 'invalid_input' } })
+  })
+})
+
+describe('application forms (decision 0013)', () => {
+  const form: unknown = JSON.parse(readFileSync(new URL('./__fixtures__/greenhouse-application-gitlab.json', import.meta.url), 'utf8'))
+
+  test('fetches, stores and replaces a posting\'s form, readable in one call for many postings', async ({ db }) => {
+    const board = await source(db)
+    const posting = { sourceId: board.id, externalId: '8860302002' }
+    const stored = unwrap(await refreshApplicationForm(db, posting, async () => Response.json(form)))
+    expect(stored).toMatchObject({ kind: 'stored', form: { questions: expect.arrayContaining([expect.objectContaining({ label: 'Resume/CV' })]) } })
+    const first = (await getApplicationForms(db, [posting, { sourceId: board.id, externalId: '1' }])).get(postingKey(posting))
+    expect(first?.form.questions).toHaveLength(16)
+
+    const changed: unknown = JSON.parse(JSON.stringify(form).replace('"Resume/CV"', '"Resume"'))
+    unwrap(await refreshApplicationForm(db, posting, async () => Response.json(changed)))
+    const forms = await getApplicationForms(db, [posting])
+    expect(forms.size).toBe(1)
+    expect(forms.get(postingKey(posting))?.form.questions.some((q) => q.label === 'Resume')).toBe(true)
+    expect(await getApplicationForms(db, [])).toEqual(new Map())
+  })
+
+  test('a source without structured forms is unsupported; a closed posting is not_found', async ({ db }) => {
+    const lever = await source(db, 'lever')
+    expect(unwrap(await refreshApplicationForm(db, { sourceId: lever.id, externalId: 'abc' }, fixtureFetcher))).toEqual({ kind: 'unsupported' })
+    expect(await sourcePublishesForms(db, lever.id)).toBe(false)
+    const board = await source(db)
+    expect(await sourcePublishesForms(db, board.id)).toBe(true)
+    expect(await refreshApplicationForm(db, { sourceId: board.id, externalId: '42' }, async () => new Response('', { status: 404 })))
+      .toMatchObject({ ok: false, error: { code: 'not_found' } })
   })
 })

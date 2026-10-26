@@ -7,7 +7,7 @@ deliberately rather than letting the drift stand.
 ## Tenancy
 
 Every table carries `user_id` **except** the shared job catalog: `job_sources`,
-`raw_jobs`, `jobs`, and what is read from a posting once for everyone
+`raw_jobs`, `jobs`, `application_forms`, and what is read from a posting once for everyone
 (`job_eligibility_claims`, `job_requirements`). A Greenhouse posting is the same posting for
 everyone, so it is stored once and assessed per candidate. This keeps scraping work
 shared and per-user tables small.
@@ -211,6 +211,32 @@ staleness), `assessed_at`. Unique on `(user_id, job_id, engine_version)`.
 
 No single overall score column. If the UI needs an ordering, it derives one at query time
 from the dimensions, and the derivation is visible in the UI.
+
+### `application_forms`
+Owned by `job-sources`. Shared: each posting's application form as its source last
+published it (decision 0013), keyed `(source_id, external_id)`. `payload` (verbatim, so the
+form can be re-read), `form` (jsonb: questions with label, required, section and fields;
+a field's type is `text`, `textarea`, `file`, `single_select`, `multi_select`, or `hidden`
+for values the form fills itself), `fetched_at`. A refreshed copy, not a log: replaced when
+fetched again. Only sources that publish a structured form (Greenhouse) have rows.
+
+### `applicant_details`
+Owned by `application-answers`. One per user: `first_name`, `last_name`, `email`, `phone`,
+`linkedin_url`, `github_url`, `website_url`, `updated_at`. The standard fields every form asks.
+
+### `saved_answers`
+Owned by `application-answers`. The candidate's own answers, one per question as worded:
+`question_key` (case, spacing and trailing punctuation removed), `label` (as first
+answered), `answer` (jsonb: `{ kind: 'text', text }` or `{ kind: 'choice', labels }`),
+`created_at`, `updated_at`. Unique on `(user_id, question_key)`. May hold sensitive answers
+(demographics); RLS like every per-user table.
+
+### `question_match_runs`
+Owned by `application-answers`. One run of the "same question, different wording" task:
+`inputs_hash` (the unanswered and saved questions it compared), `task_version`, `matches`
+(jsonb: unanswered question key → saved question key, only pairs code accepted), `traces`,
+`model`, `cost_micro_usd`, `created_at`. A suggestion is used only once the candidate
+accepts it.
 
 ### `applications`
 Owned by `applications` (decision 0012). One per job the candidate applied to; never

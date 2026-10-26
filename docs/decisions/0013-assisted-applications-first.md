@@ -78,8 +78,10 @@ only reuse saved ones, and to find jobs on more sites.
 - **Automatic sending of suggestions is opt-in.** Reused and profile answers may go out
   automatically under the owner's rules; drafted answers are off by default and switched on
   by the owner.
-- **Postings that require the candidate's own words** get no automatically sent drafted
-  text. (How suggestions are shown for them is recorded when the owner decides.)
+- **Postings that require the candidate's own words** get full drafts too, at the owner's
+  decision (2026-10-26), but those drafts always wait in a "Pending approval" category and
+  are sent only after the owner approves them, never automatically. Approving one is the
+  owner's statement that it is theirs.
 - **Job sources.** LinkedIn is out of scope: its terms prohibit scraping and automation.
   New sources are sites with a public feed or API whose terms permit use, checked one by
   one; scraping only where the terms allow it. Applications still happen on the employer's

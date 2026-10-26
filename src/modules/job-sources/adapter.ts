@@ -58,6 +58,34 @@ export const NormalizedJobSchema = z.object({
 })
 export type NormalizedJob = z.infer<typeof NormalizedJobSchema>
 
+/**
+ * A posting's application form, as the source publishes it (decision 0013). Only what is
+ * needed to know what the form asks: no answers, nothing about any candidate.
+ */
+/** hidden: filled by the form itself (a location widget's coordinates), never by the candidate. */
+export const FORM_FIELD_TYPES = ['text', 'textarea', 'file', 'single_select', 'multi_select', 'hidden'] as const
+export const FormFieldSchema = z.object({
+  /** The source's own field name ("first_name", "question_42848303"), what a filled form submits. */
+  name: z.string().min(1),
+  type: z.enum(FORM_FIELD_TYPES),
+  options: z.array(z.object({ label: z.string(), value: z.string() })),
+})
+export type FormField = z.infer<typeof FormFieldSchema>
+
+/** One question can offer several fields, any one of which answers it ("Resume": a file or pasted text). */
+export const FormQuestionSchema = z.object({
+  label: z.string().min(1),
+  description: z.string().nullable(),
+  required: z.boolean(),
+  /** main: the posting's own questions; location, compliance (e.g. US EEO) and demographic: the board's standard sections. */
+  section: z.enum(['main', 'location', 'compliance', 'demographic']),
+  fields: z.array(FormFieldSchema).min(1),
+})
+export type FormQuestion = z.infer<typeof FormQuestionSchema>
+
+export const ApplicationFormSchema = z.object({ questions: z.array(FormQuestionSchema) })
+export type ApplicationForm = z.infer<typeof ApplicationFormSchema>
+
 export type RawJob = {
   readonly externalId: string
   /** Exactly as the source returned it. Stored verbatim in raw_jobs and never mutated. */
@@ -114,4 +142,12 @@ export type JobSourceAdapter = {
   normalize(raw: RawJob, source: SourceRef): Result<NormalizedJob>
   /** Used when a source is registered and shown on the admin page. Never throws. */
   health(source: SourceRef, fetcher: Fetcher): Promise<SourceHealth>
+  /**
+   * The posting's application form, for sources that publish one in structured form
+   * (decision 0013). Absent for sources that do not. Returns the verbatim payload with
+   * the form read from it, so the form can be re-read from what was stored. Never throws.
+   */
+  fetchApplicationForm?(source: SourceRef, externalId: string, fetcher: Fetcher): Promise<Result<{ readonly payload: unknown; readonly form: ApplicationForm }>>
+  /** Pure: the form read from a stored payload. Present whenever fetchApplicationForm is. */
+  readApplicationForm?(payload: unknown): Result<ApplicationForm>
 }

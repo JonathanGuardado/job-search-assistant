@@ -29,3 +29,12 @@ export async function enqueueSourcePoll(redisUrl: string, payload: SourcePollPay
     connection.disconnect()
   }
 }
+
+/**
+ * One posting's application form (decision 0013). Keyed by the posting's raw version, so a
+ * changed posting is fetched again and a repeat for the same version is dropped.
+ */
+export const applicationFormFetchQueue = defineQueue('application-form-fetch', z.object({ sourceId: z.uuid(), externalId: z.string().min(1) }))
+
+export const applicationFormFetchKey = (posting: { readonly sourceId: string; readonly externalId: string }, rawJobId: string): string =>
+  `${posting.sourceId}@${posting.externalId}@${rawJobId}`
