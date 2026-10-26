@@ -6,6 +6,7 @@ import { getDb } from '@/lib/db/client'
 import { withTenant } from '@/lib/db/tenancy'
 import { DEV_USER } from '@/lib/dev-user'
 import { getEnv } from '@/lib/env'
+import { queueFormFetchNow } from '@/modules/application-answers'
 import { setUserOverride } from '@/modules/eligibility'
 import { setJobUserState, type JobUserStateValue } from '@/modules/jobs'
 import { queueMatchNow } from '@/modules/matching'
@@ -65,7 +66,9 @@ export async function markEligible(form: FormData): Promise<void> {
     setUserOverride(scope, { jobId, verdict: 'eligible', reason: reason || null }))
   if (!result.ok) redirect(errorUrl(back, result.error.message))
   const queued = await queueMatchNow(db, getEnv().REDIS_URL, { userId: DEV_USER.id, jobId })
-  redirect(queued.ok ? back : errorUrl(back, queued.error.message))
+  const formQueued = await queueFormFetchNow(db, getEnv().REDIS_URL, jobId)
+  if (!queued.ok) redirect(errorUrl(back, queued.error.message))
+  redirect(formQueued.ok ? back : errorUrl(back, formQueued.error.message))
 }
 
 export async function undoVerdict(form: FormData): Promise<void> {

@@ -45,6 +45,7 @@ export default async function ResumesPage({
           <Link className={styles.secondaryButton} href="/sources">Job sources</Link>
           <Link className={styles.secondaryButton} href="/jobs">Jobs</Link>
           <Link className={styles.secondaryButton} href="/applications">Applications</Link>
+          <Link className={styles.secondaryButton} href="/answers">Answers</Link>
         </div>
       </header>
       {searchParams.error && (

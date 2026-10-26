@@ -4,12 +4,14 @@ import { z } from 'zod'
 import { getDb } from '@/lib/db/client'
 import { withTenant } from '@/lib/db/tenancy'
 import { DEV_USER } from '@/lib/dev-user'
+import { readinessForJobs } from '@/modules/application-answers'
 import { getApplicationForJob } from '@/modules/applications'
 import { getAssessment, reviewGroup } from '@/modules/eligibility'
 import { getJob, getJobUserState } from '@/modules/jobs'
 import { getMatchCard } from '@/modules/matching'
 import { getCandidateProfile } from '@/modules/profiles'
 import { listResumes } from '@/modules/resumes'
+import { ApplicationReadiness } from '../../answers/_components/ApplicationReadiness'
 import { LogApplicationForm } from '../../applications/_components/ApplicationForms'
 import { STATUS_LABELS } from '../../applications/_components/ApplicationStatus'
 import { EligibilityDetails } from '../_components/EligibilityDetails'
@@ -38,6 +40,7 @@ export default async function JobPage({ params, searchParams }: {
   const userState = state.ok ? state.value : null
   const card = await getMatchCard(db, DEV_USER.id, jobId)
   const tab = userState?.state === 'ignored' ? 'hidden' : reviewGroup(assessment)
+  const readiness = tab === 'can_apply' ? (await readinessForJobs(db, DEV_USER.id, [job])).get(jobId) ?? { kind: 'not_fetched' } : null
   const applicationContext = await withTenant(db, DEV_USER.id, async (scope) => ({
     application: await getApplicationForJob(scope, jobId),
     resumes: await listResumes(scope), profile: await getCandidateProfile(scope),
@@ -64,6 +67,7 @@ export default async function JobPage({ params, searchParams }: {
       <JobActions assessment={assessment} userState={userState} tab={tab} back={`/jobs/${jobId}`} offerReason />
       <EligibilityDetails assessment={assessment} />
       <MatchDetails card={card} />
+      {readiness !== null && <ApplicationReadiness readiness={readiness} back={`/jobs/${jobId}`} />}
       <section className={styles.section} aria-labelledby="application-heading">
         <h2 id="application-heading">Your application</h2>
         {application !== null ? <>

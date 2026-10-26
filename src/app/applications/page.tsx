@@ -25,7 +25,7 @@ export default async function ApplicationsPage({ searchParams }: {
   const filtered = applications.filter((application) => query.status === 'all' || application.status === query.status)
   return (
     <main className={styles.page}>
-      <nav className={styles.navigation}><Link href="/jobs">Jobs</Link><Link href="/resumes">Resume library</Link><Link href="/settings">Candidate settings</Link><Link href="/sources">Job sources</Link></nav>
+      <nav className={styles.navigation}><Link href="/jobs">Jobs</Link><Link href="/resumes">Resume library</Link><Link href="/settings">Candidate settings</Link><Link href="/sources">Job sources</Link><Link href="/answers">Answers</Link></nav>
       <header><p className={styles.eyebrow}>Job Seeker Assistant · Your search</p><h1>Applications</h1></header>
       {query.error && <p role="alert" className={styles.error}>{query.error}</p>}
       <nav aria-label="Applications by stage" className={styles.tabs}>

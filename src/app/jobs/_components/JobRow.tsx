@@ -22,7 +22,9 @@ function MatchPreview({ row }: { readonly row: Row }) {
   return <p>{reason ?? 'Not matched yet.'}</p>
 }
 
-export function JobRow({ row, tab, back }: { readonly row: Row; readonly tab: JobTab; readonly back: string }) {
+export function JobRow({ row, tab, back, readyToSend }: {
+  readonly row: Row; readonly tab: JobTab; readonly back: string; readonly readyToSend: boolean
+}) {
   return (
     <article className={styles.section}>
       <p className={styles.company}>{row.job.companyName}</p>
@@ -31,6 +33,7 @@ export function JobRow({ row, tab, back }: { readonly row: Row; readonly tab: Jo
       <p>{formatSalary(row.job.salary) ?? 'Salary not stated'}</p>
       <MatchPreview row={row} />
       <div className={styles.badges}>
+        {readyToSend && <span className={styles.badge}>Ready to send</span>}
         {row.userState?.state === 'saved' && <span className={styles.badge}>Saved</span>}
         {row.userState?.state === 'applied' && <span className={styles.badge}>Applied</span>}
         {row.assessment.userOverride !== null && <span className={styles.badge}>Your verdict</span>}

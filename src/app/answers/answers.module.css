@@ -1,0 +1,33 @@
+.page { min-height: 100vh; padding: 32px max(20px, calc((100vw - 1100px) / 2)) 64px; background: #f6f8fc; color: #202b3e; font: 14px/1.6 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+.page *, .section * { box-sizing: border-box; }
+.page nav { margin-bottom: 24px; }
+.page a, .section a { color: #4057cf; text-underline-offset: 3px; }
+.page header { margin-bottom: 28px; }
+.page h1 { margin: 0 0 8px; font-size: 34px; letter-spacing: -1px; }
+.page h2, .section h2 { margin: 0 0 16px; font-size: 19px; }
+.page h3, .section h3 { margin: 0 0 8px; font-size: 15px; }
+.eyebrow { color: #4057cf; font-size: 11px; letter-spacing: 1.4px; font-weight: 700; text-transform: uppercase; }
+.muted { color: #627087; }
+.navigation { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; }
+.section { padding: 26px; margin-bottom: 22px; background: #fff; border: 1px solid #e1e6ee; border-radius: 12px; overflow-wrap: anywhere; }
+.question { padding-top: 20px; margin-top: 20px; border-top: 1px solid #edf0f5; }
+.description, .value { white-space: pre-wrap; overflow-wrap: anywhere; }
+.badges { display: flex; flex-wrap: wrap; gap: 8px; }
+.badge { display: inline-block; padding: 3px 9px; border-radius: 6px; color: #4057cf; background: #edf0ff; font-size: 12px; font-weight: 600; }
+.detailsFields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-bottom: 20px; }
+.detailsFields label, .textField { display: grid; gap: 6px; }
+.detailsFields input, .answerForm input[type=text], .answerForm textarea { display: block; width: 100%; padding: 9px 11px; border: 1px solid #dce2ed; border-radius: 7px; background: #fcfdff; color: #202b3e; font: inherit; }
+.answerForm { margin-top: 16px; }
+.answerFields { min-width: 0; padding: 0; margin: 0 0 12px; border: 0; }
+.answerFields legend { margin-bottom: 8px; font-weight: 600; }
+.answerForm textarea { resize: vertical; }
+.answerForm .option { display: flex; align-items: baseline; gap: 10px; padding: 5px 0; }
+.section .answerForm .option input { display: inline-block; flex-shrink: 0; width: auto; padding: 0; margin: 0; accent-color: #4057cf; }
+.suggestion { padding: 16px; margin-top: 16px; border: 1px solid #dce2ed; border-radius: 8px; background: #f6f8fc; white-space: pre-wrap; }
+.suggestion p { margin-top: 0; }
+.section button { min-height: 38px; padding: 8px 14px; border: 1px solid #d5dce7; border-radius: 8px; background: #fff; color: #202b3e; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+.section button:hover { background: #f0f3f9; }
+.section :is(input, textarea, button, a):focus-visible { outline: 3px solid #8195ef; outline-offset: 3px; }
+.deleteForm { margin-top: 12px; }
+.error { padding: 16px 20px; margin-bottom: 20px; border: 1px solid #f0c7cd; border-radius: 10px; background: #fff4f5; color: #942937; }
+@media(max-width: 650px) { .section { padding: 20px; } .page h1 { font-size: 28px; } .detailsFields { grid-template-columns: 1fr; } }

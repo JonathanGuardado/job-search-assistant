@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { getDb } from '@/lib/db/client'
 import { withTenant } from '@/lib/db/tenancy'
 import { DEV_USER } from '@/lib/dev-user'
+import { readinessForJobs, type JobReadiness } from '@/modules/application-answers'
 import { listAssessments, REVIEW_GROUPS } from '@/modules/eligibility'
 import { getJobs, listJobUserStates } from '@/modules/jobs'
 import { listMatches, REVIEW_ORDER } from '@/modules/matching'
@@ -33,11 +34,13 @@ export default async function JobsPage({ searchParams }: {
   const matches = await withTenant(db, DEV_USER.id, listMatches)
   const jobs = await getJobs(db, assessments.map((assessment) => assessment.jobId))
   const list = buildJobList({ assessments, userStates, matches, jobs, ...query })
+  const readiness = query.tab === 'can_apply'
+    ? await readinessForJobs(db, DEV_USER.id, list.rows.map((row) => row.job)) : new Map<string, JobReadiness>()
   const back = jobsUrl(query.tab, query.company, list.page)
 
   return (
     <main className={styles.page}>
-      <nav className={styles.navigation}><Link href="/resumes">Resume library</Link><Link href="/settings">Candidate settings</Link><Link href="/sources">Job sources</Link><Link href="/applications">Applications</Link></nav>
+      <nav className={styles.navigation}><Link href="/resumes">Resume library</Link><Link href="/settings">Candidate settings</Link><Link href="/sources">Job sources</Link><Link href="/applications">Applications</Link><Link href="/answers">Answers</Link></nav>
       <header><p className={styles.eyebrow}>Job Seeker Assistant · Your search</p><h1>Jobs</h1></header>
       {query.error && <p role="alert" className={styles.error}>{query.error}</p>}
       <nav aria-label="Jobs by eligibility" className={styles.tabs}>
@@ -52,7 +55,11 @@ export default async function JobsPage({ searchParams }: {
       <p className={styles.muted}>{REVIEW_ORDER}</p>
       <section aria-label="Jobs">
         {list.rows.length === 0 ? <p className={styles.section}>No jobs in this tab match your filter.</p>
-          : list.rows.map((row) => <JobRow key={row.job.id} row={row} tab={query.tab} back={back} />)}
+          : list.rows.map((row) => {
+            const application = readiness.get(row.job.id)
+            return <JobRow key={row.job.id} row={row} tab={query.tab} back={back}
+              readyToSend={application?.kind === 'assessed' && application.readiness.status === 'ready'} />
+          })}
       </section>
       <nav aria-label="Pagination" className={styles.pagination}>
         {list.page > 1 && <Link href={jobsUrl(query.tab, query.company, list.page - 1)}>Previous</Link>}
