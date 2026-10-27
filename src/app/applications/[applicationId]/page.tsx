@@ -8,6 +8,7 @@ import { getApplication, postingAsApplied } from '@/modules/applications'
 import { getJob } from '@/modules/jobs'
 import { getCandidateProfile } from '@/modules/profiles'
 import { getResume, listResumes } from '@/modules/resumes'
+import { AppNavigation } from '../../_components/AppNavigation'
 import { ApplicationDetails, ApplicationHistory, AppliedPosting } from '../_components/ApplicationDetails'
 import { ChangeStageForm, EditApplicationForm } from '../_components/ApplicationForms'
 import { ApplicationStatusBadge } from '../_components/ApplicationStatus'
@@ -41,7 +42,8 @@ export default async function ApplicationPage({ params, searchParams }: {
   const job = jobResult.value
   return (
     <main className={styles.page}>
-      <nav className={styles.navigation}><Link href="/applications">← Applications</Link><Link href={`/jobs/${job.id}`}>Open job</Link></nav>
+      <AppNavigation currentPath={`/applications/${application.id}`} />
+      <nav aria-label="Application navigation" className={styles.navigation}><Link href="/applications">← Applications</Link><Link href={`/jobs/${job.id}`}>Open job</Link></nav>
       <header>
         <p className={styles.eyebrow}>{job.companyName}</p><h1>{job.title}</h1>
         <ApplicationStatusBadge status={application.status} />

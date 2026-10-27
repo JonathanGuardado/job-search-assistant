@@ -9,7 +9,7 @@
 .page header p, .muted { color: #627087; }
 .page .eyebrow { color: #4057cf; font-size: 11px; letter-spacing: 1.4px; font-weight: 700; text-transform: uppercase; }
 .section { padding: 26px; margin-bottom: 22px; background: #fff; border: 1px solid #e1e6ee; border-radius: 12px; overflow-wrap: anywhere; }
-.navigation, .tabs, .pagination { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; }
+.tabs, .pagination { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; }
 .tabs a { padding: 8px 12px; border: 1px solid #dce2ed; border-radius: 8px; background: #fff; text-decoration: none; }
 .tabs a[aria-current=page] { background: #4057cf; color: #fff; border-color: #4057cf; }
 .filter { display: flex; align-items: flex-end; gap: 12px; margin: 24px 0; }

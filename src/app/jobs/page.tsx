@@ -7,6 +7,7 @@ import { readinessForJobs, type JobReadiness } from '@/modules/application-answe
 import { listAssessments, REVIEW_GROUPS } from '@/modules/eligibility'
 import { getJobs, listJobUserStates } from '@/modules/jobs'
 import { listMatches, REVIEW_ORDER } from '@/modules/matching'
+import { AppNavigation } from '../_components/AppNavigation'
 import { JobRow } from './_components/JobRow'
 import { buildJobList, TAB_DESCRIPTIONS, type JobTab } from './_lib/job-list'
 import styles from './jobs.module.css'
@@ -40,7 +41,7 @@ export default async function JobsPage({ searchParams }: {
 
   return (
     <main className={styles.page}>
-      <nav className={styles.navigation}><Link href="/resumes">Resume library</Link><Link href="/settings">Candidate settings</Link><Link href="/sources">Job sources</Link><Link href="/applications">Applications</Link><Link href="/answers">Answers</Link></nav>
+      <AppNavigation currentPath="/jobs" />
       <header><p className={styles.eyebrow}>Job Seeker Assistant · Your search</p><h1>Jobs</h1></header>
       {query.error && <p role="alert" className={styles.error}>{query.error}</p>}
       <nav aria-label="Jobs by eligibility" className={styles.tabs}>

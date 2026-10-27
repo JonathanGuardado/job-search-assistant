@@ -1,4 +1,3 @@
-import Link from 'next/link'
 import { z } from 'zod'
 import { getDb } from '@/lib/db/client'
 import { withTenant } from '@/lib/db/tenancy'
@@ -7,6 +6,7 @@ import { getEnv } from '@/lib/env'
 import {
   canApplyJobs, listSavedAnswers, openQuestions, queueQuestionMatch, readinessForJobs,
 } from '@/modules/application-answers'
+import { AppNavigation } from '../_components/AppNavigation'
 import { BlockingQuestion } from './_components/BlockingQuestion'
 import { SavedAnswers } from './_components/SavedAnswers'
 import styles from './answers.module.css'
@@ -30,7 +30,7 @@ export default async function AnswersPage({ searchParams }: {
 
   return (
     <main className={styles.page}>
-      <nav className={styles.navigation}><Link href="/jobs">Jobs</Link><Link href="/resumes">Resume library</Link><Link href="/settings">Candidate settings</Link><Link href="/sources">Job sources</Link><Link href="/applications">Applications</Link></nav>
+      <AppNavigation currentPath="/answers" />
       <header><p className={styles.eyebrow}>Job Seeker Assistant · Your applications</p><h1>Answers</h1></header>
       {error && <p role="alert" className={styles.error}>{error}</p>}
       <section className={styles.section} aria-labelledby="questions-heading">

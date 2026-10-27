@@ -5,7 +5,7 @@
   --accent: #4057cf;
   box-sizing: border-box;
   min-height: 100vh;
-  padding: 40px max(24px, calc((100vw - 1240px) / 2)) 72px;
+  padding: 32px max(20px, calc((100vw - 1100px) / 2)) 64px;
   background: #f6f8fc;
   color: var(--ink);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -120,7 +120,6 @@
   .source { position: static; max-height: 600px; }
 }
 @media (max-width: 600px) {
-  .page { padding: 24px 16px 48px; }
   .pageHeader { align-items: flex-start; gap: 12px; }
   .pageHeader .count { display: none; }
   .eyebrow { font-size: 10px; letter-spacing: 1px; }

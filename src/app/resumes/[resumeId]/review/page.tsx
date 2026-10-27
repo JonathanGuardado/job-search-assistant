@@ -12,6 +12,7 @@ import {
   type RejectedValue,
 } from '@/modules/career-knowledge'
 import { getResume, isParseStalled } from '@/modules/resumes'
+import { AppNavigation } from '../../../_components/AppNavigation'
 import { retryParseAction } from '../../actions'
 import { AutoRefresh } from '../../_components/AutoRefresh'
 import { CareerItemCard } from '../../_components/CareerItemCard'
@@ -67,6 +68,7 @@ export default async function ReviewPage({
 
   return (
     <main className={styles.page}>
+      <AppNavigation currentPath={`/resumes/${resume.id}/review`} />
       {(status === undefined || status === 'running') && <AutoRefresh seconds={3} />}
       <Link href="/resumes" className={styles.backLink}>← Resume library</Link>
       <header className={styles.pageHeader}>

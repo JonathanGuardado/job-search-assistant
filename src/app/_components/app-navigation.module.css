@@ -1,0 +1,5 @@
+.navigation { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 24px; font: 14px/1.6 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+.navigation .link { display: inline-flex; align-items: center; min-height: 38px; padding: 8px 12px; border: 1px solid transparent; border-radius: 8px; color: #4057cf; font-size: 13px; font-weight: 600; line-height: 1.4; text-decoration: none; white-space: nowrap; }
+.navigation .link:hover { background: #edf0ff; border-color: #dce2ed; }
+.navigation .link[aria-current] { color: #fff; background: #4057cf; border-color: #4057cf; }
+.navigation .link:focus-visible { outline: 3px solid #8195ef; outline-offset: 3px; }

@@ -3,6 +3,7 @@ import { getDb } from '@/lib/db/client'
 import { withTenant } from '@/lib/db/tenancy'
 import { DEV_USER } from '@/lib/dev-user'
 import { isParseStalled, listResumes, type ResumeSummary } from '@/modules/resumes'
+import { AppNavigation } from '../_components/AppNavigation'
 import { retryParseAction, uploadResumeAction } from './actions'
 import { AutoRefresh } from './_components/AutoRefresh'
 import { DeleteResumeButton } from './_components/DeleteResumeButton'
@@ -32,6 +33,7 @@ export default async function ResumesPage({
 
   return (
     <main className={styles.page}>
+      <AppNavigation currentPath="/resumes" />
       {isWaiting && <AutoRefresh seconds={3} />}
       <header className={styles.pageHeader}>
         <div>
@@ -39,14 +41,7 @@ export default async function ResumesPage({
           <h1>Resume library</h1>
           <p className={styles.subtitle}>Keep your experience together. Review each version and confirm what matters.</p>
         </div>
-        <div className={styles.rowActions}>
-          <span className={styles.count}>{resumes.length} {resumes.length === 1 ? 'version' : 'versions'}</span>
-          <Link className={styles.secondaryButton} href="/settings">Candidate settings</Link>
-          <Link className={styles.secondaryButton} href="/sources">Job sources</Link>
-          <Link className={styles.secondaryButton} href="/jobs">Jobs</Link>
-          <Link className={styles.secondaryButton} href="/applications">Applications</Link>
-          <Link className={styles.secondaryButton} href="/answers">Answers</Link>
-        </div>
+        <span className={styles.count}>{resumes.length} {resumes.length === 1 ? 'version' : 'versions'}</span>
       </header>
       {searchParams.error && (
         <p role="alert" className={styles.error}>

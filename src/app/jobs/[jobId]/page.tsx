@@ -11,6 +11,7 @@ import { getJob, getJobUserState } from '@/modules/jobs'
 import { getMatchCard } from '@/modules/matching'
 import { getCandidateProfile } from '@/modules/profiles'
 import { listResumes } from '@/modules/resumes'
+import { AppNavigation } from '../../_components/AppNavigation'
 import { ApplicationReadiness } from '../../answers/_components/ApplicationReadiness'
 import { LogApplicationForm } from '../../applications/_components/ApplicationForms'
 import { STATUS_LABELS } from '../../applications/_components/ApplicationStatus'
@@ -49,7 +50,8 @@ export default async function JobPage({ params, searchParams }: {
 
   return (
     <main className={styles.page}>
-      <nav><Link href="/jobs">← Jobs</Link></nav>
+      <AppNavigation currentPath={`/jobs/${jobId}`} />
+      <nav aria-label="Job navigation"><Link href="/jobs">← Jobs</Link></nav>
       <header>
         <p className={styles.eyebrow}>{job.companyName}</p>
         <h1>{job.title}</h1>
