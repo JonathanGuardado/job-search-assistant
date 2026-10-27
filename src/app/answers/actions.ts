@@ -7,8 +7,7 @@ import { withTenant } from '@/lib/db/tenancy'
 import { DEV_USER } from '@/lib/dev-user'
 import { getEnv } from '@/lib/env'
 import {
-  acceptSuggestion, ApplicantDetailsSchema, deleteSavedAnswer, queueQuestionMatch,
-  saveAnswer, SaveAnswerSchema, saveApplicantDetails,
+  acceptSuggestion, deleteSavedAnswer, queueQuestionMatch, saveAnswer, SaveAnswerSchema,
 } from '@/modules/application-answers'
 
 const BackSchema = z.string().refine((value) => {
@@ -36,25 +35,6 @@ function errorUrl(back: string, message: string): string {
 async function refreshSuggestions(back: string): Promise<never> {
   await queueQuestionMatch(getEnv().REDIS_URL, DEV_USER.id)
   redirect(back)
-}
-
-export async function saveDetailsAction(form: FormData): Promise<void> {
-  const back = BackSchema.parse(form.get('back'))
-  const input: Record<string, FormDataEntryValue | null> = {}
-  for (const name of [
-    'firstName', 'lastName', 'email', 'phone', 'linkedinUrl', 'githubUrl', 'websiteUrl',
-  ]) {
-    const value = form.get(name)
-    input[name] = typeof value === 'string' ? value.trim() : value
-  }
-  for (const name of ['phone', 'linkedinUrl', 'githubUrl', 'websiteUrl']) {
-    if (input[name] === '') input[name] = null
-  }
-  const parsed = ApplicantDetailsSchema.safeParse(input)
-  if (!parsed.success) redirect(errorUrl(back, parsed.error.issues[0]?.message ?? 'Check your details.'))
-  const result = await withTenant(getDb(), DEV_USER.id, (scope) => saveApplicantDetails(scope, parsed.data))
-  if (!result.ok) redirect(errorUrl(back, result.error.message))
-  await refreshSuggestions(back)
 }
 
 export async function saveAnswerAction(form: FormData): Promise<void> {

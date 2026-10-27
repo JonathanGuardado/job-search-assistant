@@ -10,7 +10,7 @@ export function QuestionResponse({ question, back, answeredBy }: {
 }) {
   const standard = answeredBy ?? standardField(question)
   if (standard === 'details') {
-    return <p>{back === '/answers' ? 'Fill this in Your details above.' : <Link href="/answers#details">Fill this in Your details.</Link>}</p>
+    return <p>Fill this in <Link href="/settings#details">Your details in settings</Link>.</p>
   }
   if (standard === 'resume') return <p>Upload a resume in the <Link href="/resumes">resume library</Link>.</p>
   return <AnswerForm question={question} back={back} />

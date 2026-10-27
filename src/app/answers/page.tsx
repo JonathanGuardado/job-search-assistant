@@ -5,10 +5,9 @@ import { withTenant } from '@/lib/db/tenancy'
 import { DEV_USER } from '@/lib/dev-user'
 import { getEnv } from '@/lib/env'
 import {
-  canApplyJobs, getApplicantDetails, listSavedAnswers, openQuestions, queueQuestionMatch, readinessForJobs,
+  canApplyJobs, listSavedAnswers, openQuestions, queueQuestionMatch, readinessForJobs,
 } from '@/modules/application-answers'
 import { BlockingQuestion } from './_components/BlockingQuestion'
-import { DetailsForm } from './_components/DetailsForm'
 import { SavedAnswers } from './_components/SavedAnswers'
 import styles from './answers.module.css'
 
@@ -22,9 +21,7 @@ export default async function AnswersPage({ searchParams }: {
   const jobs = await canApplyJobs(db, DEV_USER.id)
   const readiness = await readinessForJobs(db, DEV_USER.id, jobs)
   const questions = openQuestions(readiness)
-  const { details, answers } = await withTenant(db, DEV_USER.id, async (scope) => ({
-    details: await getApplicantDetails(scope), answers: await listSavedAnswers(scope),
-  }))
+  const answers = await withTenant(db, DEV_USER.id, listSavedAnswers)
   await queueQuestionMatch(getEnv().REDIS_URL, DEV_USER.id)
   const results = [...readiness.values()]
   const ready = results.filter((job) => job.kind === 'assessed' && job.readiness.status === 'ready').length
@@ -36,10 +33,6 @@ export default async function AnswersPage({ searchParams }: {
       <nav className={styles.navigation}><Link href="/jobs">Jobs</Link><Link href="/resumes">Resume library</Link><Link href="/settings">Candidate settings</Link><Link href="/sources">Job sources</Link><Link href="/applications">Applications</Link></nav>
       <header><p className={styles.eyebrow}>Job Seeker Assistant · Your applications</p><h1>Answers</h1></header>
       {error && <p role="alert" className={styles.error}>{error}</p>}
-      <section id="details" className={styles.section} aria-labelledby="details-heading">
-        <h2 id="details-heading">Your details</h2>
-        <DetailsForm details={details} />
-      </section>
       <section className={styles.section} aria-labelledby="questions-heading">
         <h2 id="questions-heading">Questions blocking your applications</h2>
         <p>{ready} of {results.length} jobs you can apply to are ready to send; {blocked} are blocked; {unreadable} have no form the assistant can read yet</p>

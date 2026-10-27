@@ -28,8 +28,10 @@
 .authorization label { display: block; margin-bottom: 10px; font-size: 12px; color: #627087; }
 .error, .success { padding: 16px 20px; margin-bottom: 20px; border: 1px solid #f0c7cd; border-radius: 10px; background: #fff4f5; color: #942937; }
 .success { color: #247254; border-color: #cdebdc; background: #eef9f3; }
+.detailsFields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-bottom: 20px; }
+.detailsFields label { display: grid; gap: 6px; }
 .footer { display: flex; align-items: center; justify-content: space-between; gap: 24px; }
 .footer p { max-width: 600px; color: #627087; font-size: 13px; }
 .page .primary { flex-shrink: 0; color: white; border-color: #4057cf; background: #4057cf; }
 .page .primary:hover { background: #3346b5; }
-@media(max-width: 650px) { .constraint { grid-template-columns: minmax(0, 1fr); gap: 14px; } .mode { padding-left: 0; border-left: 0; } .section { padding: 20px; } .footer { flex-direction: column; align-items: stretch; gap: 8px; } }
+@media(max-width: 650px) { .constraint { grid-template-columns: minmax(0, 1fr); gap: 14px; } .mode { padding-left: 0; border-left: 0; } .section { padding: 20px; } .footer { flex-direction: column; align-items: stretch; gap: 8px; } .detailsFields { grid-template-columns: 1fr; } }

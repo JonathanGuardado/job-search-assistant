@@ -14,9 +14,8 @@
 .description, .value { white-space: pre-wrap; overflow-wrap: anywhere; }
 .badges { display: flex; flex-wrap: wrap; gap: 8px; }
 .badge { display: inline-block; padding: 3px 9px; border-radius: 6px; color: #4057cf; background: #edf0ff; font-size: 12px; font-weight: 600; }
-.detailsFields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-bottom: 20px; }
-.detailsFields label, .textField { display: grid; gap: 6px; }
-.detailsFields input, .answerForm input[type=text], .answerForm textarea { display: block; width: 100%; padding: 9px 11px; border: 1px solid #dce2ed; border-radius: 7px; background: #fcfdff; color: #202b3e; font: inherit; }
+.textField { display: grid; gap: 6px; }
+.answerForm input[type=text], .answerForm textarea { display: block; width: 100%; padding: 9px 11px; border: 1px solid #dce2ed; border-radius: 7px; background: #fcfdff; color: #202b3e; font: inherit; }
 .answerForm { margin-top: 16px; }
 .answerFields { min-width: 0; padding: 0; margin: 0 0 12px; border: 0; }
 .answerFields legend { margin-bottom: 8px; font-weight: 600; }
@@ -30,4 +29,4 @@
 .section :is(input, textarea, button, a):focus-visible { outline: 3px solid #8195ef; outline-offset: 3px; }
 .deleteForm { margin-top: 12px; }
 .error { padding: 16px 20px; margin-bottom: 20px; border: 1px solid #f0c7cd; border-radius: 10px; background: #fff4f5; color: #942937; }
-@media(max-width: 650px) { .section { padding: 20px; } .page h1 { font-size: 28px; } .detailsFields { grid-template-columns: 1fr; } }
+@media(max-width: 650px) { .section { padding: 20px; } .page h1 { font-size: 28px; } }
