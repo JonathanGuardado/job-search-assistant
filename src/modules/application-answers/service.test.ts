@@ -3,12 +3,13 @@ import { withTenant } from '@/lib/db/tenancy'
 import { dbTest as test } from '@/lib/db/testing'
 import { ok, unwrap } from '@/lib/result'
 import type { ModelTrace } from '@/modules/ai'
+import { setJobUserState } from '@/modules/jobs'
 import { questionKey } from './readiness.js'
 import {
-  acceptSuggestion, canApplyJobs, deleteSavedAnswer, getApplicantDetails, listSavedAnswers, openQuestions, readinessForJobs,
+  acceptSuggestion, deleteSavedAnswer, jobsToApplyTo, getApplicantDetails, listSavedAnswers, openQuestions, readinessForJobs,
   refreshQuestionMatches, saveAnswer, saveApplicantDetails, type MatchQuestions,
 } from './service.js'
-import { aBoard, aCandidate, aJob, makeEligible, storeForm } from './test-fixtures.js'
+import { aBoard, aCandidate, aJob, makeEligible, makeMatched, storeForm } from './test-fixtures.js'
 
 const details = { firstName: 'Ana', lastName: 'Pérez', email: 'ana@example.com', phone: null, linkedinUrl: 'https://www.linkedin.com/in/ana', githubUrl: null, websiteUrl: null }
 const MATH = 'How did you perform in mathematics at high school?'
@@ -59,7 +60,7 @@ describe('readiness of the jobs a candidate can apply to', () => {
     for (const job of [withForm, withoutForm]) await makeEligible(db, userId, job)
     await withTenant(db, userId, async (scope) => unwrap(await saveApplicantDetails(scope, details)))
 
-    expect((await canApplyJobs(db, userId)).map((j) => j.id).sort()).toEqual([withForm.id, withoutForm.id].sort())
+    expect((await jobsToApplyTo(db, userId)).map((j) => j.id).sort()).toEqual([withForm.id, withoutForm.id].sort())
     const readiness = await readinessForJobs(db, userId, [withForm, withoutForm])
     expect(readiness.get(withoutForm.id)).toEqual({ kind: 'not_fetched' })
     const assessed = readiness.get(withForm.id)
@@ -71,6 +72,26 @@ describe('readiness of the jobs a candidate can apply to', () => {
     // Lever publishes no structured form: its jobs are unsupported, not waiting for a fetch.
     const lever = { id: '00000000-0000-4000-8000-00000000abcd', sourceId: (await aBoard(db, 'lever')).id, externalId: 'abc' }
     expect((await readinessForJobs(db, userId, [lever])).get(lever.id)).toEqual({ kind: 'unsupported' })
+  })
+
+  test('works only on jobs whose role fits, unless the candidate saved one, and never on hidden or applied jobs', async ({ db }) => {
+    const userId = await aCandidate(db)
+    const board = await aBoard(db)
+    const [fits, close, unrelated, savedUnrelated, hidden, applied, unmatched] = [
+      await aJob(db, board, 'Senior Software Engineer'), await aJob(db, board, 'Ubuntu Sales Engineer'), await aJob(db, board, 'Financial Analyst'),
+      await aJob(db, board, 'Enterprise Account Executive'), await aJob(db, board, 'Cloud Software Engineer'), await aJob(db, board, 'Software Engineer, Kernel'),
+      await aJob(db, board, 'Partner Sales Director'),
+    ]
+    for (const job of [fits, close, unrelated, savedUnrelated, hidden, applied, unmatched]) await makeEligible(db, userId, job)
+    for (const job of [fits, close, unrelated, savedUnrelated, hidden, applied]) await makeMatched(db, userId, job)
+    await withTenant(db, userId, async (scope) => {
+      unwrap(await setJobUserState(scope, { jobId: savedUnrelated.id, state: 'saved' }))
+      unwrap(await setJobUserState(scope, { jobId: hidden.id, state: 'ignored' }))
+      unwrap(await setJobUserState(scope, { jobId: applied.id, state: 'applied' }))
+    })
+    // Not matched yet: kept until matching says otherwise.
+    expect((await jobsToApplyTo(db, userId)).map((j) => j.title).sort()).toEqual(
+      ['Enterprise Account Executive', 'Partner Sales Director', 'Senior Software Engineer', 'Ubuntu Sales Engineer'])
   })
 
   test('lists open questions, the most widely blocking first, answered by details or by a saved answer', async ({ db }) => {

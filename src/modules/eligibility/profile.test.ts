@@ -12,7 +12,7 @@ const modes = {
 const input = (overrides: Partial<CandidateProfileInput> = {}): CandidateProfileInput => ({
   country: 'SV', city: 'San Salvador', timezone: 'America/El_Salvador', workAuthorizations: [], willingToRelocate: false,
   allowedRegions: ['latam', 'es'], employmentTypes: ['contractor'], salaryFloorMinor: 6_000_000, salaryCurrency: 'USD',
-  targetRoles: ['Engineer'], seniority: 'senior', preferredTech: [], excludedTech: [], excludedCompanies: [], excludedIndustries: [], spokenLanguages: ['es', 'en'],
+  targetRoles: ['Engineer'], seniority: 'senior', preferredTech: [], excludedTech: [], excludedCompanies: [], excludedIndustries: [], spokenLanguages: ['es', 'en'], citizenships: [], englishLevel: null,
   constraintModes: modes, ...overrides,
 })
 

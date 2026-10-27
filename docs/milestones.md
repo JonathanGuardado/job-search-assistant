@@ -3,7 +3,15 @@
 Phase 1 only. Later phases are listed at the bottom so their scope stays visible, but
 nothing from them gets built yet.
 
-**Active milestone: 1.8 jobs UI.** 1.1 through 1.7 are closed. The jobs view is built
+**Active milestone: 2.2 drafted answers** (decision 0014), started at the owner's request
+while 1.8 and 1.9 wait on the owner's checks below. 2.1 is built and merged: saved answers,
+readiness and "same question" suggestions on `/answers` and each job page. 2.2's first part
+is built: the assistant works only on jobs whose role fits, the profile records citizenship
+and English level, and profile-fact questions are drafted in code from a model's reading of
+what each asks. Next: experience and motivation drafts with the grounding check, then the
+answers page shows drafts (Codex).
+
+**1.8 jobs UI.** 1.1 through 1.7 are closed. The jobs view is built
 (`/jobs`, brief `prompts/codex/m1.8-jobs-ui.md`, implemented by Codex and reviewed): five
 tabs by eligibility plus Hidden, ordered by the stated review order, each job with its
 eligibility evidence and match card, and save, hide and override. **Pending:** the owner
@@ -86,7 +94,7 @@ gates close; 2.1 can be planned before then.
 | # | Milestone | Owner | Done when |
 | --- | --- | --- | --- |
 | 2.1 | Saved answers, readiness, "same question" suggestions | Claude Code + Codex | Every "Can apply" job shows whether its form could be filled from the owner's answers, names each blocking question, and suggests reusing an answer the owner gave to a differently worded question |
-| 2.2 | Drafted answers | Claude Code | Answers drafted from confirmed career items pass the grounding check, and the owner approves or edits them |
+| 2.2 | Drafted answers (decision 0014) | Claude Code + Codex | Every question that is not a consent, demographic or no-record question gets a draft from the profile or confirmed career items, written drafts pass the grounding check, and the owner accepts or edits them |
 | 2.3 | Form filling, approval mode | Claude Code + Codex | The owner submits a real Greenhouse application that the system filled, after seeing exactly what it sends |
 | 2.4 | Automatic submission | Claude Code + Codex | Applications go out under the owner's rules with a stored confirmation; blocked jobs show "Apply yourself" and the reason |
 | 2.5 | Read-only email | Claude Code | A real follow-up email becomes a suggested stage change the owner confirms |

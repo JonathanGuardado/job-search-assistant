@@ -18,6 +18,7 @@ export type { MatchCandidate, MatchCareerItem, MatchJob } from './compare.js'
 export { explainMatch } from './explain.js'
 export type { CardSection } from './explain.js'
 export { skillKey } from './skills.js'
+export { experienceMonths } from './experience.js'
 
 export {
   DIMENSION_KEYS,

@@ -3,7 +3,9 @@ import { closeDb, getDb } from '@/lib/db/client'
 import { getEnv } from '@/lib/env'
 import { logEvent } from '@/lib/log'
 import { connectRedis } from '@/lib/queue'
-import { formFetchRequest, matchQuestionsWithModel, questionMatchQueue, refreshQuestionMatches } from '@/modules/application-answers'
+import {
+  answerDraftQueue, draftAnswers, formFetchRequest, matchQuestionsWithModel, questionMatchQueue, readQuestionsWithModel, refreshQuestionMatches,
+} from '@/modules/application-answers'
 import { resumeParseQueue, runResumeParse } from '@/modules/career-knowledge'
 import {
   assessEligibilityQueue, assessJobForUser, enqueueAssessmentsForJob, enqueueAssessmentsForUser, extractClaimsWithModel, reassessUserQueue,
@@ -162,6 +164,11 @@ const workers: Worker[] = [
   questionMatchQueue.work({ connection, concurrency: 1 }, async ({ userId }) => {
     const matched = await refreshQuestionMatches(db, userId, matchQuestionsWithModel)
     return matched.ok ? ok(undefined) : matched
+  }),
+  answerDraftQueue.work({ connection, concurrency: 1 }, async ({ userId }) => {
+    const drafted = await draftAnswers(db, userId, readQuestionsWithModel)
+    if (drafted.ok) logEvent('application_answers.drafted', { userId, ...drafted.value })
+    return drafted.ok ? ok(undefined) : drafted
   }),
   sourcePollDispatchQueue.work({ connection }, () => dispatchSourcePolls(db, new Date(), enqueuePoll)),
 ]

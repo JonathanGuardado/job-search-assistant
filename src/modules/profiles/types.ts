@@ -59,6 +59,9 @@ export const SPOKEN_LANGUAGES = [
   'ru', 'uk', 'tr', 'ar', 'he', 'hi', 'zh', 'ja', 'ko', 'vi', 'id', 'th',
 ] as const
 export const SpokenLanguageSchema = z.enum(SPOKEN_LANGUAGES)
+/** CEFR levels, plus native: the scale application forms use most, and what other wordings map onto. */
+export const ENGLISH_LEVELS = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2', 'native'] as const
+export type EnglishLevel = (typeof ENGLISH_LEVELS)[number]
 export type SpokenLanguage = z.infer<typeof SpokenLanguageSchema>
 export const CandidateProfileInputSchema = z.object({
   country,
@@ -78,6 +81,9 @@ export const CandidateProfileInputSchema = z.object({
   excludedIndustries: list,
   /** Facts about the candidate, not a constraint: matching compares them, eligibility never reads them. */
   spokenLanguages: z.array(SpokenLanguageSchema).max(SPOKEN_LANGUAGES.length),
+  /** Facts for application questions (decision 0014): eligibility and matching never read them. */
+  citizenships: z.array(country).max(5),
+  englishLevel: z.enum(ENGLISH_LEVELS).nullable(),
   constraintModes: ConstraintModesSchema,
 })
 export type CandidateProfileInput = z.infer<typeof CandidateProfileInputSchema>

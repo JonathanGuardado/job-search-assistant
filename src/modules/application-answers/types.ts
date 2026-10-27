@@ -30,9 +30,37 @@ export const SaveAnswerSchema = z.object({
 })
 export type SaveAnswer = z.infer<typeof SaveAnswerSchema>
 
+/** owner: written by the candidate. draft: a draft they accepted, edited or not (decision 0014). */
+export const ANSWER_ORIGINS = ['owner', 'draft'] as const
+export type AnswerOrigin = (typeof ANSWER_ORIGINS)[number]
+
 export type SavedAnswer = {
   readonly questionKey: string
   readonly label: string
   readonly answer: SavedAnswerValue
+  readonly origin: AnswerOrigin
   readonly updatedAt: Date
+}
+
+export const DRAFT_METHODS = ['profile', 'experience', 'motivation'] as const
+export type DraftMethod = (typeof DRAFT_METHODS)[number]
+/** drafted: offered to the candidate. no_basis: the record cannot answer it. rejected: failed the grounding check. */
+export const DRAFT_STATUSES = ['drafted', 'no_basis', 'rejected'] as const
+export type DraftStatus = (typeof DRAFT_STATUSES)[number]
+
+/** What a draft rests on: the facts it states and the confirmed career items it used. */
+export type DraftBasis = { readonly facts: readonly string[]; readonly itemIds: readonly string[] }
+
+export type AnswerDraft = {
+  readonly id: string
+  readonly questionKey: string
+  readonly label: string
+  readonly method: DraftMethod
+  readonly status: DraftStatus
+  /** Set exactly when drafted. */
+  readonly answer: SavedAnswerValue | null
+  readonly basis: DraftBasis
+  /** Why there is no draft, in words the candidate can act on. */
+  readonly reason: string | null
+  readonly createdAt: Date
 }

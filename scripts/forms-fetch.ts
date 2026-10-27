@@ -1,6 +1,6 @@
 import { closeDb, getDb } from '@/lib/db/client'
 import { DEV_USER } from '@/lib/dev-user'
-import { canApplyJobs, formFetchRequest, openQuestions, readinessForJobs } from '@/modules/application-answers'
+import { jobsToApplyTo, formFetchRequest, openQuestions, readinessForJobs } from '@/modules/application-answers'
 import { getApplicationForms, refreshApplicationForm } from '@/modules/job-sources'
 
 /*
@@ -15,7 +15,7 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 
 try {
   const db = getDb()
-  const jobs = await canApplyJobs(db, DEV_USER.id)
+  const jobs = await jobsToApplyTo(db, DEV_USER.id)
   const stored = await getApplicationForms(db, jobs)
   let fetched = 0
   let skipped = 0

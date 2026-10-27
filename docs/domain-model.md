@@ -45,6 +45,8 @@ One per user. The constraint set that drives every decision.
 | `excluded_companies`, `excluded_industries` | text[] | |
 | `constraint_modes` | jsonb | Maps each field above to `hard` or `preferred` |
 | `spoken_languages` | text[] | ISO 639-1 codes from a fixed list. A fact, not a constraint: no mode, read only by matching |
+| `citizenships` | text[] | ISO 3166-1 alpha-2 codes. A fact for application questions (decision 0014); eligibility and matching never read it |
+| `english_level` | text, nullable | `A1`…`C2` or `native`. A fact for application questions (decision 0014) |
 
 The profile is unique per `user_id`, protected by RLS, and configured at `/settings`.
 All constraint keys use the camelCase service field names. Work authorization and
@@ -228,8 +230,10 @@ Owned by `application-answers`. One per user: `first_name`, `last_name`, `email`
 Owned by `application-answers`. The candidate's own answers, one per question as worded:
 `question_key` (case, spacing and trailing punctuation removed), `label` (as first
 answered), `answer` (jsonb: `{ kind: 'text', text }` or `{ kind: 'choice', labels }`),
-`created_at`, `updated_at`. Unique on `(user_id, question_key)`. May hold sensitive answers
-(demographics); RLS like every per-user table.
+`origin` (`owner`, or `draft` when the candidate accepted a draft, edited or not; decision 0014),
+`draft_id` (the accepted draft, kept as its evidence), `created_at`, `updated_at`. Unique on
+`(user_id, question_key)`. May hold sensitive answers (demographics); RLS like every per-user
+table.
 
 ### `question_match_runs`
 Owned by `application-answers`. One run of the "same question, different wording" task:
@@ -237,6 +241,26 @@ Owned by `application-answers`. One run of the "same question, different wording
 (jsonb: unanswered question key → saved question key, only pairs code accepted), `traces`,
 `model`, `cost_micro_usd`, `created_at`. A suggestion is used only once the candidate
 accepts it.
+
+### `question_readings`
+Owned by `application-answers`. Shared: what an application question asks (decision 0014),
+read once per `question_hash` (label, description, field types and options) and
+`task_version`, for every candidate. `reading` (jsonb: a kind such as `needs_sponsorship`,
+`experience` or `owner_only`, plus the countries, company, skill, language, salary period
+and currency the question names), `traces`, `model`, `cost_micro_usd` (the batch's cost
+split between its readings), `created_at`. A reading never holds an answer.
+
+### `answer_drafts`
+Owned by `application-answers` (decision 0014). One row per draft made for a candidate's
+question, or per finding that the record cannot answer it: `question_key`, `label`,
+`method` (`profile` | `experience` | `motivation`), `job_id` (motivation drafts only),
+`status` (`drafted` | `no_basis` | `rejected`), `answer` (set exactly when drafted),
+`basis` (jsonb: the facts stated and the confirmed career items used), `reason` (set
+exactly when not drafted, worded for the candidate), `inputs_hash`, `reading_id`,
+`task_version`, `traces`, `model`, `cost_micro_usd`, `created_at` (the write's own time).
+Rows are added, never updated: the newest per question is current, and a run adds one only
+when its draft differs from the newest. Nothing here is used until the candidate accepts it
+into `saved_answers`.
 
 ### `applications`
 Owned by `applications` (decision 0012). One per job the candidate applied to; never

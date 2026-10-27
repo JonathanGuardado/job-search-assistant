@@ -24,3 +24,26 @@ export async function queueQuestionMatch(redisUrl: string, userId: string, now: 
     connection.disconnect()
   }
 }
+
+/** One candidate's drafting run (handler: draftAnswers, decision 0014). */
+export const answerDraftQueue = defineQueue('draft-answers', z.object({ userId: z.uuid() }))
+
+/**
+ * Producer for the answers page and the profile. Opening the page drafts at most every ten
+ * minutes; a profile save drafts again at once, since it changes what drafts would say.
+ */
+export async function queueAnswerDrafts(redisUrl: string, userId: string, trigger: 'opened' | 'profile_saved', now: Date = new Date()): Promise<Result<void>> {
+  const connection = connectRedis(redisUrl, 'producer')
+  const queue = answerDraftQueue.open({ connection })
+  connection.on('error', () => logEvent('application_answers.enqueue_failed', { userId }))
+  const key = trigger === 'opened' ? `${userId}@${Math.floor(now.getTime() / BUCKET_MS)}` : `${userId}@profile@${now.getTime()}`
+  try {
+    await queue.enqueue({ userId }, key)
+    return ok(undefined)
+  } catch {
+    return err(domainError('upstream_failed', 'Drafts could not be refreshed right now.'))
+  } finally {
+    await queue.close()
+    connection.disconnect()
+  }
+}

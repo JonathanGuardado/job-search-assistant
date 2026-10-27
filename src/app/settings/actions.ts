@@ -5,7 +5,7 @@ import { getDb } from '@/lib/db/client'
 import { withTenant } from '@/lib/db/tenancy'
 import { DEV_USER } from '@/lib/dev-user'
 import { getEnv } from '@/lib/env'
-import { ApplicantDetailsSchema, saveApplicantDetails } from '@/modules/application-answers'
+import { ApplicantDetailsSchema, queueAnswerDrafts, saveApplicantDetails } from '@/modules/application-answers'
 import { enqueueReassessUser } from '@/modules/eligibility'
 import { enqueueRematchUser } from '@/modules/matching'
 import { CandidateProfileFormSchema, profileFormInput, saveCandidateProfile } from '@/modules/profiles'
@@ -21,6 +21,8 @@ export async function saveProfileAction(form: FormData): Promise<void> {
   // reads (languages, preferred technologies) leaves eligibility's work deduplicated.
   const rematched = await enqueueRematchUser(getEnv().REDIS_URL, DEV_USER.id)
   if (!rematched.ok) redirect(`/settings?saved=1&error=${encodeURIComponent(rematched.error.message)}`)
+  // Drafts are a convenience: the next visit to the answers page queues them again if this fails.
+  await queueAnswerDrafts(getEnv().REDIS_URL, DEV_USER.id, 'profile_saved')
   redirect('/settings?saved=1')
 }
 

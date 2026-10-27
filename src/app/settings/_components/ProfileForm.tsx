@@ -2,7 +2,7 @@
 
 import { useState, type ReactNode } from 'react'
 import {
-  CandidateProfileFormSchema, CURRENCIES, EMPLOYMENT_TYPES, profileFormInput, salaryToInput, SPOKEN_LANGUAGES,
+  CandidateProfileFormSchema, CURRENCIES, EMPLOYMENT_TYPES, ENGLISH_LEVELS, profileFormInput, salaryToInput, SPOKEN_LANGUAGES,
   type CandidateProfile, type ConstraintField,
 } from '@/modules/profiles'
 import { saveProfileAction } from '../actions'
@@ -20,6 +20,10 @@ const COUNTRIES = Array.from({ length: 26 * 26 }, (_, i) => String.fromCharCode(
   .sort((a, b) => countryName(a).localeCompare(countryName(b)))
 const TIMEZONES = Intl.supportedValuesOf('timeZone')
 const languageName = new Intl.DisplayNames('en', { type: 'language' })
+const ENGLISH_LEVEL_LABELS = {
+  A1: 'A1 · Beginner', A2: 'A2 · Elementary', B1: 'B1 · Intermediate', B2: 'B2 · Upper intermediate',
+  C1: 'C1 · Advanced', C2: 'C2 · Proficient', native: 'Native or bilingual',
+} as const
 const LANGUAGES = [...SPOKEN_LANGUAGES].sort((a, b) => (languageName.of(a) ?? a).localeCompare(languageName.of(b) ?? b))
 
 function Constraint({ field, label, hint, profile, children }: {
@@ -90,6 +94,17 @@ export function ProfileForm({ profile, regionCountries }: {
           </div>)}
           <button type="button" onClick={() => { setAuthorizations((rows) => [...rows, { key: nextKey, country: '', type: '' }]); setNextKey((key) => key + 1) }}>Add authorization</button>
         </>, 'Only add authorizations you actually hold. Leave the list empty if none apply.')}
+        <fieldset className={styles.constraint}>
+          <legend>Citizenship</legend>
+          <div className={styles.control}>
+            {[0, 1].map((index) => <select key={index} name="citizenships" aria-label={index === 0 ? 'Citizenship' : 'Second citizenship'} defaultValue={defaults?.citizenships[index] ?? ''}>
+              <option value="">{index === 0 ? 'Choose your citizenship' : 'No second citizenship'}</option>
+              {COUNTRIES.map((code) => <option value={code} key={code}>{countryName(code)}</option>)}
+            </select>)}
+            <p className={styles.hint}>Application forms ask about citizenship and sponsorship. Without it, those questions wait for your answer.</p>
+          </div>
+          <div className={styles.mode}><strong>Used for application questions</strong><p>Never excludes a job by itself.</p></div>
+        </fieldset>
         {row('willingToRelocate', 'Relocation', <label className={styles.checkbox}><input name="willingToRelocate" type="checkbox" defaultChecked={defaults?.willingToRelocate ?? false} />I am willing to relocate</label>)}
       </section>
       <section className={styles.section}>
@@ -101,6 +116,17 @@ export function ProfileForm({ profile, regionCountries }: {
             <p className={styles.hint}>Select languages you could use at work. Matching flags postings that require a language you did not select.</p>
           </div>
           <div className={styles.mode}><strong>Used for matching</strong><p>Never excludes a job by itself.</p></div>
+        </fieldset>
+        <fieldset className={styles.constraint}>
+          <legend>English level</legend>
+          <div className={styles.control}>
+            <select name="englishLevel" aria-label="English level" defaultValue={defaults?.englishLevel ?? ''}>
+              <option value="">Not stated</option>
+              {ENGLISH_LEVELS.map((level) => <option value={level} key={level}>{ENGLISH_LEVEL_LABELS[level]}</option>)}
+            </select>
+            <p className={styles.hint}>On the CEFR scale. Forms that ask your English level are answered from this.</p>
+          </div>
+          <div className={styles.mode}><strong>Used for application questions</strong><p>Never excludes a job by itself.</p></div>
         </fieldset>
       </section>
       <section className={styles.section}>

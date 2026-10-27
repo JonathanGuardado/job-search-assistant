@@ -36,7 +36,7 @@ must survive restarts and run on a schedule; application work is latency-sensiti
 | `eligibility` | Rules, extraction, three-state verdicts | Extraction only |
 | `matching` | Requirement extraction, comparison and explanation (decision 0010) | Extraction only |
 | `applications` | Pipeline state, artifacts, status history | No |
-| `application-answers` | Saved answers, application readiness, "same question" suggestions (decision 0013); drafted answers from 2.2 | Pairs questions (2.1); generation with grounding check (2.2) |
+| `application-answers` | Saved answers, application readiness, "same question" suggestions (decision 0013); drafted answers (decision 0014) | Pairs questions (2.1); reads what questions ask (2.2); generation with grounding check (2.2) |
 | `automation` | Playwright flows, submission verification (phase 3) | Fallback only |
 | `analytics` | Funnel metrics, source performance | No |
 | `ai` | Provider abstraction, schemas, validation, tracing | n/a |
@@ -79,6 +79,7 @@ exported from that module's `index.ts`. Queues:
 | `match-reassess-user` | Queue every job not rejected for one candidate | On profile save, career-item edit, resume deletion, finished parse |
 | `application-form-fetch` | One posting's application form, from a source that publishes it | When a job becomes "Can apply"; on the candidate's override |
 | `match-questions` | One candidate's "same question, different wording" run | On saving an answer; on opening the answers page (at most every ten minutes) |
+| `draft-answers` | One candidate's drafting run (decision 0014) | On opening the answers page (at most every ten minutes); on profile save |
 | `resume-parse` | One resume version → draft career items | On upload |
 
 Every job is idempotent and keyed so a retry cannot double-write. Workflows are state

@@ -1,7 +1,7 @@
 import { sql } from 'drizzle-orm'
 import { boolean, check, integer, jsonb, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core'
 import { tenantIsolation } from '@/lib/db/tenancy'
-import type { CandidateProfileInput, ConstraintModes, WorkAuthorization } from './types.js'
+import { ENGLISH_LEVELS, type CandidateProfileInput, type ConstraintModes, type WorkAuthorization } from './types.js'
 
 /**
  * The tenant list. Not row-level secured: it holds no candidate data, and
@@ -33,8 +33,11 @@ export const candidateProfiles = pgTable('candidate_profiles', {
   excludedCompanies: text('excluded_companies').array().notNull(),
   excludedIndustries: text('excluded_industries').array().notNull(),
   spokenLanguages: text('spoken_languages').array().$type<CandidateProfileInput['spokenLanguages']>().notNull().default(sql`'{}'::text[]`),
+  citizenships: text('citizenships').array().notNull().default(sql`'{}'::text[]`),
+  englishLevel: text('english_level', { enum: ENGLISH_LEVELS }),
   constraintModes: jsonb('constraint_modes').$type<ConstraintModes>().notNull(),
 }, (t) => [
+  check('candidate_profiles_english_level_check', sql`${t.englishLevel} is null or ${t.englishLevel} in (${sql.raw(ENGLISH_LEVELS.map((l) => `'${l}'`).join(', '))})`),
   check('candidate_profiles_salary_check', sql`${t.salaryFloorMinor} >= 0`),
   check('candidate_profiles_hard_modes_check', sql`(${t.constraintModes}->>'workAuthorizations') is not distinct from 'hard' and (${t.constraintModes}->>'willingToRelocate') is not distinct from 'hard'`),
   tenantIsolation(),

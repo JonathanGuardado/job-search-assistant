@@ -50,7 +50,7 @@ pure unit tests, `next build`).
 
 ## Database
 
-- Every table except `users`, `jobs`, `raw_jobs`, `job_sources`, `application_forms`,
+- Every table except `users`, `jobs`, `raw_jobs`, `job_sources`, `application_forms`, `question_readings`,
   `job_eligibility_claims` and `job_requirements` carries `user_id` with an index, and declares
   `tenantIsolation()` in its `schema.ts` (decision 0004).
 - Service functions take the executor as their first argument: `Db` for the shared

@@ -4,7 +4,7 @@ import { withTenant } from '@/lib/db/tenancy'
 import { DEV_USER } from '@/lib/dev-user'
 import { getEnv } from '@/lib/env'
 import {
-  canApplyJobs, listSavedAnswers, openQuestions, queueQuestionMatch, readinessForJobs,
+  jobsToApplyTo, listSavedAnswers, openQuestions, queueAnswerDrafts, queueQuestionMatch, readinessForJobs,
 } from '@/modules/application-answers'
 import { AppNavigation } from '../_components/AppNavigation'
 import { BlockingQuestion } from './_components/BlockingQuestion'
@@ -18,11 +18,12 @@ export default async function AnswersPage({ searchParams }: {
 }) {
   const error = z.string().catch('').parse(searchParams.error)
   const db = getDb()
-  const jobs = await canApplyJobs(db, DEV_USER.id)
+  const jobs = await jobsToApplyTo(db, DEV_USER.id)
   const readiness = await readinessForJobs(db, DEV_USER.id, jobs)
   const questions = openQuestions(readiness)
   const answers = await withTenant(db, DEV_USER.id, listSavedAnswers)
   await queueQuestionMatch(getEnv().REDIS_URL, DEV_USER.id)
+  await queueAnswerDrafts(getEnv().REDIS_URL, DEV_USER.id, 'opened')
   const results = [...readiness.values()]
   const ready = results.filter((job) => job.kind === 'assessed' && job.readiness.status === 'ready').length
   const blocked = results.filter((job) => job.kind === 'assessed' && job.readiness.status === 'blocked').length

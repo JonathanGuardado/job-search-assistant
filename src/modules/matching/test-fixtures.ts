@@ -55,7 +55,7 @@ export const seeker: CandidateProfileInput = {
   country: 'SV', city: 'San Salvador', timezone: 'America/El_Salvador', workAuthorizations: [], willingToRelocate: false,
   allowedRegions: ['latam', 'worldwide'], employmentTypes: ['contractor'], salaryFloorMinor: null, salaryCurrency: 'USD',
   targetRoles: ['Senior Software Engineer'], seniority: 'senior', preferredTech: [], excludedTech: [], excludedCompanies: [], excludedIndustries: [],
-  spokenLanguages: ['es', 'en'],
+  spokenLanguages: ['es', 'en'], citizenships: [], englishLevel: null,
   constraintModes: {
     country: 'preferred', city: 'preferred', timezone: 'preferred', workAuthorizations: 'hard', willingToRelocate: 'hard',
     allowedRegions: 'hard', employmentTypes: 'preferred', salaryFloorMinor: 'preferred', salaryCurrency: 'preferred',

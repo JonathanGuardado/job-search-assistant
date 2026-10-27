@@ -7,6 +7,7 @@ import type { ModelTrace } from '@/modules/ai'
 import { assessJobForUser, UNSPECIFIED_CLAIMS, type EligibilityClaims, type ExtractClaims } from '@/modules/eligibility'
 import { addSource, pollSourcePage, refreshApplicationForm, type AdapterKey, type JobSource } from '@/modules/job-sources'
 import { upsertJobFromRaw, type Job } from '@/modules/jobs'
+import { assessMatchForUser, NO_REQUIREMENTS, type ExtractRequirements } from '@/modules/matching'
 import { ensureUser, saveCandidateProfile, type CandidateProfileInput } from '@/modules/profiles'
 
 /*
@@ -45,7 +46,7 @@ const profile: CandidateProfileInput = {
   country: 'SV', city: 'San Salvador', timezone: 'America/El_Salvador', workAuthorizations: [], willingToRelocate: false,
   allowedRegions: ['latam', 'worldwide'], employmentTypes: ['contractor'], salaryFloorMinor: null, salaryCurrency: 'USD',
   targetRoles: ['Software Engineer'], seniority: 'senior', preferredTech: [], excludedTech: [], excludedCompanies: [], excludedIndustries: [],
-  spokenLanguages: ['es', 'en'],
+  spokenLanguages: ['es', 'en'], citizenships: [], englishLevel: null,
   constraintModes: {
     country: 'preferred', city: 'preferred', timezone: 'preferred', workAuthorizations: 'hard', willingToRelocate: 'hard',
     allowedRegions: 'hard', employmentTypes: 'preferred', salaryFloorMinor: 'preferred', salaryCurrency: 'preferred',
@@ -54,10 +55,14 @@ const profile: CandidateProfileInput = {
   },
 }
 
-export async function aCandidate(db: Db): Promise<string> {
+export async function aCandidate(db: Db, changes: Partial<CandidateProfileInput> = {}): Promise<string> {
   const user = await ensureUser(db, { email: `answers-${randomUUID()}@test.local` })
-  await withTenant(db, user.id, async (scope) => unwrap(await saveCandidateProfile(scope, profile)))
+  await withTenant(db, user.id, async (scope) => unwrap(await saveCandidateProfile(scope, { ...profile, ...changes })))
   return user.id
+}
+
+export async function updateProfile(db: Db, userId: string, changes: Partial<CandidateProfileInput>): Promise<void> {
+  await withTenant(db, userId, async (scope) => unwrap(await saveCandidateProfile(scope, { ...profile, ...changes })))
 }
 
 const trace: ModelTrace = {
@@ -65,6 +70,14 @@ const trace: ModelTrace = {
   inputTokens: 1, outputTokens: 1, cacheReadTokens: 0, cacheWriteTokens: 0, costMicroUsd: 0, latencyMs: 1, rawOutput: '{}', validationError: null,
 }
 const worldwide: EligibilityClaims = { ...UNSPECIFIED_CLAIMS, remoteScope: { kind: 'worldwide', quote: 'Home based, worldwide.' }, onsite: { kind: 'remote', quote: 'Home based, worldwide.' } }
+
+const noRequirements: ExtractRequirements = async () => ok({ value: NO_REQUIREMENTS, traces: [{ ...trace, task: 'matching.extract-requirements' }] })
+
+/** Runs matching for real on a posting that states no requirements: only the title decides role fit. */
+export async function makeMatched(db: Db, userId: string, job: Job): Promise<void> {
+  const outcome = unwrap(await assessMatchForUser(db, { userId, jobId: job.id }, noRequirements))
+  if (outcome.kind !== 'assessed') throw new Error(`expected a match, got ${JSON.stringify(outcome)}`)
+}
 
 /** Runs eligibility for real, with a stand-in that reads the posting as open worldwide: the job lands in "Can apply". */
 export async function makeEligible(db: Db, userId: string, job: Job): Promise<void> {
