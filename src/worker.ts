@@ -166,8 +166,9 @@ const workers: Worker[] = [
     const matched = await refreshQuestionMatches(db, userId, matchQuestionsWithModel)
     return matched.ok ? ok(undefined) : matched
   }),
-  answerDraftQueue.work({ connection, concurrency: 1 }, async ({ userId }) => {
-    const drafted = await draftAnswers(db, userId, { read: readQuestionsWithModel, writeExperience: writeExperienceWithModel, writeMotivation: writeMotivationWithModel })
+  answerDraftQueue.work({ connection, concurrency: 1 }, async ({ userId, only }) => {
+    const deps = { read: readQuestionsWithModel, writeExperience: writeExperienceWithModel, writeMotivation: writeMotivationWithModel }
+    const drafted = await draftAnswers(db, userId, deps, only === undefined ? {} : { only })
     if (drafted.ok) logEvent('application_answers.drafted', { userId, ...drafted.value })
     return drafted.ok ? ok(undefined) : drafted
   }),

@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto'
 import { z } from 'zod'
 import { connectRedis, defineQueue } from '@/lib/queue'
 import { logEvent } from '@/lib/log'
@@ -25,8 +26,8 @@ export async function queueQuestionMatch(redisUrl: string, userId: string, now: 
   }
 }
 
-/** One candidate's drafting run (handler: draftAnswers, decision 0014). */
-export const answerDraftQueue = defineQueue('draft-answers', z.object({ userId: z.uuid() }))
+/** One candidate's drafting run (handler: draftAnswers, decision 0014); `only` drafts one question now, past the daily cap. */
+export const answerDraftQueue = defineQueue('draft-answers', z.object({ userId: z.uuid(), only: z.string().min(1).optional() }))
 
 /**
  * Producer for the answers page and the profile. Opening the page drafts at most every ten
@@ -42,6 +43,27 @@ export async function queueAnswerDrafts(redisUrl: string, userId: string, trigge
     return ok(undefined)
   } catch {
     return err(domainError('upstream_failed', 'Drafts could not be refreshed right now.'))
+  } finally {
+    await queue.close()
+    connection.disconnect()
+  }
+}
+
+/**
+ * Producer for "Draft now": drafts one question at once, for every job asking it, even past the
+ * day's cap (decision 0014). Repeated presses within a minute run once.
+ */
+export async function queueDraftNow(redisUrl: string, userId: string, questionKey: string, now: Date = new Date()): Promise<Result<void>> {
+  const connection = connectRedis(redisUrl, 'producer')
+  const queue = answerDraftQueue.open({ connection })
+  connection.on('error', () => logEvent('application_answers.enqueue_failed', { userId }))
+  // Question keys can hold ':', which job ids may not.
+  const question = createHash('sha256').update(questionKey).digest('hex').slice(0, 16)
+  try {
+    await queue.enqueue({ userId, only: questionKey }, `${userId}@now@${question}@${Math.floor(now.getTime() / 60_000)}`)
+    return ok(undefined)
+  } catch {
+    return err(domainError('upstream_failed', 'The draft could not be started right now.'))
   } finally {
     await queue.close()
     connection.disconnect()
