@@ -102,7 +102,16 @@ experience questions.
 "APAC"); code answers from the profile's country with eligibility's region table, or writes the
 IANA zone and its offset in a text field.
 
-Experience drafts run on the primary model (decision 0015): they send confirmed career items.
+**Motivation answers belong to one job** (owner's choice, 2026-10-27). A saved answer was
+keyed by wording alone and reused for every job asking it, so accepting "why are you the right
+fit for this specific role?" for one Clara role would have sent it for the other, and a
+generic "why us?" to every company. `saved_answers` gains an optional `job_id`: an accepted
+motivation draft answers its job only, a job's own answer comes before a general one, and job
+answers are never offered for other questions. Motivation drafts are written per job from the
+confirmed items and that job's posting, the only source for claims about the company; the
+own-words rule applies per job, by that job's own form.
+
+Experience and motivation drafts run on the primary model (decision 0015): they send confirmed career items.
 A choice question read as experience ("Do you have experience with…? Yes/No") gets no draft:
 choosing is the owner's act.
 

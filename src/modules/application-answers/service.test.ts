@@ -9,7 +9,8 @@ import {
   acceptSuggestion, deleteSavedAnswer, jobsToApplyTo, getApplicantDetails, listSavedAnswers, openQuestions, readinessForJobs,
   refreshQuestionMatches, saveAnswer, saveApplicantDetails, type MatchQuestions,
 } from './service.js'
-import { aBoard, aCandidate, aJob, makeEligible, makeMatched, storeForm } from './test-fixtures.js'
+import { aBoard, aCandidate, aJob, makeEligible, makeMatched, storeForm, writtenQuestion } from './test-fixtures.js'
+import type { Job } from '@/modules/jobs'
 
 const details = { firstName: 'Ana', lastName: 'Pérez', email: 'ana@example.com', phone: null, linkedinUrl: 'https://www.linkedin.com/in/ana', githubUrl: null, websiteUrl: null }
 const MATH = 'How did you perform in mathematics at high school?'
@@ -170,5 +171,40 @@ describe('"same question, different wording" suggestions', () => {
     const { match, calls } = stubMatcher(() => true)
     expect(unwrap(await refreshQuestionMatches(db, userId, match))).toEqual({ kind: 'nothing_to_match' })
     expect(calls).toHaveLength(0)
+  })
+})
+
+describe('answers for one job', () => {
+  const WHY = 'Why do you want to join Umbrella, and why are you the right fit for this specific role?'
+
+  test('a job\'s own answer fills that job only, before any general answer to the same question', async ({ db }) => {
+    const userId = await aCandidate(db)
+    const board = await aBoard(db)
+    const [first, second] = [await aJob(db, board, 'Software Engineer'), await aJob(db, board, 'Platform Engineer')]
+    for (const job of [first, second]) {
+      await storeForm(db, job, 'gitlab', [writtenQuestion(WHY)])
+      await makeEligible(db, userId, job)
+    }
+    const whyIn = async (job: Job) => {
+      const readiness = (await readinessForJobs(db, userId, [job])).get(job.id)
+      if (readiness?.kind !== 'assessed') throw new Error('expected an assessed form')
+      return readiness.readiness.answers.find((a) => a.questionKey === questionKey(WHY))?.value ?? null
+    }
+    const text = (value: string) => ({ kind: 'text' as const, text: value })
+
+    await withTenant(db, userId, async (scope) => unwrap(await saveAnswer(scope, { label: WHY, answer: text('For the first role.'), jobId: first.id })))
+    expect(await whyIn(first)).toEqual(text('For the first role.'))
+    expect(await whyIn(second)).toBeNull()
+    // Never offered as an answer to other questions.
+    expect(unwrap(await refreshQuestionMatches(db, userId, stubMatcher(() => true).match))).toEqual({ kind: 'nothing_to_match' })
+
+    await withTenant(db, userId, async (scope) => unwrap(await saveAnswer(scope, { label: WHY, answer: text('In general.') })))
+    expect(await whyIn(first)).toEqual(text('For the first role.'))
+    expect(await whyIn(second)).toEqual(text('In general.'))
+    await withTenant(db, userId, async (scope) => {
+      expect((await listSavedAnswers(scope)).map((a) => a.jobId).sort()).toEqual([first.id, null].sort())
+      unwrap(await deleteSavedAnswer(scope, questionKey(WHY), first.id))
+    })
+    expect(await whyIn(first)).toEqual(text('In general.'))
   })
 })

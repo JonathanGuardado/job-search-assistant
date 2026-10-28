@@ -40,7 +40,9 @@ const GENERIC = new Set(`
   platform please position practical previous prior product professional professionally program programming project
   proud provide recent recently related relevant responsibility responsible role service share significant skill software
   solution some specific specifically strong such system team technical technology tell that them there these they this
-  those time tool under used using very what when where which while will with within work worked working would year your`
+  those time tool under used using very what when where which while will with within work worked working would year your
+  apply applying excite excited exciting fit interest interested join joining motivate motivated motivation
+  opportunity right want`
   .split(/\s+/).filter(Boolean).map(stem))
 
 const normalize = (text: string) => text.normalize('NFKC').replace(/[’‘]/g, "'").replace(/[“”]/g, '"').replace(/\s+/g, ' ').trim().toLowerCase()

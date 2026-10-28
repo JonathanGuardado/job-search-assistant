@@ -1,6 +1,6 @@
 import { closeDb, getDb } from '@/lib/db/client'
 import { DEV_USER } from '@/lib/dev-user'
-import { draftAnswers, jobsToApplyTo, openQuestions, readinessForJobs, readQuestionsWithModel, writeExperienceWithModel, type OpenQuestion } from '@/modules/application-answers'
+import { draftAnswers, jobsToApplyTo, openQuestions, readinessForJobs, readQuestionsWithModel, writeExperienceWithModel, writeMotivationWithModel, type OpenQuestion } from '@/modules/application-answers'
 
 /*
  * `pnpm answers:draft`: one drafting run for the dev user, as the worker would do it, then
@@ -12,7 +12,9 @@ import { draftAnswers, jobsToApplyTo, openQuestions, readinessForJobs, readQuest
 const describe = (question: OpenQuestion): string => {
   if (question.neverDrafted) return `only you · ${question.neverDrafted}`
   const draft = question.draft
-  if (!draft) return 'not drafted (only you can answer it, a motivation question, or the day\'s drafting limit was reached)'
+  if (!draft) return question.draftsByJob.size > 0
+    ? [...question.draftsByJob.values()].map((d) => (d.status === 'drafted' && d.answer?.kind === 'text' ? `DRAFT for one job · ${d.answer.text}` : `no draft for one job · ${d.reason ?? d.status}`)).join('\n          ')
+    : 'not drafted (only you can answer it, or the day\'s drafting limit was reached)'
   if (draft.status !== 'drafted' || !draft.answer) return `no draft · ${draft.reason ?? draft.status}`
   const value = draft.answer.kind === 'text' ? draft.answer.text : draft.answer.labels.join(', ')
   return `DRAFT · ${value}   (${draft.basis.facts.join('; ')})`
@@ -21,7 +23,7 @@ const describe = (question: OpenQuestion): string => {
 try {
   const db = getDb()
   const started = Date.now()
-  const outcome = await draftAnswers(db, DEV_USER.id, { read: readQuestionsWithModel, write: writeExperienceWithModel })
+  const outcome = await draftAnswers(db, DEV_USER.id, { read: readQuestionsWithModel, writeExperience: writeExperienceWithModel, writeMotivation: writeMotivationWithModel })
   if (!outcome.ok) throw new Error(`drafting stopped: ${outcome.error.message}`)
   console.log(`Run took ${((Date.now() - started) / 1000).toFixed(1)}s:`, outcome.value)
 

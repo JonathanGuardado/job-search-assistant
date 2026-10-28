@@ -4,30 +4,33 @@ import { callModel, type AiError, type CallModelSuccess, type ModelTrace } from 
 import type { VerifiedCareerItem } from '@/modules/career-knowledge'
 import type { FormQuestion } from '@/modules/job-sources'
 import { checkGrounding, describeFailures, type DraftSentence, type GroundingSource } from './grounding.js'
-import { writeExperienceTask, type ExperienceInput } from './prompts/write-experience.js'
+import { writeExperienceTask, type WrittenInput } from './prompts/write-experience.js'
+import { writeMotivationTask } from './prompts/write-motivation.js'
 
 /*
- * Experience drafts (decision 0014): a model writes from the candidate's confirmed career
- * items, citing them sentence by sentence; the grounding check decides whether anyone sees it.
+ * Written drafts (decision 0014): experience answers from the candidate's confirmed career
+ * items, and motivation answers from those items plus the job's posting. A model writes,
+ * citing its sources sentence by sentence; the grounding check decides whether anyone sees it.
  * A draft that fails is retried once with the failures named, then rejected.
  */
 
-export const ExperienceOutputSchema = z.object({
+export const WrittenOutputSchema = z.object({
   covered: z.boolean(),
   sentences: z.array(z.object({
     text: z.string().trim().min(1).max(800),
     sources: z.array(z.object({ item: z.string(), quote: z.string() })).max(6),
   })).max(8),
 })
-export type ExperienceOutput = z.infer<typeof ExperienceOutputSchema>
-export type WriteExperience = (input: ExperienceInput) => Promise<Result<CallModelSuccess<ExperienceOutput>, AiError>>
+export type WrittenOutput = z.infer<typeof WrittenOutputSchema>
+export type WriteAnswer = (input: WrittenInput) => Promise<Result<CallModelSuccess<WrittenOutput>, AiError>>
 
-export const writeExperienceWithModel: WriteExperience = (input) => callModel({ task: writeExperienceTask, schema: ExperienceOutputSchema, input })
+export const writeExperienceWithModel: WriteAnswer = (input) => callModel({ task: writeExperienceTask, schema: WrittenOutputSchema, input })
+export const writeMotivationWithModel: WriteAnswer = (input) => callModel({ task: writeMotivationTask, schema: WrittenOutputSchema, input })
 
-export type ExperienceItem = Pick<VerifiedCareerItem,
+export type WrittenItem = Pick<VerifiedCareerItem,
   'id' | 'type' | 'organization' | 'title' | 'startedOn' | 'endedOn' | 'isCurrent' | 'summary' | 'achievements' | 'technologies'>
 
-export type ExperienceDraft =
+export type WrittenDraft =
   | { readonly kind: 'drafted'; readonly text: string; readonly quotes: readonly string[]; readonly itemIds: readonly string[]; readonly traces: readonly ModelTrace[] }
   | { readonly kind: 'not_covered'; readonly traces: readonly ModelTrace[] }
   | { readonly kind: 'rejected'; readonly reason: string; readonly traces: readonly ModelTrace[] }
@@ -39,10 +42,10 @@ function dateText(date: string): string {
   return `${new Date(Date.UTC(Number(year), Number(month) - 1, 1)).toLocaleString('en-US', { month: 'long', timeZone: 'UTC' })} ${year}`
 }
 
-const headline = (item: ExperienceItem) => [item.title, item.organization].filter(Boolean).join(' at ')
+const headline = (item: WrittenItem) => [item.title, item.organization].filter(Boolean).join(' at ')
 
 /** What the model is shown for an item, and exactly what the grounding check reads. */
-export function sourceText(item: ExperienceItem): string {
+export function sourceText(item: WrittenItem): string {
   const end = item.isCurrent ? 'present' : item.endedOn ? dateText(item.endedOn) : null
   const dates = item.startedOn ? [dateText(item.startedOn), end].filter(Boolean).join(' – ') : end
   return [
@@ -53,22 +56,27 @@ export function sourceText(item: ExperienceItem): string {
   ].filter((line): line is string => Boolean(line)).join('\n')
 }
 
-const sentencesOf = (output: ExperienceOutput): DraftSentence[] =>
+const sentencesOf = (output: WrittenOutput): DraftSentence[] =>
   output.sentences.map((s) => ({ text: s.text, cites: s.sources.map((c) => ({ ref: c.item, quote: c.quote })) }))
 
+const POSTING_REF = 'posting'
+
 /**
- * Writes and checks a draft for one question. Errors only when the provider is unavailable
- * (`rate_limited`, `upstream_failed`), so the run stops and is retried; every other outcome,
- * with the traces of every attempt, is a draft row.
+ * Writes and checks a draft for one question, from the confirmed items and, for a motivation
+ * answer, the job's posting. Errors only when the provider is unavailable (`rate_limited`,
+ * `upstream_failed`), so the run stops and is retried; every other outcome, with the traces of
+ * every attempt, is a draft row.
  */
-export async function draftExperience(write: WriteExperience, question: FormQuestion, items: readonly ExperienceItem[]): Promise<Result<ExperienceDraft>> {
+export async function draftWritten(write: WriteAnswer, question: FormQuestion, items: readonly WrittenItem[], postingText: string | null = null): Promise<Result<WrittenDraft>> {
   const byRef = new Map(items.map((item, i) => [`i${i + 1}`, item]))
-  const sources: GroundingSource[] = [...byRef].map(([ref, item]) => ({ ref, text: sourceText(item) }))
+  const posting = postingText === null ? null : { ref: POSTING_REF, text: postingText }
+  const itemSources: GroundingSource[] = [...byRef].map(([ref, item]) => ({ ref, text: sourceText(item) }))
+  const sources = posting ? [...itemSources, posting] : itemSources
   const traces: ModelTrace[] = []
   let problems: string[] = []
 
   for (let attempt = 1; attempt <= 2; attempt++) {
-    const result = await write({ question: { label: question.label, description: question.description }, items: sources, problems })
+    const result = await write({ question: { label: question.label, description: question.description }, items: itemSources, posting, problems })
     traces.push(...(result.ok ? result.value.traces : result.error.traces))
     if (!result.ok) {
       if (result.error.code === 'rate_limited' || result.error.code === 'upstream_failed') return err(domainError(result.error.code, result.error.message))
@@ -79,20 +87,17 @@ export async function draftExperience(write: WriteExperience, question: FormQues
     const sentences = sentencesOf(output)
     const failures = sentences.length === 0 ? null : checkGrounding({ question: `${question.label} ${question.description ?? ''}`, sources, sentences })
     if (failures?.length === 0) {
-      // A passing check means every citation names an item that was given.
-      const cited = sentences.flatMap((s) => s.cites).flatMap((c) => {
-        const item = byRef.get(c.ref)
-        return item ? [{ quote: c.quote.trim(), item }] : []
-      })
+      // A passing check means every citation names a source that was given.
+      const cited = sentences.flatMap((s) => s.cites).map((c) => ({ quote: c.quote.trim(), item: byRef.get(c.ref) ?? null }))
       return ok({
         kind: 'drafted',
         text: sentences.map((s) => s.text.trim()).join(' '),
-        quotes: cited.map((c) => `“${c.quote}” (${headline(c.item)})`),
-        itemIds: [...new Set(cited.map((c) => c.item.id))],
+        quotes: cited.map((c) => `“${c.quote}” (${c.item ? headline(c.item) : 'the job posting'})`),
+        itemIds: [...new Set(cited.flatMap((c) => (c.item ? [c.item.id] : [])))],
         traces,
       })
     }
     problems = failures === null ? ['The draft has no sentences; write the answer, or set covered to false.'] : describeFailures(failures)
   }
-  return ok({ kind: 'rejected', reason: `Both drafts said what your confirmed career items do not: ${problems.join(' ')}`, traces })
+  return ok({ kind: 'rejected', reason: `Both drafts said what their sources do not: ${problems.join(' ')}`, traces })
 }

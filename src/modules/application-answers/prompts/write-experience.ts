@@ -1,9 +1,12 @@
 import type { TaskDefinition } from '@/modules/ai'
 
-export type ExperienceInput = {
+/** Input to a written-answer task (experience, motivation); the experience task ignores `posting`. */
+export type WrittenInput = {
   readonly question: { readonly label: string; readonly description: string | null }
   /** Confirmed career items, each exactly as the grounding check will read it. */
   readonly items: readonly { readonly ref: string; readonly text: string }[]
+  /** The job's posting, the only source for claims about the company (motivation drafts). */
+  readonly posting: { readonly ref: string; readonly text: string } | null
   /** What the previous attempt got wrong, named by the grounding check; empty on the first. */
   readonly problems: readonly string[]
 }
@@ -21,7 +24,7 @@ export type ExperienceInput = {
  *
  * Bump `version` on ANY change to this file: drafts are stored per version.
  */
-export const writeExperienceTask: TaskDefinition<ExperienceInput> = {
+export const writeExperienceTask: TaskDefinition<WrittenInput> = {
   name: 'application-answers.write-experience',
   version: 2,
   // Primary: the career items are personal data, kept on the provider trusted with them (decision 0015).

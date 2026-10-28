@@ -27,6 +27,8 @@ export const SavedAnswerValueSchema = z.discriminatedUnion('kind', [
 export const SaveAnswerSchema = z.object({
   label: z.string().trim().min(1).max(2000),
   answer: SavedAnswerValueSchema,
+  /** For this job only ("why this role?"); absent or null answers every job asking it. */
+  jobId: z.uuid().nullable().optional(),
 })
 export type SaveAnswer = z.infer<typeof SaveAnswerSchema>
 
@@ -36,6 +38,8 @@ export type AnswerOrigin = (typeof ANSWER_ORIGINS)[number]
 
 export type SavedAnswer = {
   readonly questionKey: string
+  /** Null: answers every job asking the question. */
+  readonly jobId: string | null
   readonly label: string
   readonly answer: SavedAnswerValue
   readonly origin: AnswerOrigin
@@ -54,6 +58,8 @@ export type DraftBasis = { readonly facts: readonly string[]; readonly itemIds: 
 export type AnswerDraft = {
   readonly id: string
   readonly questionKey: string
+  /** Set for a draft written for one job (motivation); accepting it answers that job only. */
+  readonly jobId: string | null
   readonly label: string
   readonly method: DraftMethod
   readonly status: DraftStatus

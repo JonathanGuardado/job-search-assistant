@@ -35,7 +35,9 @@ export const applicantDetails = pgTable(
 
 /**
  * The candidate's own answers, one per question as worded (readiness.questionKey), reused
- * for every form that asks it. May hold sensitive answers (demographics); never shared.
+ * for every form that asks it, plus at most one per job for answers that belong to one job
+ * ("why this role?"), which come first for that job. May hold sensitive answers
+ * (demographics); never shared.
  */
 export const savedAnswers = pgTable(
   'saved_answers',
@@ -45,6 +47,8 @@ export const savedAnswers = pgTable(
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
     questionKey: text('question_key').notNull(),
+    /** Set when the answer is for this job only; null answers every job asking the question. */
+    jobId: uuid('job_id').references(() => jobs.id, { onDelete: 'cascade' }),
     /** The question as first answered, for showing it back. */
     label: text('label').notNull(),
     answer: jsonb('answer').$type<SavedAnswerValue>().notNull(),
@@ -55,7 +59,7 @@ export const savedAnswers = pgTable(
     updatedAt: timestamptz('updated_at').notNull().defaultNow(),
   },
   (t) => [
-    unique('saved_answers_user_question_key').on(t.userId, t.questionKey),
+    unique('saved_answers_user_question_job_key').on(t.userId, t.questionKey, t.jobId).nullsNotDistinct(),
     check('saved_answers_origin_check', oneOf(t.origin, ANSWER_ORIGINS)),
     check('saved_answers_draft_check', sql`${t.draftId} is null or ${t.origin} = 'draft'`),
     tenantIsolation(),

@@ -231,9 +231,12 @@ Owned by `application-answers`. The candidate's own answers, one per question as
 `question_key` (case, spacing and trailing punctuation removed), `label` (as first
 answered), `answer` (jsonb: `{ kind: 'text', text }` or `{ kind: 'choice', labels }`),
 `origin` (`owner`, or `draft` when the candidate accepted a draft, edited or not; decision 0014),
-`draft_id` (the accepted draft, kept as its evidence), `created_at`, `updated_at`. Unique on
-`(user_id, question_key)`. May hold sensitive answers (demographics); RLS like every per-user
-table.
+`draft_id` (the accepted draft, kept as its evidence), `job_id` (set when the answer is for
+that job only, such as "why this role?"; null answers every job asking the question),
+`created_at`, `updated_at`. Unique on `(user_id, question_key, job_id)` with nulls not
+distinct: one general answer per question, plus one per job. For a job, its own answer comes
+before the general one; only general answers are offered for other questions. May hold
+sensitive answers (demographics); RLS like every per-user table.
 
 ### `question_match_runs`
 Owned by `application-answers`. One run of the "same question, different wording" task:
