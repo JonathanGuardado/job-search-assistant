@@ -11,7 +11,8 @@ import type { TaskDefinition } from '@/modules/ai'
 export const extractClaimsTask: TaskDefinition<{ readonly text: string }> = {
   name: 'eligibility.extract-claims',
   version: 3,
-  tier: 'extraction',
+  // Primary: the model that passed the eligibility eval. Run `pnpm eval:eligibility` after changing it (decision 0015).
+  role: 'primary',
   maxTokens: 2_000,
   system: `You read one job posting and report what it states about who can take the job: where they may live or work, work authorization, working hours, employment arrangement, relocation, and office attendance. You do not decide whether anyone qualifies. You report what the text says, with its exact words.
 

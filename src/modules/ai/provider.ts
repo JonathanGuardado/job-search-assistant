@@ -1,5 +1,6 @@
 import type { z } from 'zod'
 import type { Result } from '@/lib/result'
+import type { ProviderName } from './types.js'
 
 /**
  * The seam between callModel and a vendor API. Implementations: `deepseek.ts`, `gemini.ts`
@@ -33,6 +34,6 @@ export type ProviderResponse = {
 }
 
 export type Provider = {
-  readonly name: string
+  readonly name: ProviderName
   complete(request: ProviderRequest): Promise<Result<ProviderResponse>>
 }

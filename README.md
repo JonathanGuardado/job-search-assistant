@@ -8,12 +8,12 @@ up yet. See [milestones](docs/milestones.md).
 
 ## Local setup
 
-Requires Node 22+, pnpm, Docker, and a Gemini or DeepSeek API key for resume parsing.
+Requires Node 22+, pnpm, Docker, and a Gemini and a DeepSeek API key (decision 0015).
 
 ```bash
 pnpm install
 cp .env.example .env.local
-# Fill in AI_API_KEY in .env.local. The example selects Gemini.
+# Fill in AI_PRIMARY_API_KEY and AI_SECONDARY_API_KEY in .env.local, then run `pnpm ai:smoke`.
 docker compose -p job-seeker-assistant up -d
 pnpm db:bootstrap
 pnpm dev

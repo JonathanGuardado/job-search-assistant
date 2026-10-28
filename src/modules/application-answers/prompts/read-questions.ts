@@ -19,7 +19,8 @@ export type QuestionForReading = { readonly id: string; readonly label: string; 
 export const readQuestionsTask: TaskDefinition<{ readonly questions: readonly QuestionForReading[] }> = {
   name: 'application-answers.read-questions',
   version: 1,
-  tier: 'extraction',
+  // Secondary: public question wording only, and every draft is the candidate's to accept (decision 0015).
+  role: 'secondary',
   maxTokens: 6_000,
   system: `You read job application questions and say what fact each one asks for. You never answer them and never see the candidate.
 

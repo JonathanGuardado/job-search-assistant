@@ -114,15 +114,16 @@ const result = await callModel({
 
 The `ai` module is responsible for: provider selection per task, prompt versioning,
 schema validation, retry on validation failure, cost and latency logging, and storing the
-trace against the calling record. A task name maps to a model in config, so swapping
-models is a config change and is logged.
+trace against the calling record. Each task names a role in its prompt file, `primary` or
+`secondary`; `.env.local` says which provider, model and key fill each role
+(`AI_PRIMARY_PROVIDER`, `AI_PRIMARY_MODEL`, `AI_PRIMARY_API_KEY`, and the same for
+secondary). Code never names a provider or a model (decision 0015).
 
-The provider is selected with `AI_PROVIDER=deepseek|gemini`. Both adapters live
-inside `ai` and use native HTTP; product tasks keep the same `callModel` interface.
-`MODEL_EXTRACTION` and `MODEL_REASONING` select model IDs. Provider-specific usage
-is normalized before tracing, and `AI_MODEL_PRICING` can supply rates for new models
-without editing code. See [provider setup](ai-providers.md) for configuration and
-cost-estimate limitations.
+DeepSeek and Gemini adapters both live inside `ai` and use native HTTP; either can fill
+either role, and both roles run side by side. An unset role stops only its own tasks.
+Provider-specific usage is normalized before tracing, and `AI_MODEL_PRICING` can supply
+rates for new models without editing code. See [provider setup](ai-providers.md) for
+configuration and cost-estimate limitations.
 
 ## What is deliberately absent
 

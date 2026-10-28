@@ -99,6 +99,25 @@ any-of form, so "German or French" reads as both required.
 than invent gaps; the next prompt change waits for feedback from real cards (decision 0010,
 M7a).
 
+## DeepSeek Flash (2026-10-27, prompt v4): adopted
+
+All 45 postings, run on DeepSeek Flash before moving the task to it (decision 0015).
+
+| Metric | Value | Target |
+| --- | --- | --- |
+| Quote validation rate | **100%** (593/593) | ≥ 98% |
+| Required skills found | **97.7%** (129/132) | ≥ 85% |
+| …read as required | 98.4% (127/129) | report |
+| Preferred skills found | 95.9% (71/74) | report |
+| Extracted skills a label allows | 96.4% (402/417) | report |
+| Overall years exactly right | 97.8% (44/45) | report |
+| Languages found | 100% (23/23) | report |
+
+It finds more than Gemini did, and extracts a little more that labels do not list
+(generic areas such as "event-driven architectures"). One posting needed the validation
+retry. Misses include macOS / Apple and ASC 606 / IFRS 15 as required skills, and two
+required groups (C / C++ / Rust, Crossplane) read as preferred.
+
 ## Caveats
 
 - **The holdout is now seen.** Any prompt v5 aimed at its misses would need another fresh,

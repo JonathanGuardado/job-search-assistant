@@ -4,8 +4,9 @@
  * call callModel, and store the returned traces against the record they produce.
  */
 
-export { callModel } from './service.js'
+export { callModel, modelNameOf } from './service.js'
 export { ModelTraceSchema } from './types.js'
 
 export type { CallModel, CallModelArgs, CallModelSuccess } from './service.js'
-export type { AiError, AiErrorCode, ModelTier, ModelTrace, TaskDefinition } from './types.js'
+export { MODEL_ROLES } from './types.js'
+export type { AiError, AiErrorCode, ModelRole, ModelTrace, TaskDefinition } from './types.js'

@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto'
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { z } from 'zod'
+import { modelNameOf } from '@/modules/ai'
 import {
   assessEligibility,
   EligibilityClaimsSchema,
@@ -19,8 +20,8 @@ import { CandidateProfileInputSchema } from '@/modules/profiles'
 /*
  * `pnpm eval:eligibility`: the engine's measurement (docs/eligibility-spec.md, Evaluation).
  * Runs every labeled (posting, profile) pair through the real pipeline and the real model.
- * Extraction output is cached per prompt version in evals/.cache, so a rule-only change
- * re-runs for free; a prompt change (new version) re-extracts.
+ * Extraction output is cached per prompt version and model in evals/.cache, so a rule-only
+ * change re-runs for free; a prompt change (new version) or another model re-extracts.
  */
 
 const VERDICTS = ['eligible', 'not_eligible', 'needs_review'] as const
@@ -90,7 +91,10 @@ function jobOf(c: Case): EligibilityJob {
   }
 }
 
-const keyOf = (text: string) => `${extractClaimsTask.name}@${extractClaimsTask.version}:${createHash('sha256').update(text).digest('hex')}`
+// Per model too: changing the role's model in .env.local re-extracts, and so measures the new model.
+const extractionModel = modelNameOf(extractClaimsTask.role) ?? 'unconfigured'
+const currentPrefix = `${extractClaimsTask.name}@${extractClaimsTask.version}:${extractionModel}:`
+const keyOf = (text: string) => `${currentPrefix}${createHash('sha256').update(text).digest('hex')}`
 
 let modelCalls = 0
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
@@ -190,7 +194,7 @@ const passes = {
 const pct = (n: number) => `${(n * 100).toFixed(1)}%`
 const lines: string[] = []
 const say = (line = '') => lines.push(line)
-const costMicroUsd = Object.values(cache).reduce((s, e) => s + e.costMicroUsd, 0)
+const costMicroUsd = Object.entries(cache).filter(([key]) => key.startsWith(currentPrefix)).reduce((s, [, e]) => s + e.costMicroUsd, 0)
 
 say(`Eligibility eval (${split ?? 'all splits'}): ${cases.length} postings, ${outcomes.length} labeled verdicts, prompt ${extractClaimsTask.name}@${extractClaimsTask.version}`)
 say(`Model calls this run: ${modelCalls} (cached extractions cost $${(costMicroUsd / 1e6).toFixed(4)} in total)`)

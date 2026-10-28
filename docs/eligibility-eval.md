@@ -138,6 +138,41 @@ worldwide), rejected where it does not (EMEA, APAC). The extractions cost $0.035
   Singapore team says "based in Singapore" without saying the role is onsite (two
   labels). These are cautious misses.
 
+## DeepSeek Flash (2026-10-27, prompt v3, engine v2): rejected
+
+Run when the Gemini credit ran out, to see whether eligibility could move to the cheaper
+model. It cannot (decision 0015).
+
+| Split | Precision on not_eligible | Recall | needs_review | Quotes |
+| --- | --- | --- | --- | --- |
+| Tuning | 96.1% (74/77) | 92.5% | 10.3% | 100% |
+| Holdout | **93.2%** (55/59), fails ≥ 95% | 88.7% | 14.1% | 100% |
+| Holdout 2 | 100% (31/31) | 88.6% | 15.4% | 100% |
+
+Seven false rejections, all for the owner's profile, and one pattern: a region becomes a
+few example countries. "Canada, Central America, South America" was read as CA, MX, BR
+(three Toptal labels); "AMER or EMEA time zones" and "European, Middle East, African and
+American time zones" as North America and EMEA (two Canonical labels); a France travel
+requirement and a Canadian listing with "we hire wherever they are" as single-country
+scopes. Extraction cost about $0.0006 per posting, half of Gemini's.
+
+Gemini 3.5 Flash Lite re-run the same day on all splits together, as the baseline:
+
+| All 277 labels | Gemini 3.5 Flash Lite | DeepSeek Flash |
+| --- | --- | --- |
+| Precision on not_eligible | **99.4%** (157/158) | 95.8% (160/167) |
+| False rejections | 1 | 7 |
+| Recall on not_eligible | 88.7% | 90.4% |
+| needs_review share | 13.4% | 12.6% |
+| Quote validation rate | 99.4% | 100% |
+| Claims stated without a quote (reset to unspecified) | 173 | 7 |
+| Cost, 167 extractions | $0.20 | $0.11 |
+
+Gemini's one false rejection is Canonical's self-contradicting DevRel posting, which
+DeepSeek also misses. Its many unquoted claims are discarded by design, which turns some
+plain listings ("London, United Kingdom") into needs_review rather than a rejection: safe,
+but a candidate for a later prompt change.
+
 ## Caveats before the phase gate
 
 

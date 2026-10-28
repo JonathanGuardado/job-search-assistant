@@ -5,18 +5,17 @@ const config = {
   DATABASE_URL: 'postgres://localhost/test',
   DATABASE_ADMIN_URL: 'postgres://localhost/test',
   REDIS_URL: 'redis://localhost',
-  MODEL_EXTRACTION: 'deepseek-flash',
-  MODEL_REASONING: 'deepseek-v4-pro',
 }
 
 describe('AI environment configuration', () => {
   it('can boot without provider credentials', () => {
-    expect(EnvSchema.parse(config)).toMatchObject({ AI_PROVIDER: 'deepseek', AI_MODEL_PRICING: {} })
-    expect(EnvSchema.parse({ ...config, AI_PROVIDER: 'gemini', AI_API_KEY: '' }).AI_API_KEY).toBeUndefined()
+    expect(EnvSchema.parse(config)).toMatchObject({ AI_MODEL_PRICING: {} })
+    const parsed = EnvSchema.parse({ ...config, AI_PRIMARY_PROVIDER: '', AI_PRIMARY_API_KEY: '', AI_SECONDARY_PROVIDER: 'deepseek', AI_SECONDARY_API_KEY: 'key' })
+    expect(parsed).toMatchObject({ AI_PRIMARY_PROVIDER: undefined, AI_PRIMARY_API_KEY: undefined, AI_SECONDARY_PROVIDER: 'deepseek', AI_SECONDARY_API_KEY: 'key' })
   })
 
   it('rejects an unsupported provider', () => {
-    expect(EnvSchema.safeParse({ ...config, AI_PROVIDER: 'anthropic' }).success).toBe(false)
+    expect(EnvSchema.safeParse({ ...config, AI_PRIMARY_PROVIDER: 'anthropic' }).success).toBe(false)
   })
 
   it('parses new model rates and rejects malformed pricing', () => {

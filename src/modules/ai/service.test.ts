@@ -10,7 +10,7 @@ const CountrySchema = z.object({ country: z.string().length(2) })
 const task: TaskDefinition<{ text: string }> = {
   name: 'test.country',
   version: 3,
-  tier: 'extraction',
+  role: 'secondary',
   system: 'Extract the country.',
   render: ({ text }) => `Posting: ${text}`,
   maxTokens: 256,
@@ -42,8 +42,7 @@ function scriptedProvider(...script: Result<ProviderResponse>[]) {
 
 function caller(provider: Provider, traces: ModelTrace[] = []) {
   return createModelCaller({
-    provider,
-    models: { extraction: 'deepseek-flash', reasoning: 'deepseek-v4-pro' },
+    model: () => ({ provider, id: 'deepseek-flash' }),
     onTrace: (trace) => traces.push(trace),
   })
 }
@@ -127,10 +126,7 @@ describe('callModel', () => {
 
   it('refuses to call a model it cannot price', async () => {
     const { provider, requests } = scriptedProvider()
-    const call = createModelCaller({
-      provider,
-      models: { extraction: 'some-unpriced-model', reasoning: 'deepseek-v4-pro' },
-    })
+    const call = createModelCaller({ model: () => ({ provider, id: 'some-unpriced-model' }) })
     await expect(call({ task, schema: CountrySchema, input: { text: 'x' } })).rejects.toThrow(
       /no price for model some-unpriced-model/,
     )
@@ -140,8 +136,7 @@ describe('callModel', () => {
   it('runs a future model using configured rates and records its provider', async () => {
     const { provider, requests } = scriptedProvider(reply('{"country":"MX"}'))
     const call = createModelCaller({
-      provider: { ...provider, name: 'gemini' },
-      models: { extraction: 'future-model', reasoning: 'another-model' },
+      model: () => ({ provider: { ...provider, name: 'gemini' }, id: 'future-model' }),
       prices: { 'gemini/future-model': { input: 2, output: 8, cacheRead: 0.2, cacheWrite: 0 } },
       onTrace: () => undefined,
     })
@@ -150,5 +145,21 @@ describe('callModel', () => {
     expect(result.ok && result.value.traces[0]).toMatchObject({
       provider: 'gemini', model: 'future-model', costMicroUsd: 2_800,
     })
+  })
+
+  it('runs each task on its role\'s model, and an unconfigured role stops only its own tasks', async () => {
+    const secondary = scriptedProvider(reply('{"country":"MX"}'))
+    const call = createModelCaller({
+      model: (role) => {
+        if (role === 'primary') throw new Error('AI_PRIMARY_API_KEY not set for the primary model')
+        return { provider: secondary.provider, id: 'deepseek-flash' }
+      },
+      onTrace: () => undefined,
+    })
+    const onPrimary = { ...task, role: 'primary' as const }
+
+    expect(await call({ task, schema: CountrySchema, input: { text: 'x' } })).toMatchObject({ ok: true })
+    await expect(call({ task: onPrimary, schema: CountrySchema, input: { text: 'x' } })).rejects.toThrow('AI_PRIMARY_API_KEY not set')
+    expect(secondary.requests).toHaveLength(1)
   })
 })

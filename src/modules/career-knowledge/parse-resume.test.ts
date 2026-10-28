@@ -129,15 +129,15 @@ describe('runResumeParse', () => {
   test('an unexpected error marks the run failed before surfacing, so it never looks in progress', async ({ db }) => {
     const payload = await uploaded(db)
     const extract: ExtractCareerItems = async () => {
-      throw new Error('AI_API_KEY is not set')
+      throw new Error('AI_PRIMARY_API_KEY not set for the primary model')
     }
 
-    await expect(runResumeParse(db, payload, extract)).rejects.toThrow('AI_API_KEY is not set')
+    await expect(runResumeParse(db, payload, extract)).rejects.toThrow('AI_PRIMARY_API_KEY not set for the primary model')
     const report = await withTenant(db, payload.userId, (scope) => getParseReport(scope, payload.resumeId))
     expect(report.parse).toMatchObject({
       status: 'failed',
       errorCode: 'internal_error',
-      errorMessage: 'AI_API_KEY is not set',
+      errorMessage: 'AI_PRIMARY_API_KEY not set for the primary model',
     })
   })
 

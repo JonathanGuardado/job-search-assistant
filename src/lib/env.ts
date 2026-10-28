@@ -13,6 +13,8 @@ const optionalSecret = z
   .transform((value) => (value === '' ? undefined : value))
   .optional()
 
+const provider = z.enum(['deepseek', 'gemini', '']).optional().transform((value) => value || undefined)
+
 export const ModelPriceSchema = z.object({
   input: z.number().nonnegative(),
   output: z.number().nonnegative(),
@@ -34,11 +36,18 @@ export const EnvSchema = z.object({
   DATABASE_ADMIN_URL: z.url(),
   DATABASE_POOL_MAX: z.coerce.number().int().positive().default(10),
   REDIS_URL: z.url(),
-  AI_PROVIDER: z.enum(['deepseek', 'gemini']).default('deepseek'),
-  AI_API_KEY: optionalSecret,
+  /**
+   * Two configured models, by role (decision 0015). Code says which role each task uses;
+   * these say which provider and model fill the role. Unset is fine until a task in the
+   * role is called, so the app boots without them.
+   */
+  AI_PRIMARY_PROVIDER: provider,
+  AI_PRIMARY_MODEL: optionalSecret,
+  AI_PRIMARY_API_KEY: optionalSecret,
+  AI_SECONDARY_PROVIDER: provider,
+  AI_SECONDARY_MODEL: optionalSecret,
+  AI_SECONDARY_API_KEY: optionalSecret,
   AI_MODEL_PRICING: pricingJson,
-  MODEL_EXTRACTION: z.string().min(1),
-  MODEL_REASONING: z.string().min(1),
   /** Resume files (decision 0006). Relative paths resolve from the process's working directory. */
   STORAGE_DIR: z.string().min(1).default('.data/storage'),
 })

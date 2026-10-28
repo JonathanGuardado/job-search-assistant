@@ -11,7 +11,8 @@ import type { TaskDefinition } from '@/modules/ai'
 export const extractRequirementsTask: TaskDefinition<{ readonly text: string }> = {
   name: 'matching.extract-requirements',
   version: 4,
-  tier: 'extraction',
+  // Secondary: runs on every posting. Run `pnpm eval:matching` after changing it (decision 0015).
+  role: 'secondary',
   maxTokens: 3_000,
   system: `You read one job posting and list what it asks of a candidate: skills, years of experience, spoken languages, and other qualifications. You do not judge anyone. You report what the text says, with its exact words.
 

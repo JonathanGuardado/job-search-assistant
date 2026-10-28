@@ -17,7 +17,8 @@ export type QuestionForMatching = { readonly id: string; readonly label: string;
 export const matchQuestionsTask: TaskDefinition<{ readonly unanswered: readonly QuestionForMatching[]; readonly answered: readonly QuestionForMatching[] }> = {
   name: 'application-answers.match-questions',
   version: 1,
-  tier: 'extraction',
+  // Secondary: question wording only, never answers, and every pair is the candidate's to accept (decision 0015).
+  role: 'secondary',
   maxTokens: 4_000,
   system: `You compare job application questions. Some are unanswered; the others the candidate already answered. For each unanswered question, say which answered question asks for exactly the same information, if any. You never see or write the answers.
 

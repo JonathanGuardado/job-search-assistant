@@ -10,7 +10,8 @@ import type { TaskDefinition } from '@/modules/ai'
 export const extractResumeTask: TaskDefinition<{ readonly text: string }> = {
   name: 'career-knowledge.extract-resume',
   version: 1,
-  tier: 'extraction',
+  // Primary: the resume is personal data, so it goes to the provider trusted with it (decision 0015).
+  role: 'primary',
   maxTokens: 8_000,
   system: `You extract structured entries from a candidate's resume. You copy; you do not interpret.
 

@@ -2,17 +2,17 @@ import { z } from 'zod'
 import { getEnv } from '@/lib/env'
 import { logEvent } from '@/lib/log'
 import { err, ok, type Result } from '@/lib/result'
-import { configuredProvider } from './configured-provider.js'
+import { configuredModel, configuredModelName, type ConfiguredModel } from './configured-provider.js'
 import { costMicroUsd, priceOf, type Price } from './pricing.js'
-import type { Provider, ProviderMessage } from './provider.js'
-import type { AiError, ModelTier, ModelTrace, TaskDefinition } from './types.js'
+import type { ProviderMessage } from './provider.js'
+import type { AiError, ModelRole, ModelTrace, TaskDefinition } from './types.js'
 
 // The first attempt plus one retry with the validation error appended (docs/conventions.md).
 const MAX_ATTEMPTS = 2
 
 export type ModelCallerDeps = {
-  readonly provider: Provider
-  readonly models: Readonly<Record<ModelTier, string>>
+  /** The model a role runs on. Throws when the role is not configured. */
+  readonly model: (role: ModelRole) => ConfiguredModel
   readonly prices?: Readonly<Record<string, Price>>
   readonly onTrace?: (trace: ModelTrace) => void
 }
@@ -53,10 +53,10 @@ export function createModelCaller(deps: ModelCallerDeps) {
     schema,
     input,
   }: CallModelArgs<I, S>): Promise<Result<CallModelSuccess<z.output<S>>, AiError>> {
-    const model = deps.models[task.tier]
-    const price = priceOf(deps.provider.name, model, deps.prices)
+    const { provider, id: model } = deps.model(task.role)
+    const price = priceOf(provider.name, model, deps.prices)
     // A configuration error, not a domain failure: fail before spending anything.
-    if (!price) throw new Error(`no price for model ${model} on ${deps.provider.name}; configure AI_MODEL_PRICING`)
+    if (!price) throw new Error(`no price for model ${model} on ${provider.name}; configure AI_MODEL_PRICING`)
 
     const messages: ProviderMessage[] = [{ role: 'user', content: task.render(input) }]
     const traces: ModelTrace[] = []
@@ -64,7 +64,7 @@ export function createModelCaller(deps: ModelCallerDeps) {
 
     for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
       const started = performance.now()
-      const response = await deps.provider.complete({
+      const response = await provider.complete({
         model,
         system: task.system,
         messages,
@@ -81,7 +81,7 @@ export function createModelCaller(deps: ModelCallerDeps) {
       const trace: ModelTrace = {
         task: task.name,
         taskVersion: task.version,
-        provider: deps.provider.name,
+        provider: provider.name,
         model,
         attempt,
         stopReason: rawStopReason,
@@ -122,11 +122,18 @@ let defaultCaller: CallModel | undefined
  */
 export const callModel: CallModel = (args) => {
   if (!defaultCaller) {
+    const models = new Map<ModelRole, ConfiguredModel>()
     defaultCaller = createModelCaller({
-      provider: configuredProvider(getEnv()),
-      models: { extraction: getEnv().MODEL_EXTRACTION, reasoning: getEnv().MODEL_REASONING },
+      model: (role) => {
+        const model = models.get(role) ?? configuredModel(getEnv(), role)
+        models.set(role, model)
+        return model
+      },
       prices: getEnv().AI_MODEL_PRICING,
     })
   }
   return defaultCaller(args)
 }
+
+/** `provider/model` a role is configured with, for evals that store results per model. */
+export const modelNameOf = (role: ModelRole): string | null => configuredModelName(getEnv(), role)

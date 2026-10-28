@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto'
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { z } from 'zod'
+import { modelNameOf } from '@/modules/ai'
 import {
   extractRequirementsTask,
   extractRequirementsWithModel,
@@ -51,14 +52,17 @@ const labels = readFileSync('evals/matching-labels.jsonl', 'utf8').trim().split(
   .filter((label) => split === null || label.split === split)
 const postings = new Map(readFileSync('evals/dataset.jsonl', 'utf8').trim().split('\n')
   .map((line) => PostingSchema.parse(JSON.parse(line))).map((c) => [c.jobId, c.posting]))
-// Entries for every prompt version share the file; only the current version's are read, since
-// the output shape can change between versions.
+// Entries for every prompt version and model share the file; only the current version's on the
+// configured model are read, since the output shape can change between versions. Changing the
+// role's model in .env.local re-extracts, and so measures the new model.
+const extractionModel = modelNameOf(extractRequirementsTask.role) ?? 'unconfigured'
+const currentPrefix = `${extractRequirementsTask.name}@${extractRequirementsTask.version}:${extractionModel}:`
 const cache: Record<string, unknown> = existsSync(CACHE_PATH) ? z.record(z.string(), z.unknown()).parse(JSON.parse(readFileSync(CACHE_PATH, 'utf8'))) : {}
 const currentEntries = (): CacheEntry[] => Object.entries(cache)
-  .filter(([key]) => key.startsWith(`${extractRequirementsTask.name}@${extractRequirementsTask.version}:`))
+  .filter(([key]) => key.startsWith(currentPrefix))
   .map(([, entry]) => CacheEntrySchema.parse(entry))
 
-const keyOf = (text: string) => `${extractRequirementsTask.name}@${extractRequirementsTask.version}:${createHash('sha256').update(text).digest('hex')}`
+const keyOf = (text: string) => `${currentPrefix}${createHash('sha256').update(text).digest('hex')}`
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 const RATE_LIMIT_WAITS_MS = [5_000, 10_000, 20_000, 40_000, 60_000]
 let modelCalls = 0

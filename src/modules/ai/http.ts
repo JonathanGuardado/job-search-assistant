@@ -33,6 +33,8 @@ export async function postJson<S extends z.ZodType>(
       await response.body?.cancel()
       const retryable = [408, 409, 429].includes(response.status) || response.status >= 500
       if (retryable && attempt < 2) continue
+      // Out of credit: still upstream_failed, so callers write nothing and the call can succeed once credit is added.
+      if (response.status === 402) return err(domainError('upstream_failed', `${request.provider}: out of credit (HTTP 402); add credit with the provider`))
       return err(domainError(response.status === 429 ? 'rate_limited' : 'upstream_failed', `${request.provider}: HTTP ${response.status}`))
     }
     try {

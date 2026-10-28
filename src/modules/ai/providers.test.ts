@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { z } from 'zod'
 import { deepseekProvider } from './deepseek.js'
 import { geminiProvider } from './gemini.js'
-import { configuredProvider } from './configured-provider.js'
+import { configuredModel, configuredModelName } from './configured-provider.js'
 import type { ProviderRequest } from './provider.js'
 
 const request: ProviderRequest = {
@@ -161,6 +161,13 @@ describe('provider HTTP failures', () => {
     expect(fetcher).toHaveBeenCalledTimes(1)
   })
 
+  it('says plainly when the account is out of credit, without retrying', async () => {
+    const fetcher = vi.fn<typeof fetch>().mockResolvedValue(new Response('{}', { status: 402 }))
+    const result = await geminiProvider('test-key', fetcher).complete(request)
+    expect(result).toMatchObject({ ok: false, error: { code: 'upstream_failed', message: expect.stringContaining('gemini: out of credit (HTTP 402)') } })
+    expect(fetcher).toHaveBeenCalledTimes(1)
+  })
+
   it('returns a typed failure for a non-JSON response', async () => {
     const fetcher = vi.fn<typeof fetch>().mockResolvedValue(new Response('<html>proxy failure</html>'))
     const result = await deepseekProvider('test-key', fetcher).complete(request)
@@ -169,10 +176,28 @@ describe('provider HTTP failures', () => {
 })
 
 describe('provider selection', () => {
-  it('uses the same credential setting for either provider', () => {
-    expect(configuredProvider({ AI_PROVIDER: 'deepseek', AI_API_KEY: 'test-key' }).name).toBe('deepseek')
-    expect(configuredProvider({ AI_PROVIDER: 'gemini', AI_API_KEY: 'test-key' }).name).toBe('gemini')
-    expect(() => configuredProvider({ AI_PROVIDER: 'deepseek' })).toThrow('AI_API_KEY is not set')
-    expect(() => configuredProvider({ AI_PROVIDER: 'gemini' })).toThrow('AI_API_KEY is not set')
+  const unset = {
+    AI_PRIMARY_PROVIDER: undefined, AI_PRIMARY_MODEL: undefined, AI_PRIMARY_API_KEY: undefined,
+    AI_SECONDARY_PROVIDER: undefined, AI_SECONDARY_MODEL: undefined, AI_SECONDARY_API_KEY: undefined,
+  }
+
+  it('takes each role\'s provider, model and key from the configuration, either provider in either role', () => {
+    const config = {
+      ...unset,
+      AI_PRIMARY_PROVIDER: 'deepseek' as const, AI_PRIMARY_MODEL: 'deepseek-flash', AI_PRIMARY_API_KEY: 'k1',
+      AI_SECONDARY_PROVIDER: 'gemini' as const, AI_SECONDARY_MODEL: 'gemini-3.5-flash-lite', AI_SECONDARY_API_KEY: 'k2',
+    }
+    expect(configuredModel(config, 'primary')).toMatchObject({ provider: { name: 'deepseek' }, id: 'deepseek-flash' })
+    expect(configuredModel(config, 'secondary')).toMatchObject({ provider: { name: 'gemini' }, id: 'gemini-3.5-flash-lite' })
+    expect(configuredModelName(config, 'secondary')).toBe('gemini/gemini-3.5-flash-lite')
+  })
+
+  it('needs only the settings of the role asked for, and names what is missing', () => {
+    const onlyPrimary = { ...unset, AI_PRIMARY_PROVIDER: 'gemini' as const, AI_PRIMARY_MODEL: 'gemini-3.5-flash-lite', AI_PRIMARY_API_KEY: 'k' }
+    expect(configuredModel(onlyPrimary, 'primary').provider.name).toBe('gemini')
+    expect(() => configuredModel(onlyPrimary, 'secondary'))
+      .toThrow('AI_SECONDARY_PROVIDER, AI_SECONDARY_MODEL, AI_SECONDARY_API_KEY not set for the secondary model')
+    expect(() => configuredModel({ ...onlyPrimary, AI_PRIMARY_API_KEY: undefined }, 'primary')).toThrow('AI_PRIMARY_API_KEY not set')
+    expect(configuredModelName(onlyPrimary, 'secondary')).toBeNull()
   })
 })

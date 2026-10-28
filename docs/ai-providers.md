@@ -1,52 +1,59 @@
 # AI provider setup
 
-The application supports DeepSeek and the Gemini Developer API. Neither the
-Anthropic API nor its SDK is used. Provider adapters implement the existing
-`Provider` interface inside `src/modules/ai`; product code uses `callModel`.
-No additional npm dependency is needed.
+The application uses DeepSeek and the Gemini Developer API side by side. Neither the
+Anthropic API nor its SDK is used. Provider adapters implement the `Provider` interface
+inside `src/modules/ai`; product code uses `callModel`. No additional npm dependency is
+needed.
+
+## Configuration
+
+Tasks run on one of two configured models, by role. `.env.local` says which provider,
+model and key fill each role; code only says which role each task uses (decision 0015).
+Either provider can fill either role.
+
+```dotenv
+AI_PRIMARY_PROVIDER=gemini            # gemini | deepseek
+AI_PRIMARY_MODEL=gemini-3.5-flash-lite
+AI_PRIMARY_API_KEY=your-key
+AI_SECONDARY_PROVIDER=deepseek
+AI_SECONDARY_MODEL=deepseek-flash
+AI_SECONDARY_API_KEY=your-key
+```
+
+Check both with `pnpm ai:smoke` (one cheap call per role). A role's settings are required
+only when one of its tasks is called, so the app boots without them, and an unset role
+stops only its own tasks. Restart the web and worker processes after a change.
+
+| Task | Role | Eval to run after changing the role's model |
+| --- | --- | --- |
+| `eligibility.extract-claims` | primary | `pnpm eval:eligibility` |
+| `career-knowledge.extract-resume` | primary | none (personal data: keep it on a provider trusted with it) |
+| `matching.extract-requirements` | secondary | `pnpm eval:matching` |
+| `application-answers.read-questions` | secondary | none (every draft is accepted by the owner) |
+| `application-answers.match-questions` | secondary | none (every pair is accepted by the owner) |
+
+**Changing a model is a settings change, so the eval is on you.** The evals read the same
+settings and store their extractions per model, so after a change they measure the new
+model. As of 2026-10-27, DeepSeek Flash fails the eligibility eval (it hides jobs the
+candidate can take) and passes the matching eval; see the eval reports.
+
+There is no fallback: when a provider fails or runs out of credit (reported as "out of
+credit (HTTP 402)"), its tasks wait and retry rather than run on the other role.
 
 ## DeepSeek
 
-Set these values in `.env.local`:
-
-```dotenv
-AI_PROVIDER=deepseek
-AI_API_KEY=your-key
-MODEL_EXTRACTION=deepseek-flash
-MODEL_REASONING=deepseek-v4-pro
-```
-
-As checked on 2026-09-25, `deepseek-flash` serves DeepSeek V4.1 Flash and
-`deepseek-v4-pro` serves V4 Pro. The adapter uses `/chat/completions`, JSON output
-mode, and a schema instruction in the system message. JSON mode does not guarantee
-schema conformity; local Zod validation is always applied.
-
-Thinking is disabled for these bounded structured-output calls, including the
-reasoning tier. The tier currently selects a model, not a thinking mode. This
-keeps hidden reasoning from consuming the task's output budget. Adding thinking
-controls later requires appropriate task budgets and evaluation.
+As checked on 2026-09-25, `deepseek-flash` serves DeepSeek V4.1 Flash. It is an alias that
+DeepSeek moves to newer models, and traces record the alias, not the model behind it. The
+adapter uses `/chat/completions`, JSON output mode, and a schema instruction in the system
+message. JSON mode does not guarantee schema conformity; local Zod validation is always
+applied. Thinking is disabled for these bounded structured-output calls, which keeps hidden
+reasoning from consuming the task's output budget.
 
 ## Gemini
 
-```dotenv
-AI_PROVIDER=gemini
-AI_API_KEY=your-key
-MODEL_EXTRACTION=gemini-3.5-flash-lite
-MODEL_REASONING=gemini-3.5-flash-lite
-```
-
-This is a low-cost text-model example, not an automatic latest-model selector.
-The adapter uses `generateContent` with a JSON response schema. Other compatible
-Gemini text model IDs can be selected by setting the model variables and adding
-their rates below. This adapter does not configure Vertex AI authentication.
-
-`AI_API_KEY` holds the credential for the provider selected by `AI_PROVIDER`.
-When switching providers, replace its value with that provider's key and update
-the model IDs. The key is required only on the first model call. Restart the web
-and worker processes after changing configuration.
-
-For existing installations, rename the selected provider's key variable in
-`.env.local` to `AI_API_KEY`.
+The adapter uses `generateContent` with a JSON response schema. It does not configure
+Vertex AI authentication. Rates below are paid-tier rates; on the free tier, Google may
+use the content, which is why resume reading stays on a paid key.
 
 ## New models and cost estimates
 
@@ -91,9 +98,8 @@ bodies are not logged because they may echo private input. Refusals and truncate
 outputs are surfaced without a validation retry. Invalid model JSON/schema output
 gets one corrective retry through `callModel`.
 
-`pnpm test` uses stubbed HTTP responses and makes no paid model calls. Once the
-selected API key is configured, run `pnpm ai:smoke` for one real structured-output
-request using `MODEL_EXTRACTION`. It incurs provider usage. This proves provider
+`pnpm test` uses stubbed HTTP responses and makes no paid model calls. Once both roles
+are configured, run `pnpm ai:smoke` for one real structured-output request per role. It incurs provider usage. This proves provider
 wiring, not eligibility quality; that needs the separate eligibility eval suite.
 
 ## Official references

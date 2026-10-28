@@ -1,7 +1,14 @@
 import { z } from 'zod'
 
-export const MODEL_TIERS = ['extraction', 'reasoning'] as const
-export type ModelTier = (typeof MODEL_TIERS)[number]
+export const PROVIDER_NAMES = ['deepseek', 'gemini'] as const
+export type ProviderName = (typeof PROVIDER_NAMES)[number]
+
+/**
+ * Which configured model a task runs on. Each role's provider, model and key are set in
+ * `.env.local` (decision 0015); code never names a provider or a model.
+ */
+export const MODEL_ROLES = ['primary', 'secondary'] as const
+export type ModelRole = (typeof MODEL_ROLES)[number]
 
 /**
  * A named, versioned model task. Defined in the calling module's
@@ -12,7 +19,8 @@ export type TaskDefinition<I> = {
   /** `<module>.<task>`, e.g. `eligibility.extract`. */
   readonly name: string
   readonly version: number
-  readonly tier: ModelTier
+  /** The configured model this task runs on (decision 0015). */
+  readonly role: ModelRole
   readonly system: string
   readonly render: (input: I) => string
   readonly maxTokens: number
