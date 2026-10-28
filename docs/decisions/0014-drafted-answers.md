@@ -65,7 +65,8 @@ per sentence, the owner's review, and drafts being off for unattended sending by
 
 **When drafting runs.** In the background, most widely blocking question first, without the
 owner asking. Profile-fact drafts cost only the shared reading. Written drafts stop for the
-day at a spending cap (default US$0.20 per candidate per day); a "Draft now" action skips
+day at a spending cap (US$0.50 per candidate per UTC day; the owner raised it from US$0.20 on
+2026-10-27); a "Draft now" action skips
 the queue for one question. Readings are not counted against the cap: they are bounded by
 the number of distinct questions and shared by every candidate.
 
@@ -78,6 +79,32 @@ the owner switches that on.
 a posting that requires the candidate's own words, arrives with its whole form already
 filled from saved answers and drafts. The owner sees exactly what will be sent and presses
 Send; editing is possible, never required.
+
+## Amendments (2026-10-27, building experience drafts)
+
+**Own-words forms get no written drafts.** Canonical's form says "I agree to use only my own
+words… the use of AI or other generated content will disqualify my application." A model-written
+answer, even one the owner edits, would make that attestation untrue. No experience or motivation
+draft is written for a question any job asks on a form with such a statement (`asksOwnWords`);
+the question says so and the owner writes it. Profile-fact drafts are unaffected: they fill in
+the owner's own facts. On the owner's data this covers 109 of about 120 experience questions.
+
+**Placeholders are not facts.** Career items confirmed with blanks ("led a team of [N]
+engineers", "by [X%]") produced drafts that copied them. The grounding check rejects a sentence
+containing a bracketed placeholder, and the prompt tells the model to leave such details out.
+
+**More never-drafted questions, found by code:** contact preferences ("How should we
+communicate with you?"), employment agreements and non-competes, and the owner's own equipment
+("Are you comfortable using your own computer?"). The first model reading had called these
+experience questions.
+
+**Time zone is a profile fact.** Forms ask it as a region ("American Time Zones", "EMEA",
+"APAC"); code answers from the profile's country with eligibility's region table, or writes the
+IANA zone and its offset in a text field.
+
+Experience drafts run on the primary model (decision 0015): they send confirmed career items.
+A choice question read as experience ("Do you have experience with…? Yes/No") gets no draft:
+choosing is the owner's act.
 
 ## Consequences
 

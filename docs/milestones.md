@@ -8,8 +8,10 @@ while 1.8 and 1.9 wait on the owner's checks below. 2.1 is built and merged: sav
 readiness and "same question" suggestions on `/answers` and each job page. 2.2's first part
 is built: the assistant works only on jobs whose role fits, the profile records citizenship
 and English level, and profile-fact questions are drafted in code from a model's reading of
-what each asks. Next: experience and motivation drafts with the grounding check, then the
-answers page shows drafts (Codex).
+what each asks. Its second part is built: experience answers are written from confirmed career
+items and pass the grounding check before anyone sees them, under a US$0.50 daily cap, and no
+answer is written for a form that asks for the candidate's own words (decision 0014,
+amendments). Next: motivation drafts, then the answers page shows drafts (Codex).
 
 **1.8 jobs UI.** 1.1 through 1.7 are closed. The jobs view is built
 (`/jobs`, brief `prompts/codex/m1.8-jobs-ui.md`, implemented by Codex and reviewed): five

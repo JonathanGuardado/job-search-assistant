@@ -2,8 +2,9 @@
  * Public surface of the application-answers module: the candidate's details and saved
  * answers, whether each job's application form could be filled from them, suggestions
  * that reuse an answer for a differently worded question (decision 0013), and drafts the
- * candidate accepts or ignores (decision 0014). Models only pair questions and read what
- * they ask; code drafts from the record, and nothing drafted is used until accepted.
+ * candidate accepts or ignores (decision 0014). Models pair questions, read what they ask, and
+ * write experience answers that code checks against confirmed career items; code drafts the
+ * profile facts, and nothing drafted is used until accepted.
  * Other modules import from here and nowhere deeper (docs/architecture.md).
  */
 
@@ -15,8 +16,11 @@ export {
   openQuestions, queueFormFetchNow, readinessForJobs, refreshQuestionMatches, saveAnswer, saveApplicantDetails,
 } from './service.js'
 export type { FormFetchRequest, JobReadiness, MatchOutcome, MatchQuestions, OpenQuestion, Suggestion } from './service.js'
-export { acceptDraft, draftAnswers, questionHash, readQuestionsWithModel } from './drafting.js'
-export type { DraftingOutcome, ReadQuestions } from './drafting.js'
+export { acceptDraft, draftAnswers, questionHash, readQuestionsWithModel, WRITTEN_DAILY_CAP_MICRO_USD } from './drafting.js'
+export type { DraftingDeps, DraftingOptions, DraftingOutcome, ReadQuestions } from './drafting.js'
+export { writeExperienceWithModel } from './experience.js'
+export type { WriteExperience } from './experience.js'
+export { writeExperienceTask } from './prompts/write-experience.js'
 export { answerDraftQueue, queueAnswerDrafts, questionMatchQueue, queueQuestionMatch } from './queues.js'
 export { readQuestionsTask } from './prompts/read-questions.js'
 export type { NeverDrafted } from './never-drafted.js'

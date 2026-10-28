@@ -8,7 +8,7 @@ import { z } from 'zod'
 /** Facts code answers from the profile and confirmed career items. */
 export const PROFILE_READINGS = [
   'authorized_in', 'authorized_countries', 'needs_sponsorship', 'citizen_of', 'resident_of', 'country_of_residence',
-  'city_of_residence', 'willing_to_relocate', 'salary_expectation', 'salary_currency', 'language_level', 'spoken_languages',
+  'city_of_residence', 'time_zone', 'willing_to_relocate', 'salary_expectation', 'salary_currency', 'language_level', 'spoken_languages',
   'current_title', 'current_employer', 'worked_at', 'years_of_experience', 'recent_graduate',
 ] as const
 /** experience and motivation are written by a model and checked; owner_only is never drafted. */

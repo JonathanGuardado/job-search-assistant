@@ -14,7 +14,7 @@ const yesNo = (label: string) => choice(label, ['Yes', 'No'])
 
 const facts: ProfileFacts = {
   profile: {
-    country: 'SV', city: 'San Salvador', citizenships: ['SV'], workAuthorizations: [], englishLevel: 'C1', willingToRelocate: true,
+    country: 'SV', city: 'San Salvador', timezone: 'America/El_Salvador', citizenships: ['SV'], workAuthorizations: [], englishLevel: 'C1', willingToRelocate: true,
     salaryFloorMinor: 6_000_000, salaryCurrency: 'USD', spokenLanguages: ['es', 'en'],
   },
   items: [
@@ -171,5 +171,36 @@ describe('what profile facts do not answer', () => {
 
   it('gives no answer when a choice question has no option for it', () => {
     expect(answerFromProfile(choice('Do you need sponsorship?', ['Maybe']), read('needs_sponsorship'), facts)).toEqual(noBasis(/option/i))
+  })
+})
+
+describe('answering the time zone from the profile', () => {
+  it('picks the region option the candidate\'s country is in', () => {
+    const canonical = choice('What time zone are you in?', ['American Time Zones', 'Asia Pacific Time Zones', 'Europe, Middle East or Africa Time Zones', 'Indian Ocean Time Zones'])
+    expect(answerFromProfile(canonical, read('time_zone'), facts)).toEqual(drafted({ kind: 'choice', labels: ['American Time Zones'] }))
+    const short = choice('Which Timezone are you based in?', ['APAC', 'EMEA', 'Americas'])
+    expect(answerFromProfile(short, read('time_zone'), facts)).toEqual(drafted({ kind: 'choice', labels: ['Americas'] }))
+    const london = withProfile({ country: 'GB', timezone: 'Europe/London' })
+    expect(answerFromProfile(short, read('time_zone'), london)).toEqual(drafted({ kind: 'choice', labels: ['EMEA'] }))
+  })
+
+  it('writes the zone and its offset for a written question', () => {
+    expect(answerFromProfile(text('Which region/timezone will you be working from?'), read('time_zone'), facts))
+      .toEqual(drafted({ kind: 'text', text: 'America/El_Salvador (GMT-06:00)' }))
+  })
+
+  it('has no basis when the options name no region the country is in', () => {
+    const offsets = choice('What time zone are you in?', ['GMT+1', 'GMT+8'])
+    expect(answerFromProfile(offsets, read('time_zone'), facts)).toEqual(noBasis(/time zone/i))
+  })
+})
+
+describe('current title and employer', () => {
+  it('names the role whose title is missing, instead of saying there are no roles', () => {
+    const untitled = { ...facts, items: [{ ...facts.items[0]!, title: null, organization: 'Independent Engineer — Agent Systems (open source)' }, ...facts.items.slice(1)] }
+    expect(answerFromProfile(text('What is your current or previous job title?'), read('current_title'), untitled))
+      .toEqual(noBasis(/latest role, Independent Engineer — Agent Systems \(open source\), has no title/))
+    expect(answerFromProfile(text('What is your current or previous job title?'), read('current_title'), facts))
+      .toEqual(drafted({ kind: 'text', text: 'Senior Software Engineer' }))
   })
 })

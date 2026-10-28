@@ -18,7 +18,7 @@ export type QuestionForReading = { readonly id: string; readonly label: string; 
  */
 export const readQuestionsTask: TaskDefinition<{ readonly questions: readonly QuestionForReading[] }> = {
   name: 'application-answers.read-questions',
-  version: 1,
+  version: 2,
   // Secondary: public question wording only, and every draft is the candidate's to accept (decision 0015).
   role: 'secondary',
   maxTokens: 6_000,
@@ -32,6 +32,7 @@ For each question return its id and one kind:
 - resident_of: whether the candidate lives or is located in one of the countries named.
 - country_of_residence: which country the candidate lives or works in.
 - city_of_residence: which city the candidate lives in.
+- time_zone: which time zone or time-zone region the candidate works from.
 - willing_to_relocate: whether the candidate would relocate.
 - salary_expectation: the pay the candidate expects or asks for.
 - salary_currency: which currency the candidate's pay expectation is in.
@@ -42,9 +43,10 @@ For each question return its id and one kind:
 - worked_at: whether the candidate has worked for (or consulted for) a named company.
 - years_of_experience: how many years of experience the candidate has, overall or with one skill.
 - recent_graduate: whether the candidate graduated recently or is about to.
-- experience: a written question about what the candidate has done: their work, skills, projects, achievements, leadership, problems solved.
+- experience: a question whose answer describes what the candidate has done: their work, skills, projects, achievements, leadership, problems solved ("Describe your experience with Python", "What is your most notable project?").
+- A yes/no or choice question about willingness, comfort, preference or equipment ("Are you comfortable using your own computer?", "How should we communicate with you?") is owner_only, not experience.
 - motivation: why the candidate wants this company or role, or what excites them about it.
-- owner_only: anything else, including consent, demographics, school results, notice period, start date, contact preferences, referrals, how they heard about the job, and questions that depend on another question's answer.
+- owner_only: anything else, including consent, demographics, school results, notice period, start date, contact preferences, agreements with past employers, equipment, referrals, how they heard about the job, and questions that depend on another question's answer.
 
 Fill the other fields only where the question states them; otherwise leave them empty or null:
 - countries: ISO 3166-1 alpha-2 codes of every country the question names ("US", "IR"). A region the question names inside a country does not count. Empty when it names none.

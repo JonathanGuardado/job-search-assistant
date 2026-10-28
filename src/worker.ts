@@ -5,6 +5,7 @@ import { logEvent } from '@/lib/log'
 import { connectRedis } from '@/lib/queue'
 import {
   answerDraftQueue, draftAnswers, formFetchRequest, matchQuestionsWithModel, questionMatchQueue, readQuestionsWithModel, refreshQuestionMatches,
+  writeExperienceWithModel,
 } from '@/modules/application-answers'
 import { resumeParseQueue, runResumeParse } from '@/modules/career-knowledge'
 import {
@@ -166,7 +167,7 @@ const workers: Worker[] = [
     return matched.ok ? ok(undefined) : matched
   }),
   answerDraftQueue.work({ connection, concurrency: 1 }, async ({ userId }) => {
-    const drafted = await draftAnswers(db, userId, readQuestionsWithModel)
+    const drafted = await draftAnswers(db, userId, { read: readQuestionsWithModel, write: writeExperienceWithModel })
     if (drafted.ok) logEvent('application_answers.drafted', { userId, ...drafted.value })
     return drafted.ok ? ok(undefined) : drafted
   }),

@@ -1,6 +1,7 @@
 import type { VerifiedCareerItem } from '@/modules/career-knowledge'
 import type { FormField, FormQuestion } from '@/modules/job-sources'
 import { experienceMonths, skillKey } from '@/modules/matching'
+import { REGION_COUNTRIES } from '@/modules/eligibility'
 import type { CandidateProfile, EnglishLevel } from '@/modules/profiles'
 import { isProfileReading, type QuestionReading } from './question-reading.js'
 import type { SavedAnswerValue } from './readiness.js'
@@ -13,7 +14,7 @@ import type { SavedAnswerValue } from './readiness.js'
 
 export type ProfileFacts = {
   readonly profile: Pick<CandidateProfile,
-    'country' | 'city' | 'citizenships' | 'workAuthorizations' | 'englishLevel' | 'willingToRelocate' | 'salaryFloorMinor' | 'salaryCurrency' | 'spokenLanguages'>
+    'country' | 'city' | 'timezone' | 'citizenships' | 'workAuthorizations' | 'englishLevel' | 'willingToRelocate' | 'salaryFloorMinor' | 'salaryCurrency' | 'spokenLanguages'>
   readonly items: readonly Pick<VerifiedCareerItem, 'id' | 'type' | 'organization' | 'title' | 'startedOn' | 'endedOn' | 'isCurrent' | 'technologies'>[]
   readonly today: Date
 }
@@ -31,6 +32,25 @@ type Fact =
   | { readonly kind: 'level'; readonly level: EnglishLevel }
   | { readonly kind: 'languages'; readonly codes: readonly string[] }
   | { readonly kind: 'years'; readonly years: number }
+  | { readonly kind: 'time_zone'; readonly zone: string; readonly offset: string; readonly region: ZoneRegion | null }
+
+/** How forms group time zones ("American Time Zones", "EMEA", "APAC"). */
+type ZoneRegion = 'americas' | 'emea' | 'apac'
+const ZONE_OPTIONS: Readonly<Record<ZoneRegion, RegExp>> = {
+  americas: /\bameric/,
+  emea: /\bemea\b|\beurope\b|\bmiddle east\b|\bafrica/,
+  apac: /\bapac\b|\basia\b|\bpacific\b/,
+}
+
+function zoneRegion(country: string): ZoneRegion | null {
+  if (REGION_COUNTRIES.latam.includes(country) || REGION_COUNTRIES.namer.includes(country)) return 'americas'
+  if (REGION_COUNTRIES.emea.includes(country)) return 'emea'
+  return REGION_COUNTRIES.apac.includes(country) ? 'apac' : null
+}
+
+/** "GMT-06:00" for the zone on `day`; daylight saving moves it. */
+const offsetOf = (zone: string, day: Date) =>
+  new Intl.DateTimeFormat('en-US', { timeZone: zone, timeZoneName: 'longOffset' }).formatToParts(day).find((p) => p.type === 'timeZoneName')?.value ?? 'GMT'
 
 type Found = { readonly fact: Fact; readonly basis: readonly string[]; readonly itemIds?: readonly string[] }
 type Outcome = Found | { readonly reason: string }
@@ -103,8 +123,12 @@ function careerFact(reading: QuestionReading, facts: ProfileFacts): Outcome {
     case 'current_title':
     case 'current_employer': {
       const role = latestRole(facts)
-      const value = reading.kind === 'current_title' ? role?.title : role?.organization
-      if (!role || !value) return noBasis(noRoles)
+      if (!role) return noBasis(noRoles)
+      const value = reading.kind === 'current_title' ? role.title : role.organization
+      if (!value) {
+        const missing = reading.kind === 'current_title' ? 'title' : 'employer'
+        return noBasis(`Your latest role, ${role.organization ?? role.title ?? 'the current one'}, has no ${missing}; add it in Career.`)
+      }
       return { fact: { kind: 'text', text: value }, basis: [`Latest role: ${role.title ?? 'untitled'} at ${role.organization ?? 'an unnamed organization'}`], itemIds: [role.id] }
     }
     case 'worked_at': {
@@ -175,6 +199,11 @@ function factFor(reading: QuestionReading, facts: ProfileFacts): Outcome {
       return { fact: { kind: 'countries', codes: [profile.country] }, basis: [`Country of residence: ${countryName(profile.country)}`] }
     case 'city_of_residence':
       return { fact: { kind: 'text', text: profile.city }, basis: [`City: ${profile.city}`] }
+    case 'time_zone':
+      return {
+        fact: { kind: 'time_zone', zone: profile.timezone, offset: offsetOf(profile.timezone, facts.today), region: zoneRegion(profile.country) },
+        basis: [`Time zone: ${profile.timezone}`, `Country of residence: ${countryName(profile.country)}`],
+      }
     case 'willing_to_relocate':
       return { fact: { kind: 'yes_no', value: profile.willingToRelocate }, basis: [`Willing to relocate: ${profile.willingToRelocate ? 'yes' : 'no'}`] }
     case 'salary_expectation':
@@ -262,6 +291,11 @@ function chooseOptions(field: FormField, fact: Fact): Chosen {
     }
     case 'text':
       return single(labelled((label) => label === normalized(fact.text)), fact.text)
+    case 'time_zone': {
+      const pattern = fact.region ? ZONE_OPTIONS[fact.region] : null
+      const found = pattern ? labelled((label) => pattern.test(label)) : []
+      return found.length === 1 ? { labels: [found[0]?.label ?? ''] } : { reason: 'None of the form\'s options names your time zone\'s region; choose it yourself.' }
+    }
   }
 }
 
@@ -274,6 +308,7 @@ function asText(fact: Fact): string {
     case 'level': return LEVEL_TEXT[fact.level]
     case 'languages': return fact.codes.map(languageName).join(', ')
     case 'years': return `${fact.years} year${fact.years === 1 ? '' : 's'}`
+    case 'time_zone': return `${fact.zone} (${fact.offset})`
   }
 }
 

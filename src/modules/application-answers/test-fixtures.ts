@@ -1,14 +1,19 @@
 import { randomUUID } from 'node:crypto'
 import { readFileSync } from 'node:fs'
+import { mkdtemp, readFile } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import type { Db } from '@/lib/db/client'
 import { withTenant } from '@/lib/db/tenancy'
 import { ok, unwrap } from '@/lib/result'
 import type { ModelTrace } from '@/modules/ai'
+import { confirmCareerItem, listCareerItems, recordDrafts, type CareerItemDraft } from '@/modules/career-knowledge'
 import { assessJobForUser, UNSPECIFIED_CLAIMS, type EligibilityClaims, type ExtractClaims } from '@/modules/eligibility'
 import { addSource, pollSourcePage, refreshApplicationForm, type AdapterKey, type JobSource } from '@/modules/job-sources'
 import { upsertJobFromRaw, type Job } from '@/modules/jobs'
 import { assessMatchForUser, NO_REQUIREMENTS, type ExtractRequirements } from '@/modules/matching'
 import { ensureUser, saveCandidateProfile, type CandidateProfileInput } from '@/modules/profiles'
+import { startParse, uploadResume } from '@/modules/resumes'
 
 /*
  * A candidate with a job they can apply to and its stored application form, built through
@@ -38,8 +43,42 @@ export async function aJob(db: Db, board: JobSource, title = 'Software Engineer'
   return unwrap(await upsertJobFromRaw(db, page.postings[0].rawJobId))
 }
 
-export async function storeForm(db: Db, job: Job, name: 'canonical' | 'gitlab'): Promise<void> {
-  unwrap(await refreshApplicationForm(db, { sourceId: job.sourceId, externalId: job.externalId }, async () => Response.json(formPayload(name))))
+/** A written question in Greenhouse's own shape, for adding to a fixture form. */
+export const writtenQuestion = (label: string, name = `question_${randomUUID()}`) =>
+  ({ label, description: null, required: true, fields: [{ name, type: 'textarea', values: [] }] })
+
+export async function storeForm(db: Db, job: Job, name: 'canonical' | 'gitlab', extraQuestions: readonly unknown[] = []): Promise<void> {
+  const payload = formPayload(name)
+  const withExtra = extraQuestions.length === 0 || typeof payload !== 'object' || payload === null || !('questions' in payload) || !Array.isArray(payload.questions)
+    ? payload
+    : { ...payload, questions: [...payload.questions, ...extraQuestions] }
+  unwrap(await refreshApplicationForm(db, { sourceId: job.sourceId, externalId: job.externalId }, async () => Response.json(withExtra)))
+}
+
+let resumePdf: Uint8Array | null = null
+
+/** Career items the candidate has confirmed: uploaded through resumes, recorded and confirmed through career-knowledge. */
+export async function withConfirmedItems(db: Db, userId: string, drafts: readonly Partial<CareerItemDraft>[]): Promise<void> {
+  resumePdf ??= await readFile(new URL('../resumes/__fixtures__/synthetic-resume.pdf', import.meta.url))
+  const storageRoot = await mkdtemp(join(tmpdir(), 'answers-test-'))
+  const pdf = resumePdf
+  await withTenant(db, userId, async (scope) => {
+    const resume = unwrap(await uploadResume(scope, { filename: 'cv.pdf', bytes: pdf }, { storageRoot }))
+    const started = unwrap(await startParse(scope, { resumeId: resume.id, task: 't', taskVersion: 1 }))
+    if (started.kind !== 'started') throw new Error('expected a started run')
+    await recordDrafts(scope, {
+      sourceResumeId: resume.id, sourceParseId: started.parseId,
+      drafts: drafts.map((draft) => ({
+        type: 'role', organization: 'Initech', title: 'Software Engineer', startedOn: '2018-01', endedOn: '2024-01', isCurrent: false,
+        summary: null, achievements: [], technologies: [], evidence: { achievements: [], technologies: [] }, ...draft,
+      })),
+    })
+    for (const item of await listCareerItems(scope)) {
+      if (item.verifiedByUser) continue
+      const { type, organization, title, startedOn, endedOn, isCurrent, summary, achievements, technologies } = item
+      unwrap(await confirmCareerItem(scope, item.id, { type, organization, title, startedOn, endedOn, isCurrent, summary, achievements, technologies }))
+    }
+  })
 }
 
 const profile: CandidateProfileInput = {

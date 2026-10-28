@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto'
-import { and, eq, inArray, sql } from 'drizzle-orm'
+import { and, eq, gte, inArray, sql } from 'drizzle-orm'
 import { z } from 'zod'
 import type { Db } from '@/lib/db/client'
 import { withTenant, type TenantScope } from '@/lib/db/tenancy'
@@ -9,18 +9,21 @@ import { callModel, type AiError, type CallModelSuccess } from '@/modules/ai'
 import { listGroundingItems } from '@/modules/career-knowledge'
 import type { FormQuestion } from '@/modules/job-sources'
 import { getCandidateProfile } from '@/modules/profiles'
-import { neverDrafted } from './never-drafted.js'
+import { draftExperience, type WriteExperience } from './experience.js'
+import { asksOwnWords, neverDrafted } from './never-drafted.js'
 import { answerFromProfile, type ProfileFacts } from './profile-facts.js'
 import { readQuestionsTask, type QuestionForReading } from './prompts/read-questions.js'
-import { isProfileReading, RawReadingSchema, readingFrom, type QuestionReading } from './question-reading.js'
+import { writeExperienceTask } from './prompts/write-experience.js'
+import { RawReadingSchema, readingFrom, type QuestionReading } from './question-reading.js'
 import { answerDrafts, questionReadings } from './schema.js'
-import { jobsToApplyTo, newestDrafts, openQuestions, readinessForJobs, saveAnswer } from './service.js'
+import { jobsToApplyTo, newestDrafts, openQuestions, readinessForJobs, saveAnswer, type OpenQuestion } from './service.js'
 import type { SavedAnswer, SaveAnswer } from './types.js'
 
 /*
  * Drafting (decision 0014). A run takes the candidate's open questions, sets aside the ones
- * never drafted, reads what the rest ask (once per wording, for every candidate), and drafts
- * the profile facts in code. Experience and motivation drafts arrive with the grounding check.
+ * never drafted, reads what the rest ask (once per wording, for every candidate), drafts the
+ * profile facts in code, and has experience answers written from confirmed career items and
+ * checked (`experience.ts`, `grounding.ts`). Motivation drafts come next.
  */
 
 const ReadOutputSchema = z.object({ readings: z.array(RawReadingSchema) })
@@ -40,6 +43,7 @@ export const questionHash = (question: FormQuestion) =>
 
 const optionLabels = (question: FormQuestion) => question.fields.flatMap((f) => f.options.map((o) => o.label)).slice(0, 40)
 const takesAnswer = (question: FormQuestion) => question.fields.some((f) => f.type !== 'file' && f.type !== 'hidden')
+const textField = (question: FormQuestion) => question.fields.some((f) => f.type === 'text' || f.type === 'textarea')
 
 type StoredReading = { readonly id: string; readonly reading: QuestionReading }
 
@@ -89,6 +93,25 @@ async function readingsFor(db: Db, questions: readonly FormQuestion[], read: Rea
   return ok(stored)
 }
 
+/**
+ * Written drafts stop for the day once a candidate's written drafts that day have cost this
+ * much, in micro-USD (decision 0014; the owner raised it from US$0.20 to US$0.50 on
+ * 2026-10-27). Readings and profile drafts do not count: they are bounded and shared.
+ */
+export const WRITTEN_DAILY_CAP_MICRO_USD = 500_000
+
+const OWN_WORDS_REASON = 'This employer asks for answers in your own words, so no draft is written for it.'
+const CHOICE_REASON = 'This question takes a choice, so it is yours to pick.'
+const NO_ITEMS_REASON = 'Confirm your career items to get written drafts.'
+const NOT_COVERED_REASON = 'Your confirmed career items do not cover what this question asks.'
+
+export type DraftingDeps = { readonly read: ReadQuestions; readonly write: WriteExperience }
+export type DraftingOptions = {
+  readonly today?: Date
+  /** "Draft now": only this question, and the daily cap does not apply. */
+  readonly only?: string
+}
+
 export type DraftingOutcome = {
   /** Open questions that could take a draft, and how they fared. */
   readonly considered: number
@@ -96,44 +119,90 @@ export type DraftingOutcome = {
   readonly unread: number
   readonly drafted: number
   readonly noBasis: number
+  /** Written drafts that failed the grounding check twice: stored with the reason, never offered. */
+  readonly rejected: number
   readonly unchanged: number
-  /** Experience and motivation questions, drafted from milestone 2.2's second part. */
-  readonly written: number
+  /** Written drafts left for another day: the daily cap was reached. */
+  readonly capped: number
+  /** Motivation questions, drafted from the next part of milestone 2.2. */
+  readonly motivation: number
   readonly ownerOnly: number
 }
 
-/**
- * One drafting run for a candidate over the questions blocking the jobs the assistant works on.
- * Idempotent: a question whose draft would come out the same as its newest one gets no new row.
- */
-export async function draftAnswers(db: Db, userId: string, read: ReadQuestions, today: Date = new Date()): Promise<Result<DraftingOutcome>> {
-  const jobs = await jobsToApplyTo(db, userId)
-  const open = openQuestions(await readinessForJobs(db, userId, jobs)).filter((q) => q.answeredBy === 'saved_answer' && takesAnswer(q.question))
-  const draftable = open.filter((q) => neverDrafted(q.question) === null)
-  const counts = { considered: open.length, neverDrafted: open.length - draftable.length, unread: 0, drafted: 0, noBasis: 0, unchanged: 0, written: 0, ownerOnly: 0 }
+type WrittenQuestion = { readonly question: OpenQuestion; readonly readingId: string; readonly inputsHash: string }
 
-  const readings = await readingsFor(db, draftable.map((q) => q.question), read)
+const startOfUtcDay = (day: Date) => new Date(Date.UTC(day.getUTCFullYear(), day.getUTCMonth(), day.getUTCDate()))
+
+async function writtenSpendSince(scope: TenantScope, since: Date): Promise<number> {
+  const [row] = await scope.db.select({ total: sql<string>`coalesce(sum(${answerDrafts.costMicroUsd}), 0)` }).from(answerDrafts)
+    .where(and(eq(answerDrafts.userId, scope.userId), inArray(answerDrafts.method, ['experience', 'motivation']), gte(answerDrafts.createdAt, since)))
+  return Number(row?.total ?? 0)
+}
+
+/**
+ * One drafting run for a candidate over the questions blocking the jobs the assistant works on,
+ * most widely blocking first. Idempotent: a question whose draft would come out of the same
+ * inputs as its newest one gets no new row, whatever that draft's outcome was.
+ *
+ * Profile facts and every no-model outcome are written in one short transaction. Written
+ * drafts call the model outside any transaction and are stored one by one, until the day's cap.
+ */
+export async function draftAnswers(db: Db, userId: string, deps: DraftingDeps, options: DraftingOptions = {}): Promise<Result<DraftingOutcome>> {
+  const today = options.today ?? new Date()
+  const jobs = await jobsToApplyTo(db, userId)
+  const readiness = await readinessForJobs(db, userId, jobs)
+  const open = openQuestions(readiness)
+    .filter((q) => q.answeredBy === 'saved_answer' && takesAnswer(q.question) && (options.only === undefined || q.questionKey === options.only))
+  const draftable = open.filter((q) => neverDrafted(q.question) === null)
+  const ownWordsJobs = new Set([...readiness]
+    .filter(([, job]) => job.kind === 'assessed' && job.readiness.answers.some((a) => asksOwnWords(a.question)))
+    .map(([jobId]) => jobId))
+  const counts = {
+    considered: open.length, neverDrafted: open.length - draftable.length, unread: 0, drafted: 0, noBasis: 0, rejected: 0, unchanged: 0, capped: 0, motivation: 0, ownerOnly: 0,
+  }
+
+  const readings = await readingsFor(db, draftable.map((q) => q.question), deps.read)
   if (!readings.ok) return readings
 
-  return withTenant(db, userId, async (scope) => {
+  const prepared = await withTenant(db, userId, async (scope) => {
     const profile = await getCandidateProfile(scope)
-    if (!profile) return ok({ ...counts, unread: draftable.length })
-    const facts: ProfileFacts = { profile, items: await listGroundingItems(scope), today }
+    if (!profile) return null
+    const items = await listGroundingItems(scope)
+    const facts: ProfileFacts = { profile, items, today }
     const newest = await newestDrafts(scope)
+    const written: WrittenQuestion[] = []
+    const store = (question: OpenQuestion, row: Omit<typeof answerDrafts.$inferInsert, 'userId' | 'questionKey' | 'label' | 'createdAt'>) =>
+      scope.db.insert(answerDrafts).values({
+        userId, questionKey: question.questionKey, label: question.label, ...row,
+        // The moment of the write, not of the transaction: the newest draft must be the last one written.
+        createdAt: sql`clock_timestamp()`,
+      })
 
     for (const question of draftable) {
       const stored = readings.value.get(questionHash(question.question))
       if (!stored) { counts.unread++; continue }
-      if (stored.reading.kind === 'owner_only') { counts.ownerOnly++; continue }
-      if (!isProfileReading(stored.reading.kind)) { counts.written++; continue }
+      const { kind } = stored.reading
+      if (kind === 'owner_only') { counts.ownerOnly++; continue }
+      if (kind === 'motivation') { counts.motivation++; continue }
+
+      if (kind === 'experience') {
+        const reason = !textField(question.question) ? CHOICE_REASON
+          : question.jobIds.some((id) => ownWordsJobs.has(id)) ? OWN_WORDS_REASON
+            : items.length === 0 ? NO_ITEMS_REASON : null
+        const inputsHash = digest({ reading: stored.id, task: writeExperienceTask.version, reason, items: items.map((i) => [i.id, i.updatedAt.toISOString()]) })
+        if (newest.get(question.questionKey)?.inputsHash === inputsHash) { counts.unchanged++; continue }
+        if (reason === null) { written.push({ question, readingId: stored.id, inputsHash }); continue }
+        await store(question, { method: 'experience', inputsHash, readingId: stored.id, status: 'no_basis', answer: null, basis: { facts: [], itemIds: [] }, reason })
+        counts.noBasis++
+        continue
+      }
+
       const draft = answerFromProfile(question.question, stored.reading, facts)
       if (!draft) continue
       const inputsHash = digest({ reading: stored.id, draft })
       if (newest.get(question.questionKey)?.inputsHash === inputsHash) { counts.unchanged++; continue }
-      await scope.db.insert(answerDrafts).values({
-        userId, questionKey: question.questionKey, label: question.label, method: 'profile', inputsHash, readingId: stored.id,
-        // The moment of the write, not of the transaction: the newest draft must be the last one written.
-        createdAt: sql`clock_timestamp()`,
+      await store(question, {
+        method: 'profile', inputsHash, readingId: stored.id,
         ...(draft.kind === 'drafted'
           ? { status: 'drafted', answer: draft.answer, basis: { facts: draft.basis, itemIds: draft.itemIds }, reason: null }
           : { status: 'no_basis', answer: null, basis: { facts: [], itemIds: [] }, reason: draft.reason }),
@@ -141,8 +210,31 @@ export async function draftAnswers(db: Db, userId: string, read: ReadQuestions, 
       if (draft.kind === 'drafted') counts.drafted++
       else counts.noBasis++
     }
-    return ok(counts)
+    return { items, written, spent: await writtenSpendSince(scope, startOfUtcDay(today)) }
   })
+  if (!prepared) return ok({ ...counts, unread: draftable.length })
+
+  let spent = prepared.spent
+  for (const { question, readingId, inputsHash } of prepared.written) {
+    if (options.only === undefined && spent >= WRITTEN_DAILY_CAP_MICRO_USD) { counts.capped++; continue }
+    const result = await draftExperience(deps.write, question.question, prepared.items)
+    if (!result.ok) return result
+    const draft = result.value
+    const cost = draft.traces.reduce((sum, t) => sum + t.costMicroUsd, 0)
+    spent += cost
+    await withTenant(db, userId, (scope) => scope.db.insert(answerDrafts).values({
+      userId, questionKey: question.questionKey, label: question.label, method: 'experience', inputsHash, readingId,
+      taskVersion: writeExperienceTask.version, traces: [...draft.traces], model: draft.traces.at(-1)?.model ?? null, costMicroUsd: cost,
+      createdAt: sql`clock_timestamp()`,
+      ...(draft.kind === 'drafted'
+        ? { status: 'drafted', answer: { kind: 'text', text: draft.text }, basis: { facts: [...draft.quotes], itemIds: [...draft.itemIds] }, reason: null }
+        : { status: draft.kind === 'rejected' ? 'rejected' : 'no_basis', answer: null, basis: { facts: [], itemIds: [] }, reason: draft.kind === 'rejected' ? draft.reason : NOT_COVERED_REASON }),
+    }))
+    if (draft.kind === 'drafted') counts.drafted++
+    else if (draft.kind === 'rejected') counts.rejected++
+    else counts.noBasis++
+  }
+  return ok(counts)
 }
 
 /**
