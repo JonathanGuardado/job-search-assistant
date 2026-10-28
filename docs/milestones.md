@@ -3,16 +3,16 @@
 Phase 1 only. Later phases are listed at the bottom so their scope stays visible, but
 nothing from them gets built yet.
 
-**Active milestone: 2.2 drafted answers** (decision 0014), started at the owner's request
-while 1.8 and 1.9 wait on the owner's checks below. 2.1 is built and merged: saved answers,
-readiness and "same question" suggestions on `/answers` and each job page. 2.2's first part
-is built: the assistant works only on jobs whose role fits, the profile records citizenship
-and English level, and profile-fact questions are drafted in code from a model's reading of
-what each asks. Its second part is built: experience answers are written from confirmed career
-items and pass the grounding check before anyone sees them, under a US$0.50 daily cap, and no
-answer is written for a form that asks for the candidate's own words (decision 0014,
-amendments). Motivation answers are drafted per job from the posting and the record, and an
-accepted one answers that job only. Next: the answers page and job pages show drafts (Codex).
+**Next milestone: 2.3 form filling, approval mode**, not started. 2.1 and 2.2 are built and
+merged, at the owner's request while 1.8 and 1.9 wait on the owner's checks below. 2.1: saved
+answers, readiness and "same question" suggestions on `/answers` and each job page. 2.2
+(decision 0014 and its amendments): the assistant works only on jobs whose role fits; the
+profile records citizenship and English level; profile-fact questions are drafted in code from
+a model's reading of what each asks; experience answers are written from confirmed career
+items and motivation answers per job from the posting, both passing the grounding check, under
+a US$0.50 daily cap, and none for a form that asks for the candidate's own words. The answers
+page and job pages show each draft with what it rests on, why a question has none, or that
+only the owner answers it, and the owner accepts or edits it (Codex, reviewed).
 
 **1.8 jobs UI.** 1.1 through 1.7 are closed. The jobs view is built
 (`/jobs`, brief `prompts/codex/m1.8-jobs-ui.md`, implemented by Codex and reviewed): five
