@@ -31,6 +31,7 @@ export default async function JobPage({ params, searchParams }: {
   if (!parsed.success) notFound()
   const jobId = parsed.data
   const error = z.string().catch('').parse(searchParams.error)
+  const notice = z.string().catch('').parse(searchParams.notice)
   const db = getDb()
   const assessment = await withTenant(db, DEV_USER.id, (scope) => getAssessment(scope, jobId))
   if (assessment === null) notFound()
@@ -61,6 +62,7 @@ export default async function JobPage({ params, searchParams }: {
         <a href={job.applyUrl} target="_blank" rel="noopener noreferrer">View original posting</a>
       </header>
       {error && <p role="alert" className={styles.error}>{error}</p>}
+      {notice && <p role="status" className={styles.notice}>{notice}</p>}
       <div className={styles.badges}>
         {userState?.state === 'saved' && <span className={styles.badge}>Saved</span>}
         {userState?.state === 'applied' && <span className={styles.badge}>Applied</span>}
@@ -69,7 +71,7 @@ export default async function JobPage({ params, searchParams }: {
       <JobActions assessment={assessment} userState={userState} tab={tab} back={`/jobs/${jobId}`} offerReason />
       <EligibilityDetails assessment={assessment} />
       <MatchDetails card={card} />
-      {readiness !== null && <ApplicationReadiness readiness={readiness} back={`/jobs/${jobId}`} />}
+      {readiness !== null && <ApplicationReadiness readiness={readiness} jobId={jobId} back={`/jobs/${jobId}`} />}
       <section className={styles.section} aria-labelledby="application-heading">
         <h2 id="application-heading">Your application</h2>
         {application !== null ? <>

@@ -1,4 +1,6 @@
+import { createHash } from 'node:crypto'
 import { z } from 'zod'
+import type { FormQuestion } from '@/modules/job-sources'
 
 /*
  * What an application question asks, as a model reads it (decision 0014). A reading names a
@@ -43,6 +45,11 @@ export type QuestionReading = z.infer<typeof QuestionReadingSchema>
 export const NO_DETAILS: Omit<QuestionReading, 'kind'> = {
   countries: [], company: null, skill: null, language: null, period: null, currency: null, withinYears: null,
 }
+
+/** A question is the same question wherever its wording, description, fields and options are. */
+export const questionHash = (question: FormQuestion) => createHash('sha256')
+  .update(JSON.stringify([question.label.trim(), question.description ?? '', question.fields.map((f) => [f.type, f.options.map((o) => o.label)])]))
+  .digest('hex')
 
 export const isProfileReading = (kind: ReadingKind): kind is ProfileReadingKind =>
   (PROFILE_READINGS as readonly string[]).includes(kind)

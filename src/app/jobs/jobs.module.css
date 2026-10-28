@@ -25,6 +25,7 @@
 .badges { display: flex; flex-wrap: wrap; gap: 8px; }
 .badge { padding: 3px 9px; border-radius: 6px; color: #4057cf; background: #edf0ff; font-size: 12px; font-weight: 600; }
 .error { padding: 16px 20px; margin-bottom: 20px; border: 1px solid #f0c7cd; border-radius: 10px; background: #fff4f5; color: #942937; }
+.notice { padding: 16px 20px; margin-bottom: 20px; border: 1px solid #dce2ed; border-radius: 10px; background: #edf0ff; color: #4057cf; }
 .page blockquote { margin: 16px 0; padding-left: 16px; border-left: 3px solid #dce2ed; white-space: pre-wrap; overflow-wrap: anywhere; }
 .matchSection { padding-top: 18px; margin-top: 18px; border-top: 1px solid #edf0f5; }
 .description { white-space: pre-wrap; }

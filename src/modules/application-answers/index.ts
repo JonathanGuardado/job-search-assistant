@@ -16,7 +16,8 @@ export {
   openQuestions, queueFormFetchNow, readinessForJobs, refreshQuestionMatches, saveAnswer, saveApplicantDetails,
 } from './service.js'
 export type { FormFetchRequest, JobReadiness, MatchOutcome, MatchQuestions, OpenQuestion, Suggestion } from './service.js'
-export { acceptDraft, draftAnswers, questionHash, readQuestionsWithModel, WRITTEN_DAILY_CAP_MICRO_USD } from './drafting.js'
+export { acceptDraft, draftAnswers, readQuestionsWithModel, WRITTEN_DAILY_CAP_MICRO_USD } from './drafting.js'
+export { questionHash } from './question-reading.js'
 export type { DraftingDeps, DraftingOptions, DraftingOutcome, ReadQuestions } from './drafting.js'
 export { writeExperienceWithModel, writeMotivationWithModel } from './written.js'
 export type { WriteAnswer } from './written.js'

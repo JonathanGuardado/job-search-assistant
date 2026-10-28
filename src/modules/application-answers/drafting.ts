@@ -10,14 +10,14 @@ import { listGroundingItems } from '@/modules/career-knowledge'
 import type { FormQuestion } from '@/modules/job-sources'
 import type { Job } from '@/modules/jobs'
 import { getCandidateProfile } from '@/modules/profiles'
-import { asksOwnWords, neverDrafted } from './never-drafted.js'
+import { asksOwnWords, neverDrafted, takesAnswer } from './never-drafted.js'
 import { answerFromProfile, type ProfileFacts } from './profile-facts.js'
 import { readQuestionsTask, type QuestionForReading } from './prompts/read-questions.js'
 import { writeExperienceTask } from './prompts/write-experience.js'
 import { writeMotivationTask } from './prompts/write-motivation.js'
-import { RawReadingSchema, readingFrom, type QuestionReading } from './question-reading.js'
+import { questionHash, RawReadingSchema, readingFrom, type QuestionReading } from './question-reading.js'
 import { answerDrafts, questionReadings } from './schema.js'
-import { jobDraftKey, jobsToApplyTo, newestDrafts, newestJobDrafts, openQuestions, readinessForJobs, saveAnswer, type OpenQuestion } from './service.js'
+import { jobDraftKey, jobsToApplyTo, newestDrafts, newestJobDrafts, openQuestions, readinessForJobs, saveAnswer, storedReadings, type OpenQuestion } from './service.js'
 import type { SavedAnswer, SaveAnswer } from './types.js'
 import { draftWritten, type WriteAnswer } from './written.js'
 
@@ -40,12 +40,7 @@ const READ_BATCH = 25
 
 const digest = (value: unknown) => createHash('sha256').update(JSON.stringify(value)).digest('hex')
 
-/** A question is the same question wherever its wording, description, fields and options are. */
-export const questionHash = (question: FormQuestion) =>
-  digest([question.label.trim(), question.description ?? '', question.fields.map((f) => [f.type, f.options.map((o) => o.label)])])
-
 const optionLabels = (question: FormQuestion) => question.fields.flatMap((f) => f.options.map((o) => o.label)).slice(0, 40)
-const takesAnswer = (question: FormQuestion) => question.fields.some((f) => f.type !== 'file' && f.type !== 'hidden')
 const textField = (question: FormQuestion) => question.fields.some((f) => f.type === 'text' || f.type === 'textarea')
 
 type StoredReading = { readonly id: string; readonly reading: QuestionReading }
@@ -57,13 +52,8 @@ type StoredReading = { readonly id: string; readonly reading: QuestionReading }
  */
 async function readingsFor(db: Db, questions: readonly FormQuestion[], read: ReadQuestions): Promise<Result<Map<string, StoredReading>>> {
   const byHash = new Map(questions.map((q) => [questionHash(q), q]))
-  const stored = new Map<string, StoredReading>()
   const hashes = [...byHash.keys()]
-  for (let i = 0; i < hashes.length; i += 500) {
-    const rows = await db.select().from(questionReadings)
-      .where(and(inArray(questionReadings.questionHash, hashes.slice(i, i + 500)), eq(questionReadings.taskVersion, readQuestionsTask.version)))
-    for (const row of rows) stored.set(row.questionHash, { id: row.id, reading: row.reading })
-  }
+  const stored: Map<string, StoredReading> = await storedReadings(db, hashes)
 
   const unread = hashes.filter((hash) => !stored.has(hash))
   for (let i = 0; i < unread.length; i += READ_BATCH) {

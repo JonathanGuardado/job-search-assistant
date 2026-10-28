@@ -5,9 +5,10 @@ import { err, ok, unwrap } from '@/lib/result'
 import type { ModelTrace } from '@/modules/ai'
 import { acceptDraft, draftAnswers, WRITTEN_DAILY_CAP_MICRO_USD, type ReadQuestions } from './drafting.js'
 import type { WriteAnswer } from './written.js'
-import type { QuestionForReading } from './prompts/read-questions.js'
-import { NO_DETAILS, type QuestionReading } from './question-reading.js'
+import { readQuestionsTask, type QuestionForReading } from './prompts/read-questions.js'
+import { NO_DETAILS, questionHash, type QuestionReading } from './question-reading.js'
 import { questionKey } from './readiness.js'
+import { questionReadings } from './schema.js'
 import { jobDraftKey, latestDrafts, listSavedAnswers, newestJobDrafts, openQuestions, readinessForJobs, saveAnswer } from './service.js'
 import { aBoard, aCandidate, aJob, makeEligible, storeForm, updateProfile, withConfirmedItems, writtenQuestion } from './test-fixtures.js'
 
@@ -256,5 +257,45 @@ describe('drafting motivation answers, one per job', () => {
     // Nothing changed for the others: nothing is written, or paid for, again.
     unwrap(await draftAnswers(db, userId, deps))
     expect(postings).toHaveLength(2)
+  })
+})
+
+describe('what the page is told before any draft exists', () => {
+  const START = 'When could you start?'
+  const CONSENT = 'Do you consent to us keeping your details for future roles?'
+
+  test('a question read as owner_only is never drafted, and a motivation question is answered per job', async ({ db }) => {
+    const userId = await aCandidate(db, { citizenships: ['SV'] })
+    const job = await aJob(db, await aBoard(db), 'Backend Engineer')
+    await storeForm(db, job, 'gitlab', [writtenQuestion(WHY), writtenQuestion(START), writtenQuestion(CONSENT)])
+    await makeEligible(db, userId, job)
+    const blockers = async () => {
+      const readiness = (await readinessForJobs(db, userId, [job])).get(job.id)
+      if (readiness?.kind !== 'assessed') throw new Error('expected an assessed form')
+      return readiness
+    }
+    const question = async (label: string) => {
+      const blocker = (await blockers()).readiness.blockers.find((b) => b.question.label === label)
+      if (!blocker) throw new Error(`expected ${label} to block`)
+      return blocker.question
+    }
+
+    // Not read yet: nothing is known beyond the wording.
+    expect((await blockers()).neverDrafted.has(questionKey(START))).toBe(false)
+    expect((await blockers()).perJob.has(questionKey(WHY))).toBe(false)
+
+    for (const [label, kind] of [[WHY, 'motivation'], [START, 'owner_only']] as const) {
+      await db.insert(questionReadings).values({
+        questionHash: questionHash(await question(label)), taskVersion: readQuestionsTask.version, reading: { kind, ...NO_DETAILS }, traces: [], costMicroUsd: 0,
+      })
+    }
+    const readiness = await blockers()
+    expect(readiness.neverDrafted.get(questionKey(START))).toBe('owner_only')
+    expect(readiness.perJob.has(questionKey(WHY))).toBe(true)
+    const open = openQuestions(await readinessForJobs(db, userId, [job]))
+    expect(open.find((q) => q.questionKey === questionKey(START))).toMatchObject({ neverDrafted: 'owner_only', perJob: false })
+    expect(open.find((q) => q.questionKey === questionKey(WHY))).toMatchObject({ neverDrafted: null, perJob: true, draft: null })
+    // Code's own rules need no reading.
+    expect(readiness.neverDrafted.get(questionKey(CONSENT))).toBe('consent')
   })
 })

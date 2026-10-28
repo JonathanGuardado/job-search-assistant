@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto'
-import { and, desc, eq, isNotNull, isNull, sql } from 'drizzle-orm'
+import { and, desc, eq, inArray, isNotNull, isNull, sql } from 'drizzle-orm'
 import { z } from 'zod'
 import type { Db } from '@/lib/db/client'
 import { withTenant, type TenantScope } from '@/lib/db/tenancy'
@@ -14,9 +14,11 @@ import { listMatches } from '@/modules/matching'
 import { getCandidateProfile } from '@/modules/profiles'
 import { listResumes } from '@/modules/resumes'
 import { matchQuestionsTask, type QuestionForMatching } from './prompts/match-questions.js'
+import { readQuestionsTask } from './prompts/read-questions.js'
+import { questionHash, type QuestionReading, type ReadingKind } from './question-reading.js'
 import { assessReadiness, questionKey, standardField, type FilledValue, type Readiness, type ReadinessInput } from './readiness.js'
-import { neverDrafted, type NeverDrafted } from './never-drafted.js'
-import { answerDrafts, applicantDetails, questionMatchRuns, savedAnswers } from './schema.js'
+import { neverDrafted, takesAnswer, type NeverDrafted } from './never-drafted.js'
+import { answerDrafts, applicantDetails, questionMatchRuns, questionReadings, savedAnswers } from './schema.js'
 import type { AnswerDraft, ApplicantDetails, SaveAnswer, SavedAnswer } from './types.js'
 
 // ---------------------------------------------------------------------------
@@ -105,6 +107,17 @@ export async function newestJobDrafts(scope: TenantScope): Promise<Map<string, D
   return new Map(rows.flatMap((row) => (row.jobId ? [[jobDraftKey(row.jobId, row.questionKey), row] as const] : [])))
 }
 
+/** The stored readings of these questions at the current task version, by question hash. */
+export async function storedReadings(db: Db, hashes: readonly string[]): Promise<Map<string, { readonly id: string; readonly reading: QuestionReading }>> {
+  const stored = new Map<string, { readonly id: string; readonly reading: QuestionReading }>()
+  for (let i = 0; i < hashes.length; i += 500) {
+    const rows = await db.select().from(questionReadings)
+      .where(and(inArray(questionReadings.questionHash, hashes.slice(i, i + 500)), eq(questionReadings.taskVersion, readQuestionsTask.version)))
+    for (const row of rows) stored.set(row.questionHash, { id: row.id, reading: row.reading })
+  }
+  return stored
+}
+
 // ---------------------------------------------------------------------------
 // Readiness
 
@@ -121,6 +134,10 @@ export type JobReadiness =
     readonly suggestions: ReadonlyMap<string, Suggestion>
     /** The newest draft for each blocking question, or why it has none. Never used until accepted. */
     readonly drafts: ReadonlyMap<string, AnswerDraft>
+    /** Blocking questions no draft is ever made for, and why: code's rules first, then the stored reading. */
+    readonly neverDrafted: ReadonlyMap<string, NeverDrafted>
+    /** Blocking questions answered for each job separately (read as motivation): an answer to one is for this job only. */
+    readonly perJob: ReadonlySet<string>
   }
 
 type JobRef = Pick<Job, 'id' | 'sourceId' | 'externalId'>
@@ -170,7 +187,15 @@ function suggestionFor(question: FormQuestion, saved: SavedAnswer, input: Readin
   return answer?.source === 'saved' && answer.value ? { savedQuestionKey: saved.questionKey, savedLabel: saved.label, value: answer.value } : null
 }
 
-function readinessFrom(jobs: readonly JobRef[], forms: Awaited<ReturnType<typeof getApplicationForms>>, supported: ReadonlySet<string>, inputs: CandidateInputs): Map<string, JobReadiness> {
+/** Why a question the candidate answers gets no draft, if it never does; known once read when only the reading says so. */
+function noDraftReason(question: FormQuestion, kind: ReadingKind | undefined): NeverDrafted | null {
+  return neverDrafted(question) ?? (!takesAnswer(question) ? 'no_record' : kind === 'owner_only' ? 'owner_only' : null)
+}
+
+function readinessFrom(
+  jobs: readonly JobRef[], forms: Awaited<ReturnType<typeof getApplicationForms>>, supported: ReadonlySet<string>,
+  inputs: CandidateInputs, readings: ReadonlyMap<string, ReadingKind>,
+): Map<string, JobReadiness> {
   const byKey = new Map(inputs.saved.map((s) => [s.questionKey, s]))
   const result = new Map<string, JobReadiness>()
   for (const job of jobs) {
@@ -185,25 +210,35 @@ function readinessFrom(jobs: readonly JobRef[], forms: Awaited<ReturnType<typeof
     const readiness = assessReadiness(stored.form, input)
     const suggestions = new Map<string, Suggestion>()
     const drafts = new Map<string, AnswerDraft>()
+    const never = new Map<string, NeverDrafted>()
+    const perJob = new Set<string>()
     for (const blocker of readiness.blockers) {
       const saved = byKey.get(inputs.matches[blocker.questionKey] ?? '')
       const suggestion = saved ? suggestionFor(blocker.question, saved, inputs.input) : null
       if (suggestion) suggestions.set(blocker.questionKey, suggestion)
       const draft = inputs.jobDrafts.get(jobDraftKey(job.id, blocker.questionKey)) ?? inputs.drafts.get(blocker.questionKey)
       if (draft) drafts.set(blocker.questionKey, draft)
+      if (standardField(blocker.question) !== null) continue
+      const kind = readings.get(questionHash(blocker.question))
+      const reason = noDraftReason(blocker.question, kind)
+      if (reason) never.set(blocker.questionKey, reason)
+      if (kind === 'motivation') perJob.add(blocker.questionKey)
     }
-    result.set(job.id, { kind: 'assessed', readiness, fetchedAt: stored.fetchedAt, suggestions, drafts })
+    result.set(job.id, { kind: 'assessed', readiness, fetchedAt: stored.fetchedAt, suggestions, drafts, neverDrafted: never, perJob })
   }
   return result
 }
 
-/** Readiness of each job for the candidate: one read of their inputs and one of the stored forms. */
+/** Readiness of each job for the candidate: one read of their inputs, one of the stored forms and one of their questions' readings. */
 export async function readinessForJobs(db: Db, userId: string, jobs: readonly JobRef[]): Promise<Map<string, JobReadiness>> {
   const [inputs, forms] = await Promise.all([candidateInputs(db, userId), getApplicationForms(db, jobs)])
+  const hashes = new Set([...forms.values()].flatMap((stored) => stored.form.questions)
+    .filter((question) => standardField(question) === null).map(questionHash))
+  const readings = new Map([...await storedReadings(db, [...hashes])].map(([hash, stored]) => [hash, stored.reading.kind]))
   const sourceIds = [...new Set(jobs.map((j) => j.sourceId))]
   const supported = new Set<string>()
   for (const sourceId of sourceIds) if (await sourcePublishesForms(db, sourceId)) supported.add(sourceId)
-  return readinessFrom(jobs, forms, supported, inputs)
+  return readinessFrom(jobs, forms, supported, inputs, readings)
 }
 
 /**
@@ -241,21 +276,28 @@ export type OpenQuestion = {
   readonly draftsByJob: ReadonlyMap<string, AnswerDraft>
   /** Set when no draft is ever made for this question: only the candidate answers it. */
   readonly neverDrafted: NeverDrafted | null
+  /** Answered for each job separately (motivation): every answer to it, drafted or not, is for one job. */
+  readonly perJob: boolean
 }
 
 /** Every question blocking at least one job, most widely blocking first: answering the top one unblocks the most. */
 export function openQuestions(readiness: ReadonlyMap<string, JobReadiness>): OpenQuestion[] {
-  type Entry = { question: FormQuestion; jobIds: string[]; suggestion: Suggestion | null; draft: AnswerDraft | null; draftsByJob: Map<string, AnswerDraft> }
+  type Entry = {
+    question: FormQuestion; jobIds: string[]; suggestion: Suggestion | null; draft: AnswerDraft | null; draftsByJob: Map<string, AnswerDraft>
+    neverDrafted: NeverDrafted | null; perJob: boolean
+  }
   const byKey = new Map<string, Entry>()
   for (const [jobId, job] of readiness) {
     if (job.kind !== 'assessed') continue
     for (const blocker of job.readiness.blockers) {
-      const entry: Entry = byKey.get(blocker.questionKey) ?? { question: blocker.question, jobIds: [], suggestion: null, draft: null, draftsByJob: new Map() }
+      const entry: Entry = byKey.get(blocker.questionKey) ?? { question: blocker.question, jobIds: [], suggestion: null, draft: null, draftsByJob: new Map(), neverDrafted: null, perJob: false }
       entry.jobIds.push(jobId)
       entry.suggestion ??= job.suggestions.get(blocker.questionKey) ?? null
       const draft = job.drafts.get(blocker.questionKey) ?? null
       if (draft?.jobId) entry.draftsByJob.set(draft.jobId, draft)
       else entry.draft ??= draft
+      entry.neverDrafted ??= job.neverDrafted.get(blocker.questionKey) ?? null
+      entry.perJob ||= job.perJob.has(blocker.questionKey)
       byKey.set(blocker.questionKey, entry)
     }
   }
@@ -263,7 +305,7 @@ export function openQuestions(readiness: ReadonlyMap<string, JobReadiness>): Ope
     .map(([key, entry]): OpenQuestion => ({
       questionKey: key, label: entry.question.label, question: entry.question,
       answeredBy: standardField(entry.question) ?? 'saved_answer', jobIds: entry.jobIds, suggestion: entry.suggestion,
-      draft: entry.draft, draftsByJob: entry.draftsByJob, neverDrafted: neverDrafted(entry.question),
+      draft: entry.draft, draftsByJob: entry.draftsByJob, neverDrafted: entry.neverDrafted, perJob: entry.perJob,
     }))
     .sort((a, b) => b.jobIds.length - a.jobIds.length || a.label.localeCompare(b.label))
 }
@@ -291,7 +333,8 @@ export type MatchOutcome = { readonly kind: 'matched'; readonly suggestions: num
 export async function refreshQuestionMatches(db: Db, userId: string, match: MatchQuestions): Promise<Result<MatchOutcome>> {
   const inputs = await candidateInputs(db, userId)
   const jobs = await jobsToApplyTo(db, userId)
-  const readiness = readinessFrom(jobs, await getApplicationForms(db, jobs), new Set(), inputs)
+  // Pairing needs only the blockers: no sources or readings.
+  const readiness = readinessFrom(jobs, await getApplicationForms(db, jobs), new Set(), inputs, new Map())
   const open = openQuestions(readiness).filter((q) => q.answeredBy === 'saved_answer').slice(0, MAX_PER_SIDE)
   const answered = inputs.saved.slice(0, MAX_PER_SIDE)
   if (open.length === 0 || answered.length === 0) return ok({ kind: 'nothing_to_match' })

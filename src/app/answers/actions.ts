@@ -7,8 +7,9 @@ import { withTenant } from '@/lib/db/tenancy'
 import { DEV_USER } from '@/lib/dev-user'
 import { getEnv } from '@/lib/env'
 import {
-  acceptSuggestion, deleteSavedAnswer, queueQuestionMatch, saveAnswer, SaveAnswerSchema,
+  acceptDraft, acceptSuggestion, deleteSavedAnswer, queueDraftNow, queueQuestionMatch, saveAnswer, SaveAnswerSchema,
 } from '@/modules/application-answers'
+import { parseAnswer, parseJobId } from './answer-input'
 
 const BackSchema = z.string().refine((value) => {
   if (!value.startsWith('/answers') && !value.startsWith('/jobs/')) return false
@@ -39,19 +40,30 @@ async function refreshSuggestions(back: string): Promise<never> {
 
 export async function saveAnswerAction(form: FormData): Promise<void> {
   const back = BackSchema.parse(form.get('back'))
-  const kind = form.get('kind')
-  const text = form.get('text')
-  const labels = form.getAll('option')
-  if ((kind === 'choice' && labels.length === 0)
-    || (kind === 'text' && (text === null || (typeof text === 'string' && text.trim() === '')))) {
-    redirect(errorUrl(back, 'Choose or write an answer.'))
-  }
+  const answer = parseAnswer(form)
+  if (!answer.ok) redirect(errorUrl(back, answer.error.message))
+  const jobId = parseJobId(form)
+  if (!jobId.ok) redirect(errorUrl(back, jobId.error.message))
   const parsed = SaveAnswerSchema.safeParse({
     label: form.get('label'),
-    answer: kind === 'choice' ? { kind, labels } : { kind, text },
+    answer: answer.value,
+    ...(jobId.value === undefined ? {} : { jobId: jobId.value }),
   })
   if (!parsed.success) redirect(errorUrl(back, parsed.error.issues[0]?.message ?? 'Check your answer.'))
   const result = await withTenant(getDb(), DEV_USER.id, (scope) => saveAnswer(scope, parsed.data))
+  if (!result.ok) redirect(errorUrl(back, result.error.message))
+  await refreshSuggestions(back)
+}
+
+export async function acceptDraftAction(form: FormData): Promise<void> {
+  const back = BackSchema.parse(form.get('back'))
+  const draftId = z.uuid().safeParse(form.get('draftId'))
+  if (!draftId.success) redirect(errorUrl(back, 'Choose a draft to use.'))
+  const answer = parseAnswer(form)
+  if (!answer.ok) redirect(errorUrl(back, answer.error.message))
+  const result = await withTenant(getDb(), DEV_USER.id, (scope) => acceptDraft(scope, {
+    draftId: draftId.data, answer: answer.value,
+  }))
   if (!result.ok) redirect(errorUrl(back, result.error.message))
   await refreshSuggestions(back)
 }
@@ -69,7 +81,20 @@ export async function deleteAnswerAction(form: FormData): Promise<void> {
   const back = BackSchema.parse(form.get('back'))
   const parsed = z.string().min(1).safeParse(form.get('questionKey'))
   if (!parsed.success) redirect(errorUrl(back, 'Choose a saved answer to delete.'))
-  const result = await withTenant(getDb(), DEV_USER.id, (scope) => deleteSavedAnswer(scope, parsed.data))
+  const jobId = parseJobId(form)
+  if (!jobId.ok) redirect(errorUrl(back, jobId.error.message))
+  const result = await withTenant(getDb(), DEV_USER.id, (scope) => deleteSavedAnswer(scope, parsed.data, jobId.value))
   if (!result.ok) redirect(errorUrl(back, result.error.message))
   await refreshSuggestions(back)
+}
+
+export async function draftNowAction(form: FormData): Promise<void> {
+  const back = BackSchema.parse(form.get('back'))
+  const questionKey = z.string().trim().min(1).safeParse(form.get('questionKey'))
+  if (!questionKey.success) redirect(errorUrl(back, 'Choose a question to draft.'))
+  const result = await queueDraftNow(getEnv().REDIS_URL, DEV_USER.id, questionKey.data)
+  if (!result.ok) redirect(errorUrl(back, result.error.message))
+  const url = new URL(back, 'http://localhost')
+  url.searchParams.set('notice', 'Drafting started. Refresh in a minute to see the draft.')
+  redirect(`${url.pathname}${url.search}${url.hash}`)
 }

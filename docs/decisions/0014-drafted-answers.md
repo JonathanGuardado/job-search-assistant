@@ -115,6 +115,13 @@ Experience and motivation drafts run on the primary model (decision 0015): they 
 A choice question read as experience ("Do you have experience with…? Yes/No") gets no draft:
 choosing is the owner's act.
 
+**The page knows what a question is before it is drafted** (2026-10-27). A question read as
+`owner_only` gets no draft row, and a motivation question has none until its first run, which
+the daily cap can delay. Readiness therefore looks up each question's stored reading: an
+`owner_only` reading marks the question never drafted (`owner_only`, beside code's own rules,
+and file uploads as `no_record`), and a `motivation` reading marks it answered per job, so an
+answer the owner writes before any draft exists is still for that job only.
+
 ## Consequences
 
 - The profile gains citizenships and an English level, without which authorization,

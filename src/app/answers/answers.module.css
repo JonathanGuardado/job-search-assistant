@@ -23,9 +23,19 @@
 .section .answerForm .option input { display: inline-block; flex-shrink: 0; width: auto; padding: 0; margin: 0; accent-color: #4057cf; }
 .suggestion { padding: 16px; margin-top: 16px; border: 1px solid #dce2ed; border-radius: 8px; background: #f6f8fc; white-space: pre-wrap; }
 .suggestion p { margin-top: 0; }
+.draft { padding: 16px; margin-top: 16px; border: 1px solid #dce2ed; border-radius: 8px; background: #f6f8fc; }
+.draft h4, .jobDraft h4 { margin: 0 0 8px; font-size: 14px; }
+.draft > p { margin: 8px 0; }
+.basis { padding-left: 22px; white-space: pre-wrap; }
+.basis li + li { margin-top: 6px; }
+.draftMarker { margin-top: 16px; }
+.disclosure { margin-top: 16px; }
+.disclosure summary { color: #4057cf; cursor: pointer; font-weight: 600; }
+.jobDraft { margin-top: 20px; padding: 16px; border: 1px solid #e1e6ee; border-radius: 8px; }
 .section button { min-height: 38px; padding: 8px 14px; border: 1px solid #d5dce7; border-radius: 8px; background: #fff; color: #202b3e; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
 .section button:hover { background: #f0f3f9; }
-.section :is(input, textarea, button, a):focus-visible { outline: 3px solid #8195ef; outline-offset: 3px; }
+.section :is(input, textarea, button, a, summary):focus-visible { outline: 3px solid #8195ef; outline-offset: 3px; }
 .deleteForm { margin-top: 12px; }
 .error { padding: 16px 20px; margin-bottom: 20px; border: 1px solid #f0c7cd; border-radius: 10px; background: #fff4f5; color: #942937; }
+.notice { padding: 16px 20px; margin-bottom: 20px; border: 1px solid #dce2ed; border-radius: 10px; background: #edf0ff; color: #4057cf; }
 @media(max-width: 650px) { .section { padding: 20px; } .page h1 { font-size: 28px; } }

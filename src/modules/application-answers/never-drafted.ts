@@ -6,7 +6,8 @@ import type { FormQuestion } from '@/modules/job-sources'
  * the owner: a question caught by mistake costs them one answer, never a wrong one.
  */
 
-export type NeverDrafted = 'consent' | 'demographic' | 'no_record'
+/** owner_only: the stored reading says only the candidate can answer it (service.ts), not code's patterns. */
+export type NeverDrafted = 'consent' | 'demographic' | 'no_record' | 'owner_only'
 
 /** Agreeing, certifying or acknowledging is the owner's own act. */
 const CONSENT = [/\b(I|you)\s+(agree|acknowledge|certify|consent|confirm|understand|attest)\b/i, /\bconsent\b/i, /\backnowledge\b/i, /\bprivacy (notice|policy|statement)\b/i, /\brecord and transcribe\b/i]
@@ -19,6 +20,9 @@ const NO_RECORD = [
   /\bnon-?compete\b|\bpost-employment restrictions?\b|\brestrictive covenants?\b|\bemployment agreements?\b/i,
   /\b(your|my) own (computer|device|laptop|machine|equipment|hardware)\b/i,
 ]
+
+/** Whether any of a question's fields takes a saved answer: a file upload does not. */
+export const takesAnswer = (question: FormQuestion) => question.fields.some((f) => f.type !== 'file' && f.type !== 'hidden')
 
 export function neverDrafted(question: FormQuestion): NeverDrafted | null {
   if (question.section === 'demographic' || question.section === 'compliance') return 'demographic'
