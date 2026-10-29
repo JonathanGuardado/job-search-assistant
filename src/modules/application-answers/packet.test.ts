@@ -64,7 +64,8 @@ describe('the packet: everything the browser will enter, fixed at review (decisi
     const packet = unwrap(await buildPacket(db, userId, job.id))
     expect(packet).toMatchObject({ jobId: job.id, rawJobId: unwrap(await getJobRawVersion(db, job.id)), resume: { id: resume.id, sha256: resume.contentSha256 } })
     const item = (label: string) => packet.items.find((i) => i.label === label)
-    expect(item('First Name')).toEqual({ kind: 'fill', questionKey: questionKey('First Name'), label: 'First Name', required: true, field: 'first_name', value: { kind: 'text', text: 'Ana' }, source: 'details', origin: null })
+    expect(item('First Name')).toEqual({ kind: 'fill', questionKey: questionKey('First Name'), label: 'First Name', fields: ['first_name'], required: true, field: 'first_name', value: { kind: 'text', text: 'Ana' }, source: 'details', origin: null })
+    expect(item('Resume/CV')).toMatchObject({ fields: ['resume', 'resume_text'] })
     expect(item('Resume/CV')).toMatchObject({ kind: 'fill', field: 'resume', value: { kind: 'file', resumeId: resume.id }, source: 'resume' })
     expect(item(PYTHON)).toMatchObject({ kind: 'fill', source: 'saved', origin: 'written_draft', value: { kind: 'text', text: 'I built the payments API in Python.' } })
     // A choice carries the form's own option value, what the form submits.

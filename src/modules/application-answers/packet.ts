@@ -17,9 +17,12 @@ import { candidateInputs, jobsToApplyTo, readinessFrom } from './service.js'
 /** Where a saved answer came from: the owner's own words, a profile-fact draft, or a draft a model wrote. */
 export type PacketOrigin = 'owner' | 'profile_draft' | 'written_draft'
 
+/** Every item names its question's form fields, so the filler can tell the page's controls it expected from ones it did not. */
+type Question = { readonly questionKey: string; readonly label: string; readonly fields: readonly string[] }
+
 export type PacketItem =
-  | {
-    readonly kind: 'fill'; readonly questionKey: string; readonly label: string; readonly required: boolean
+  | Question & {
+    readonly kind: 'fill'; readonly required: boolean
     /** The form field the value goes in. */
     readonly field: string
     readonly value: FilledValue
@@ -28,9 +31,9 @@ export type PacketItem =
     readonly origin: PacketOrigin | null
   }
   /** Required, and left for the owner to finish in the browser. */
-  | { readonly kind: 'unresolved'; readonly questionKey: string; readonly label: string; readonly reason: NonNullable<QuestionAnswer['blocker']> }
+  | Question & { readonly kind: 'unresolved'; readonly reason: NonNullable<QuestionAnswer['blocker']> }
   /** Optional, and left empty. */
-  | { readonly kind: 'empty'; readonly questionKey: string; readonly label: string }
+  | Question & { readonly kind: 'empty' }
 
 export type Packet = {
   readonly jobId: string
@@ -81,10 +84,11 @@ export async function buildPacket(db: Db, userId: string, jobId: string): Promis
   const items = readiness.readiness.answers.flatMap((answer): PacketItem[] => {
     const { questionKey: key, question: { label, required } } = answer
     if (answer.source === 'form') return []
+    const question = { questionKey: key, label, fields: answer.question.fields.map((f) => f.name) }
     if (answer.value !== null && answer.field !== null && answer.source !== 'none') {
-      return [{ kind: 'fill', questionKey: key, label, required, field: answer.field, value: answer.value, source: answer.source, origin: answer.source === 'saved' ? originOf(key) : null }]
+      return [{ ...question, kind: 'fill', required, field: answer.field, value: answer.value, source: answer.source, origin: answer.source === 'saved' ? originOf(key) : null }]
     }
-    return [answer.blocker !== null ? { kind: 'unresolved', questionKey: key, label, reason: answer.blocker } : { kind: 'empty', questionKey: key, label }]
+    return [answer.blocker !== null ? { ...question, kind: 'unresolved', reason: answer.blocker } : { ...question, kind: 'empty' }]
   })
   const pinned = {
     jobId: job.id, rawJobId: rawJobId.value, formFingerprint: stored.fingerprint,

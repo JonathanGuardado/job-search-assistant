@@ -1,4 +1,4 @@
-import { mkdir, writeFile } from 'node:fs/promises'
+import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { chromium, type Page, type Request } from 'playwright'
 
@@ -8,7 +8,10 @@ import { chromium, type Page, type Request } from 'playwright'
  * that is not a read is recorded and aborted before it leaves the browser, and only made-up
  * values are typed. Interception like this belongs here and in tests, never in the filler.
  *
- *   pnpm tsx scripts/greenhouse-dry-run.ts <out-dir> [--submit <board> <job-id>] <form-url>…
+ *   pnpm tsx scripts/greenhouse-dry-run.ts <out-dir> [--har] [--submit <board> <job-id>] <form-url>…
+ *
+ * --har also records what the page loaded from Greenhouse, reads only, to <out-dir>/<page>.har:
+ * the automation module's tests replay it offline.
  *
  * --submit fills every question the board's API lists with made-up values (the first option
  * of each choice, a one-page fake PDF), presses Submit, and records the requests it makes.
@@ -113,10 +116,21 @@ function applicationRequest(after: readonly Seen[], submit: { board: string; job
   }
 }
 
-async function inspect(url: string, outDir: string, submit: { board: string; jobId: string } | null): Promise<boolean> {
+/** Keeps a recording's reads only: nothing the page tried to send, made up or not, stays in a fixture. */
+async function keepReads(harPath: string): Promise<void> {
+  const har: { log: { entries: { request: { method: string } }[] } } = JSON.parse(await readFile(harPath, 'utf8'))
+  har.log.entries = har.log.entries.filter((entry) => READS.has(entry.request.method))
+  await writeFile(harPath, JSON.stringify(har))
+}
+
+async function inspect(url: string, outDir: string, submit: { board: string; jobId: string } | null, har: boolean): Promise<boolean> {
   const browser = await chromium.launch()
+  const slug = new URL(url).pathname.replaceAll('/', '_') + new URL(url).search.replace(/[^a-z0-9]/gi, '_')
+  const harPath = join(outDir, `${slug}.har`)
   // A neutral time zone and locale: the page sends the browser's time zone with the application.
-  const context = await browser.newContext({ timezoneId: 'UTC', locale: 'en-US' })
+  const context = await browser.newContext({
+    timezoneId: 'UTC', locale: 'en-US', ...(har ? { recordHar: { path: harPath, content: 'embed' as const, urlFilter: /greenhouse\.io/ } } : {}),
+  })
   const seen: Seen[] = []
   await context.route('**/*', async (route) => {
     const request = route.request()
@@ -150,7 +164,6 @@ async function inspect(url: string, outDir: string, submit: { board: string; job
   }
   const afterSubmit = submit ? seen.slice(before).filter((r) => r.outcome !== 'sent') : []
   const frames = page.frames().map((f) => f.url())
-  const slug = new URL(url).pathname.replaceAll('/', '_') + new URL(url).search.replace(/[^a-z0-9]/gi, '_')
   await writeFile(join(outDir, `${slug}.html`), await page.content())
   const capture = submit ? applicationRequest(afterSubmit, submit) : null
   if (submit && capture) {
@@ -164,7 +177,9 @@ async function inspect(url: string, outDir: string, submit: { board: string; job
   await writeFile(join(outDir, `${slug}.json`), JSON.stringify({ url, finalUrl: page.url(), status: response?.status() ?? null, frames, controls, filled, invalid, afterSubmit, requests: seen }, null, 2))
   if (submit) console.log(JSON.stringify({ filled, invalid, afterSubmit: afterSubmit.map((r) => `${r.method} ${r.url.slice(0, 120)}${r.outcome === 'sent' ? '' : ` (${r.outcome})`}`) }, null, 2))
   console.log(`${url}\n  → ${page.url()} (${response?.status()})  frames: ${frames.length}  controls: ${controls.length}  requests: ${seen.length}, aborted: ${seen.filter((s) => s.outcome === 'aborted').length}, mocked: ${seen.filter((s) => s.outcome === 'mocked').length}`)
+  await context.close()
   await browser.close()
+  if (har) await keepReads(harPath)
   return capture?.conclusive ?? true
 }
 
@@ -173,11 +188,13 @@ function describe(request: Request, outcome: Seen['outcome']): Seen {
   return { method: request.method(), url: request.url(), type: request.resourceType(), outcome, postData: outcome === 'mocked' ? fieldNames(body).join(', ') : body }
 }
 
-const [outDir, ...rest] = process.argv.slice(2)
+const [outDir, ...flagged] = process.argv.slice(2)
+const har = flagged[0] === '--har'
+const rest = har ? flagged.slice(1) : flagged
 const submit = rest[0] === '--submit' && rest[1] && rest[2] ? { board: rest[1], jobId: rest[2] } : null
 const urls = submit ? rest.slice(3) : rest
-if (!outDir || urls.length === 0) throw new Error('usage: greenhouse-dry-run.ts <out-dir> [--submit <board> <job-id>] <form-url>…')
+if (!outDir || urls.length === 0) throw new Error('usage: greenhouse-dry-run.ts <out-dir> [--har] [--submit <board> <job-id>] <form-url>…')
 await mkdir(outDir, { recursive: true })
 let conclusive = true
-for (const url of urls) conclusive = (await inspect(url, outDir, submit)) && conclusive
+for (const url of urls) conclusive = (await inspect(url, outDir, submit, har)) && conclusive
 if (!conclusive) process.exitCode = 1

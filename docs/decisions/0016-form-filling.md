@@ -73,10 +73,15 @@ were answered in the browser as S3 would.
   fields.
 - **reCAPTCHA Enterprise** (invisible) runs on every form, and its token goes out with the
   submission.
+- **Files go out when attached, not at Submit.** Attaching a file uploads it at once, by a
+  presigned POST to Greenhouse's S3 bucket (`grnhse-prod-jben-*.s3.amazonaws.com`). The dry
+  run could not tell, since it attached the files and pressed Submit in one go; the filler's
+  tests showed it on 2026-10-28. So the resume reaches Greenhouse's storage while the form is
+  being filled, before the owner presses Submit. It is the resume the owner reviewed in the
+  packet.
 - **What Submit sends, in order:**
-  1. one presigned POST per file to Greenhouse's S3 bucket (`grnhse-prod-jben-*.s3.amazonaws.com`);
-  2. a reCAPTCHA reload;
-  3. the application: one JSON `fetch` POST to `boards.greenhouse.io/[embed/]<board>/jobs/<id>`.
+  1. a reCAPTCHA reload;
+  2. the application: one JSON `fetch` POST to `boards.greenhouse.io/[embed/]<board>/jobs/<id>`.
      It carries the details, each answer by question id (`text_value`, `boolean_value` or the
      chosen option ids), the location with its coordinates, the uploaded files' URLs, the
      demographic answers, the time zone and the reCAPTCHA token.
@@ -203,8 +208,13 @@ owner), and ends `submitted`, `uncertain`, `failed`, `abandoned` or `stale`.
   evidence rules a submission out: an error, Cancel, a timeout, a lost lease, or a crash. That
   evidence requires capture attached to the browser context before the first page opened, still
   attached until the browser was confirmed closed, and no outgoing request beyond the known
-  safe ones (Greenhouse analytics on `c.spl.greenhouse.io`). An S3 upload or a reCAPTCHA reload
-  means Submit was pressed. If capture failed or saw anything else, the fill is uncertain.
+  safe ones:
+  - Greenhouse analytics on `c.spl.greenhouse.io`;
+  - the S3 upload of each file the filler attached, made while it was filling.
+
+  A reCAPTCHA reload or the application request means Submit was pressed. An upload after the
+  filler finished is the owner's doing, and is not ruled safe. If capture failed or saw
+  anything else, the fill is uncertain.
   The owner settles an uncertain fill with "I submitted it" or "I didn't". Only "I didn't"
   frees the slot.
 - **Recording takes two writes.** First the captured submission and outcome, with status
