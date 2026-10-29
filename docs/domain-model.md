@@ -273,14 +273,31 @@ Owned by `applications` (decision 0012). One per job the candidate applied to; n
 deleted (the app role has no DELETE): a mistaken entry is withdrawn.
 
 `id`, `user_id`, `job_id`, `raw_job_id` (the posting version applied to; the posting is
-rebuilt from it after the job closes), `status` (`applied` | `interviewing` | `offer` |
+rebuilt from it after the job closes; for an assisted application, the version the candidate
+reviewed), `mode` (`manual`, or `assisted`: filled by the system, submitted by the candidate;
+decision 0016), `status` (`applied` | `interviewing` | `offer` |
 `accepted` | `rejected` | `withdrawn` | `no_response`), `applied_on` (date),
 `resume_id` (the exact immutable version sent; null if not stored here, or set null if that
 version is later deleted), `salary_asked_minor` and `salary_asked_currency` (both or
 neither), `source_url`, `contact` (jsonb: name, email, url), `notes`, `outcome_reason`,
 `created_at`, `updated_at`. Unique on `(user_id, job_id)`.
 
-`mode`, `cover_letter` and `answers` arrive with phases 2 and 3.
+`cover_letter` arrives with phase 3. What an assisted application sent is on its fill
+(`application_fills`), not here.
+
+### `application_fills`
+Owned by `automation` (decision 0016). One per attempt to fill a job's form in a visible
+browser the candidate submits; never deleted. `job_id`, `raw_job_id` and `form_fingerprint`
+(what was reviewed), `packet` (jsonb: every field the browser enters, its value and source, and
+what is left to the candidate) and `packet_hash`, `status` (`prepared`, `queued`, `launching`,
+`filling`, `waiting`, `submitted`, `uncertain`, `failed`, `abandoned`, `stale`), `lease_owner`
+and `lease_expires_at` (both or neither), `fill_report` (what the filler did with each field, and
+controls the page showed that the packet did not describe), `submission` (the application
+request as captured from the network, without the reCAPTCHA token; files by name, size and
+fingerprint), `outcome` (`confirmed`, `rejected`, `unknown`, `user_reported`) and
+`outcome_evidence`, `application_id` (only when submitted; referenced with `user_id`, as events
+are), `error`, `created_at`, `updated_at`. A partial unique index allows one fill in progress per
+`(user_id, job_id)`: `queued` through `uncertain`, or `submitted` with no application yet.
 
 ### `application_events`
 Owned by `applications`. Append-only: the app role has no UPDATE or DELETE. `id`,

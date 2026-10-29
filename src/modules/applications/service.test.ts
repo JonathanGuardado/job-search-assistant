@@ -54,6 +54,24 @@ describe('creating applications', () => {
     })
   })
 
+  test('an assisted application records the posting version reviewed, which must be this job\'s', async ({ db }) => {
+    const posting = aPosting()
+    const { board, job } = await aJob(db, posting)
+    const reviewed = unwrap(await getJobRawVersion(db, job.id))
+    await publish(db, board, [{ ...posting, content: '&lt;p&gt;Remote across LATAM. Now with Go.&lt;/p&gt;' }], new Date(Date.now() + 500))
+    expect(unwrap(await getJobRawVersion(db, job.id))).not.toBe(reviewed)
+    const { job: other } = await aJob(db)
+    const userId = await aCandidate(db)
+    await withTenant(db, userId, async (scope) => {
+      expect(await createApplication(scope, inputFor(job.id), { mode: 'assisted', rawJobId: unwrap(await getJobRawVersion(db, other.id)) }))
+        .toMatchObject({ ok: false, error: { code: 'invalid_input' } })
+      expect(unwrap(await createApplication(scope, inputFor(job.id), { mode: 'assisted', rawJobId: reviewed })))
+        .toMatchObject({ mode: 'assisted', rawJobId: reviewed })
+    })
+    const { application } = await loggedApplication(db)
+    expect(application.mode).toBe('manual')
+  })
+
   test('stores the chosen source, resume, contact, salary and notes', async ({ db }) => {
     const { job } = await aJob(db)
     const userId = await aCandidate(db)

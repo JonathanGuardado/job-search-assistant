@@ -11,6 +11,10 @@ import { z } from 'zod'
  */
 export const APPLICATION_STATUSES = ['applied', 'interviewing', 'offer', 'accepted', 'rejected', 'withdrawn', 'no_response'] as const
 export const ApplicationStatusSchema = z.enum(APPLICATION_STATUSES)
+
+/** manual: logged by the candidate; assisted: filled by the system in a browser, submitted by the candidate (decision 0016). */
+export const APPLICATION_MODES = ['manual', 'assisted'] as const
+export type ApplicationMode = (typeof APPLICATION_MODES)[number]
 export type ApplicationStatus = z.infer<typeof ApplicationStatusSchema>
 
 const isoDate = z.iso.date()
@@ -71,6 +75,7 @@ export type Application = {
   readonly jobId: string
   /** The posting version applied to; the posting can be rebuilt from it after the job closes. */
   readonly rawJobId: string
+  readonly mode: ApplicationMode
   readonly status: ApplicationStatus
   readonly appliedOn: string
   readonly resumeId: string | null

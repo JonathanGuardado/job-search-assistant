@@ -6,7 +6,7 @@ import { readNormalizedPosting, type NormalizedPosting } from '@/modules/job-sou
 import { getJob, getJobRawVersion, setJobUserState } from '@/modules/jobs'
 import { getResume } from '@/modules/resumes'
 import { applicationEvents, applications } from './schema.js'
-import type { Application, ApplicationEdit, ApplicationEvent, NewApplication, StatusChange } from './types.js'
+import type { Application, ApplicationEdit, ApplicationEvent, ApplicationMode, NewApplication, StatusChange } from './types.js'
 
 type ApplicationRow = typeof applications.$inferSelect
 export type ApplicationListItem = Application & { lastActivityOn: string }
@@ -36,16 +36,19 @@ async function checkDetails(scope: TenantScope, input: Pick<NewApplication, 'app
   return ok(undefined)
 }
 
-export async function createApplication(scope: TenantScope, input: NewApplication): Promise<Result<Application>> {
+/** How it was sent, and for an assisted application the posting version the candidate reviewed (decision 0016). */
+type Recorded = { readonly mode: ApplicationMode; readonly rawJobId: string | null }
+
+export async function createApplication(scope: TenantScope, input: NewApplication, recorded: Recorded = { mode: 'manual', rawJobId: null }): Promise<Result<Application>> {
   const job = await getJob(scope.db, input.jobId)
   if (!job.ok) return job
   const checked = await checkDetails(scope, input)
   if (!checked.ok) return checked
   if (await getApplicationForJob(scope, input.jobId)) return duplicateApplication()
-  const rawVersion = await getJobRawVersion(scope.db, input.jobId)
+  const rawVersion = recorded.rawJobId === null ? await getJobRawVersion(scope.db, input.jobId) : await ownVersion(scope, job.value, recorded.rawJobId)
   if (!rawVersion.ok) return rawVersion
   const [row] = await scope.db.insert(applications).values({
-    userId: scope.userId, jobId: input.jobId, rawJobId: rawVersion.value, status: 'applied',
+    userId: scope.userId, jobId: input.jobId, rawJobId: rawVersion.value, mode: recorded.mode, status: 'applied',
     appliedOn: input.appliedOn, resumeId: input.resumeId,
     salaryAskedMinor: input.salaryAsked?.amountMinor ?? null,
     salaryAskedCurrency: input.salaryAsked?.currency ?? null,
@@ -61,6 +64,13 @@ export async function createApplication(scope: TenantScope, input: NewApplicatio
   // The application's foreign key keeps this job alive. Abort the transaction if that invariant breaks.
   if (!state.ok) throw new Error(state.error.message)
   return ok(toApplication(row))
+}
+
+/** The posting version given, if it is a version of this job's own posting. */
+async function ownVersion(scope: TenantScope, job: { readonly sourceId: string; readonly externalId: string }, rawJobId: string): Promise<Result<string>> {
+  const posting = await readNormalizedPosting(scope.db, rawJobId)
+  return posting.ok && posting.value.sourceId === job.sourceId && posting.value.externalId === job.externalId
+    ? ok(rawJobId) : err(domainError('invalid_input', 'That posting version is not this job\'s.'))
 }
 
 export async function changeStatus(scope: TenantScope, input: StatusChange): Promise<Result<Application>> {

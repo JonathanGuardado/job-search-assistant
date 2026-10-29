@@ -5,7 +5,7 @@ import { rawJobs } from '@/modules/job-sources'
 import { jobs } from '@/modules/jobs'
 import { users } from '@/modules/profiles'
 import { resumes } from '@/modules/resumes'
-import { APPLICATION_STATUSES, type Contact } from './types.js'
+import { APPLICATION_MODES, APPLICATION_STATUSES, type Contact } from './types.js'
 
 const oneOf = (column: AnyPgColumn, values: readonly string[]): SQL =>
   sql`${column} in (${sql.raw(values.map((v) => `'${v.replaceAll("'", "''")}'`).join(', '))})`
@@ -26,6 +26,7 @@ export const applications = pgTable(
     jobId: uuid('job_id').notNull().references(() => jobs.id),
     /** The posting version applied to: rebuilt from raw_jobs after the posting goes offline. */
     rawJobId: uuid('raw_job_id').notNull().references(() => rawJobs.id),
+    mode: text('mode', { enum: APPLICATION_MODES }).notNull().default('manual'),
     status: text('status', { enum: APPLICATION_STATUSES }).notNull(),
     appliedOn: date('applied_on', { mode: 'string' }).notNull(),
     /** Set null if the candidate later deletes that resume version; the rest of the record stands. */
@@ -44,6 +45,7 @@ export const applications = pgTable(
     // Target of application_events' (application, user) key.
     unique('applications_id_user_key').on(t.id, t.userId),
     check('applications_status_check', oneOf(t.status, APPLICATION_STATUSES)),
+    check('applications_mode_check', oneOf(t.mode, APPLICATION_MODES)),
     check('applications_salary_check', sql`(${t.salaryAskedMinor} is null) = (${t.salaryAskedCurrency} is null) and (${t.salaryAskedMinor} is null or ${t.salaryAskedMinor} >= 0)`),
     tenantIsolation(),
   ],

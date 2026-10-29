@@ -19,6 +19,7 @@ export {
 export type { ApplicationListItem } from './service.js'
 
 export {
+  APPLICATION_MODES,
   APPLICATION_STATUSES,
   ApplicationEditSchema,
   ApplicationStatusSchema,
@@ -30,6 +31,7 @@ export {
 export type {
   Application,
   ApplicationEdit,
+  ApplicationMode,
   ApplicationEvent,
   ApplicationStatus,
   Contact,
