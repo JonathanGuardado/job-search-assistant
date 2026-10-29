@@ -109,8 +109,11 @@ gates close; 2.1 can be planned before then.
 | 2.5 | Read-only email | Claude Code | A real follow-up email becomes a suggested stage change the owner confirms |
 
 Sources track, alongside (Codex): **S.1** We Work Remotely; **S.2** one remote-job API
-plus cross-source duplicate detection; **S.3** adding a job by pasting its link. LinkedIn is
-out of scope. Each site's terms are checked before it is added.
+plus cross-source duplicate detection; **S.3** adding a job by pasting its link; **S.4** Ashby
+job boards (brief `prompts/codex/s4-ashby-adapter.md`; terms checked 2026-10-29: Ashby's terms
+bind its customers only and its job-postings API is public). LinkedIn is out of scope. Each
+site's terms are checked before it is added. On 2026-10-29, 131 remote-friendly Greenhouse
+and Lever boards were added (157 sources).
 
 Never sent automatically: anything not in "Can apply", any form with a CAPTCHA, any
 required question without an answer, a drafted answer unless the owner opted in, and any
