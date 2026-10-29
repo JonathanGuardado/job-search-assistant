@@ -83,7 +83,7 @@ export async function deleteSavedAnswer(scope: TenantScope, key: string, jobId: 
 }
 
 /** A saved answer, and whether a model wrote it: then no form asking for the candidate's own words uses it. */
-type ReusableAnswer = SavedAnswer & { readonly written: boolean }
+export type ReusableAnswer = SavedAnswer & { readonly written: boolean }
 
 /**
  * The candidate's saved answers, each marked written when it came from an experience or
@@ -164,7 +164,7 @@ export type JobReadiness =
 
 type JobRef = Pick<Job, 'id' | 'sourceId' | 'externalId'>
 
-type CandidateInputs = {
+export type CandidateInputs = {
   /** With the general saved answers only; a job's own answers are added for that job. */
   readonly input: ReadinessInput
   /** Answers for every job: the only ones offered for other questions. */
@@ -176,7 +176,7 @@ type CandidateInputs = {
   readonly jobDrafts: ReadonlyMap<string, AnswerDraft>
 }
 
-async function candidateInputs(db: Db, userId: string): Promise<CandidateInputs> {
+export async function candidateInputs(db: Db, userId: string): Promise<CandidateInputs> {
   return withTenant(db, userId, async (scope) => {
     const [details, resumes, profile, allSaved, drafts, jobDrafts, [run]] = await Promise.all([
       getApplicantDetails(scope), listResumes(scope), getCandidateProfile(scope), reusableAnswers(scope), latestDrafts(scope), newestJobDrafts(scope),
@@ -214,7 +214,7 @@ function noDraftReason(question: FormQuestion, kind: ReadingKind | undefined): N
   return neverDrafted(question) ?? (!takesAnswer(question) ? 'no_record' : kind === 'owner_only' ? 'owner_only' : null)
 }
 
-function readinessFrom(
+export function readinessFrom(
   jobs: readonly JobRef[], forms: Awaited<ReturnType<typeof getApplicationForms>>, supported: ReadonlySet<string>,
   inputs: CandidateInputs, readings: ReadonlyMap<string, ReadingKind>,
 ): Map<string, JobReadiness> {

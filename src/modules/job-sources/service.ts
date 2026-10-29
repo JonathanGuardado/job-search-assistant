@@ -228,6 +228,13 @@ export async function getApplicationForms(db: Db, postings: readonly PostingRef[
   return found
 }
 
+/** One posting's stored form, with a fingerprint of the payload it was read from: a fill is tied to it (decision 0016). */
+export async function getStoredApplicationForm(db: Db, posting: PostingRef): Promise<(StoredApplicationForm & { readonly fingerprint: string }) | null> {
+  const [row] = await db.select({ form: applicationForms.form, payload: applicationForms.payload, fetchedAt: applicationForms.fetchedAt }).from(applicationForms)
+    .where(and(eq(applicationForms.sourceId, posting.sourceId), eq(applicationForms.externalId, posting.externalId)))
+  return row ? { form: row.form, fetchedAt: row.fetchedAt, fingerprint: contentHash(row.payload) } : null
+}
+
 export const postingKey = (posting: PostingRef): string => `${posting.sourceId}:${posting.externalId}`
 
 /** Whether the posting's source publishes a structured application form at all. */
