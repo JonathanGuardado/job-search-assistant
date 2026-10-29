@@ -160,3 +160,15 @@ describe('the own-words rule (decisions 0014 and 0016)', () => {
     expect(assessReadiness(form([attestation, optional]), input({ savedAnswers: saved(true) })).answers[1]).toMatchObject({ source: 'none', value: null, blocker: null })
   })
 })
+
+describe('data-protection consent', () => {
+  const consent: FormQuestion = {
+    label: 'Consent to the employer storing your application data (GDPR)', description: null, required: true, section: 'data_compliance',
+    fields: [{ name: 'data_compliance.gdpr.requires_consent', type: 'consent', options: [] }],
+  }
+
+  it('is never filled, not even from a saved answer: the candidate ticks it on the form', () => {
+    const savedAnswers = [{ questionKey: questionKey(consent.label), label: consent.label, answer: { kind: 'choice' as const, labels: ['Yes'] }, written: false }]
+    expect(assessReadiness(form([consent]), input({ savedAnswers })).answers[0]).toMatchObject({ source: 'none', value: null, blocker: 'consent' })
+  })
+})

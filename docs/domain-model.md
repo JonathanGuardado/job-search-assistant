@@ -218,8 +218,11 @@ from the dimensions, and the derivation is visible in the UI.
 Owned by `job-sources`. Shared: each posting's application form as its source last
 published it (decision 0013), keyed `(source_id, external_id)`. `payload` (verbatim, so the
 form can be re-read), `form` (jsonb: questions with label, required, section and fields;
-a field's type is `text`, `textarea`, `file`, `single_select`, `multi_select`, or `hidden`
-for values the form fills itself), `fetched_at`. A refreshed copy, not a log: replaced when
+a field's type is `text`, `textarea`, `file`, `single_select`, `multi_select`, `hidden`
+for values the form fills itself, or `consent` for a data-protection consent the candidate
+ticks on the form themselves, in section `data_compliance`; decision 0016), `fetched_at`.
+When the parser learns to read more of a payload, `pnpm forms:reread` re-reads every stored
+form from it, never re-fetching. A refreshed copy, not a log: replaced when
 fetched again. Only sources that publish a structured form (Greenhouse) have rows.
 
 ### `applicant_details`

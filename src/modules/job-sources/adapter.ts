@@ -62,8 +62,11 @@ export type NormalizedJob = z.infer<typeof NormalizedJobSchema>
  * A posting's application form, as the source publishes it (decision 0013). Only what is
  * needed to know what the form asks: no answers, nothing about any candidate.
  */
-/** hidden: filled by the form itself (a location widget's coordinates), never by the candidate. */
-export const FORM_FIELD_TYPES = ['text', 'textarea', 'file', 'single_select', 'multi_select', 'hidden'] as const
+/**
+ * hidden: filled by the form itself (a location widget's coordinates), never by the candidate.
+ * consent: a data-protection consent the candidate ticks on the form themselves (decision 0016).
+ */
+export const FORM_FIELD_TYPES = ['text', 'textarea', 'file', 'single_select', 'multi_select', 'hidden', 'consent'] as const
 export const FormFieldSchema = z.object({
   /** The source's own field name ("first_name", "question_42848303"), what a filled form submits. */
   name: z.string().min(1),
@@ -77,8 +80,11 @@ export const FormQuestionSchema = z.object({
   label: z.string().min(1),
   description: z.string().nullable(),
   required: z.boolean(),
-  /** main: the posting's own questions; location, compliance (e.g. US EEO) and demographic: the board's standard sections. */
-  section: z.enum(['main', 'location', 'compliance', 'demographic']),
+  /**
+   * main: the posting's own questions; location, compliance (e.g. US EEO) and demographic: the
+   * board's standard sections; data_compliance: data-protection consents the form requires.
+   */
+  section: z.enum(['main', 'location', 'compliance', 'demographic', 'data_compliance']),
   fields: z.array(FormFieldSchema).min(1),
 })
 export type FormQuestion = z.infer<typeof FormQuestionSchema>

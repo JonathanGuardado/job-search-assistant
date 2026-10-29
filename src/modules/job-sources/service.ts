@@ -193,6 +193,30 @@ export async function refreshApplicationForm(
   return ok({ kind: 'stored', form: fetched.value.form })
 }
 
+/**
+ * Reads every stored form again from its kept payload, never fetching, after the parser
+ * learns to read more of it (decision 0016: data-protection consent). A form that can no
+ * longer be read is removed, so readiness treats it as not fetched rather than trusting an
+ * older reading; the form-fetch queue tries it again.
+ */
+export async function rereadApplicationForms(db: Db): Promise<{ readonly reread: number; readonly removed: PostingRef[] }> {
+  const rows = await db.select({ id: applicationForms.id, sourceId: applicationForms.sourceId, externalId: applicationForms.externalId, payload: applicationForms.payload, adapterKey: jobSources.adapterKey })
+    .from(applicationForms).innerJoin(jobSources, eq(jobSources.id, applicationForms.sourceId))
+  const removed: PostingRef[] = []
+  let reread = 0
+  for (const row of rows) {
+    const read = getAdapter(row.adapterKey).readApplicationForm?.(row.payload)
+    if (read?.ok) {
+      await db.update(applicationForms).set({ form: read.value }).where(eq(applicationForms.id, row.id))
+      reread++
+    } else {
+      await db.delete(applicationForms).where(eq(applicationForms.id, row.id))
+      removed.push({ sourceId: row.sourceId, externalId: row.externalId })
+    }
+  }
+  return { reread, removed }
+}
+
 /** The stored form of each posting asked for that has one, keyed "sourceId:externalId". One query, for list views. */
 export async function getApplicationForms(db: Db, postings: readonly PostingRef[]): Promise<Map<string, StoredApplicationForm>> {
   const found = new Map<string, StoredApplicationForm>()

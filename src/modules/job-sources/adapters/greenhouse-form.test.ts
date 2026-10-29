@@ -67,6 +67,30 @@ describe('reading a Greenhouse application form', () => {
     expect(read(demographics)).toMatchObject({ ok: false, error: { code: 'invalid_input', message: expect.stringContaining('demographic') } })
   })
 
+  it('reads data-protection consent as questions only the candidate answers, and nothing when none is required', () => {
+    const canonical = fixture('canonical')
+    const consents = (form: unknown) => {
+      const read_ = read(form)
+      if (!read_.ok) throw new Error(read_.error.message)
+      return read_.value.questions.filter((q) => q.section === 'data_compliance')
+    }
+    // Every captured form says false to every flag.
+    expect(consents(canonical)).toEqual([])
+    const gdpr = { type: 'gdpr', requires_consent: true, requires_processing_consent: false, requires_retention_consent: true, retention_period: 365, demographic_data_consent_applies: true }
+    const asked = consents({ ...(canonical as object), data_compliance: [gdpr] })
+    expect(asked.map((q) => [q.label, q.required, q.fields.map((f) => f.type)])).toEqual([
+      ['Consent to the employer storing your application data (GDPR)', true, ['consent']],
+      ['Consent to the employer keeping your data for 365 days after this application (GDPR)', true, ['consent']],
+      ['Consent to the employer processing your demographic answers (GDPR)', true, ['consent']],
+    ])
+  })
+
+  it('refuses a form asking for a consent it does not know, rather than leaving it off', () => {
+    const canonical = fixture('canonical')
+    const unknown = { type: 'gdpr', requires_consent: false, requires_marketing_consent: true }
+    expect(read({ ...(canonical as object), data_compliance: [unknown] })).toMatchObject({ ok: false, error: { code: 'invalid_input', message: expect.stringContaining('requires_marketing_consent') } })
+  })
+
   it('fetches the form from the job board API and returns the verbatim payload', async () => {
     const payload = fixture('gitlab')
     const fetcher = vi.fn<typeof fetch>().mockResolvedValue(Response.json(payload))

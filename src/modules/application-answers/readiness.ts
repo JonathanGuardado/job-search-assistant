@@ -46,8 +46,9 @@ export type QuestionAnswer = {
   /**
    * Why a required question is unfilled; null when it is filled, or optional. own_words: the
    * saved answer was written by a model, and this form asks for the candidate's own words.
+   * consent: a data-protection consent, which only the candidate gives, on the form itself.
    */
-  readonly blocker: 'unanswered' | 'option_missing' | 'own_words' | null
+  readonly blocker: 'unanswered' | 'option_missing' | 'own_words' | 'consent' | null
 }
 
 export type Readiness = {
@@ -139,6 +140,10 @@ function fromProfile(question: FormQuestion, input: ReadinessInput): Attempt {
 
 function answer(question: FormQuestion, input: ReadinessInput, ownWords: boolean): QuestionAnswer {
   const key = questionKey(question.label)
+  // Never filled, whatever was saved: the candidate consents on the form themselves (decision 0016).
+  if (question.fields.some((f) => f.type === 'consent')) {
+    return { question, questionKey: key, source: 'none', field: null, value: null, blocker: question.required ? 'consent' : null }
+  }
   if (question.fields.every((f) => f.type === 'hidden')) {
     return { question, questionKey: key, source: 'form', field: null, value: null, blocker: null }
   }

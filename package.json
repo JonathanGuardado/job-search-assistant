@@ -27,6 +27,7 @@
     "match:explain": "tsx --env-file=.env.local scripts/match-explain.ts",
     "answers:draft": "tsx --env-file=.env.local scripts/draft-answers.ts",
     "forms:fetch": "tsx --env-file=.env.local scripts/forms-fetch.ts",
+    "forms:reread": "tsx --env-file=.env.local scripts/forms-reread.ts",
     "eval:matching": "tsx --env-file=.env.local evals/run-matching-eval.ts"
   },
   "dependencies": {

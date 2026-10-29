@@ -25,6 +25,7 @@ const NO_RECORD = [
 export const takesAnswer = (question: FormQuestion) => question.fields.some((f) => f.type !== 'file' && f.type !== 'hidden')
 
 export function neverDrafted(question: FormQuestion): NeverDrafted | null {
+  if (question.section === 'data_compliance') return 'consent'
   if (question.section === 'demographic' || question.section === 'compliance') return 'demographic'
   const text = `${question.label} ${question.description ?? ''}`
   if (CONSENT.some((pattern) => pattern.test(text))) return 'consent'

@@ -40,7 +40,34 @@ const GreenhouseFormSchema = z.looseObject({
   location_questions: z.array(GreenhouseQuestionSchema).nullable().optional(),
   compliance: z.array(z.looseObject({ questions: z.array(GreenhouseQuestionSchema).nullable().optional() })).nullable().optional(),
   demographic_questions: z.unknown().optional(),
+  data_compliance: z.array(z.looseObject({ type: z.string().min(1), retention_period: z.number().nullable().optional() })).nullable().optional(),
 })
+
+/** The consents Greenhouse's data_compliance can require, in the order the form shows them. */
+const CONSENTS: ReadonlyArray<readonly [string, (retentionDays: number | null) => string]> = [
+  ['requires_consent', () => 'Consent to the employer storing your application data'],
+  ['requires_processing_consent', () => 'Consent to the employer processing your application data'],
+  ['requires_retention_consent', (days) => `Consent to the employer keeping your data${days ? ` for ${days} days` : ''} after this application`],
+  ['demographic_data_consent_applies', () => 'Consent to the employer processing your demographic answers'],
+]
+
+/** Each consent a data_compliance entry requires, as a question only the candidate answers; an unknown one refuses the form. */
+function readConsents(entries: NonNullable<z.infer<typeof GreenhouseFormSchema>['data_compliance']>): Result<FormQuestion[]> {
+  const questions: FormQuestion[] = []
+  for (const entry of entries) {
+    const known = new Set(CONSENTS.map(([key]) => key))
+    const unknown = Object.entries(entry).find(([key, value]) => value === true && !known.has(key))
+    if (unknown) return err(domainError('invalid_input', `Application form: unknown data consent "${unknown[0]}".`))
+    for (const [key, label] of CONSENTS) {
+      if (entry[key] !== true) continue
+      questions.push({
+        label: `${label(entry.retention_period ?? null)} (${entry.type.toUpperCase()})`, description: null, required: true, section: 'data_compliance',
+        fields: [{ name: `data_compliance.${entry.type}.${key}`, type: 'consent', options: [] }],
+      })
+    }
+  }
+  return ok(questions)
+}
 
 function readQuestion(question: z.infer<typeof GreenhouseQuestionSchema>, section: FormQuestion['section']): Result<FormQuestion> {
   const fields: FormField[] = []
@@ -75,7 +102,9 @@ function readApplicationForm(payload: unknown): Result<ApplicationForm> {
       questions.push(question.value)
     }
   }
-  return ok({ questions })
+  const consents = readConsents(form.data_compliance ?? [])
+  if (!consents.ok) return consents
+  return ok({ questions: [...questions, ...consents.value] })
 }
 
 export const greenhouseAdapter: JobSourceAdapter = {

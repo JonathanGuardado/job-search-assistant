@@ -7,10 +7,10 @@ import { dbErrorFrom, dbTest as test } from '@/lib/db/testing'
 import { domainError, err, ok, unwrap } from '@/lib/result'
 import type { AdapterKey, Fetcher } from './adapter.js'
 import { POLL_INTERVAL_MS } from './queues.js'
-import { jobSources, rawJobs } from './schema.js'
+import { applicationForms, jobSources, rawJobs } from './schema.js'
 import {
   addSource, checkNormalization, dispatchSourcePolls, getApplicationForms, listLatestRawJobIds, listSources, pollSourcePage, postingKey,
-  readNormalizedPosting, refreshApplicationForm, setSourceEnabled, sourcePublishesForms,
+  readNormalizedPosting, refreshApplicationForm, rereadApplicationForms, setSourceEnabled, sourcePublishesForms,
 } from './service.js'
 import { greenhouseFixture, leverFixture } from './test-fixtures.js'
 
@@ -239,6 +239,25 @@ describe('application forms (decision 0013)', () => {
     expect(forms.size).toBe(1)
     expect(forms.get(postingKey(posting))?.form.questions.some((q) => q.label === 'Resume')).toBe(true)
     expect(await getApplicationForms(db, [])).toEqual(new Map())
+  })
+
+  test('re-reads stored forms from their kept payloads, without fetching, and removes one that can no longer be read', async ({ db }) => {
+    const board = await source(db)
+    const [kept, unreadable] = [{ sourceId: board.id, externalId: '1' }, { sourceId: board.id, externalId: '2' }]
+    for (const posting of [kept, unreadable]) unwrap(await refreshApplicationForm(db, posting, async () => Response.json(form)))
+    // Payloads stored before the parser read data-protection consent.
+    const withConsent = (flags: Record<string, unknown>) => ({ ...(form as object), data_compliance: [{ type: 'gdpr', ...flags }] })
+    const storeRaw = (posting: { sourceId: string; externalId: string }, payload: unknown) => db.update(applicationForms).set({ payload })
+      .where(and(eq(applicationForms.sourceId, posting.sourceId), eq(applicationForms.externalId, posting.externalId)))
+    await storeRaw(kept, withConsent({ requires_consent: true }))
+    await storeRaw(unreadable, withConsent({ requires_marketing_consent: true }))
+
+    const outcome = await rereadApplicationForms(db)
+    expect(outcome.removed).toEqual([unreadable])
+    const forms = await getApplicationForms(db, [kept, unreadable])
+    expect(forms.get(postingKey(kept))?.form.questions.filter((q) => q.section === 'data_compliance').map((q) => q.label))
+      .toEqual(['Consent to the employer storing your application data (GDPR)'])
+    expect(forms.has(postingKey(unreadable))).toBe(false)
   })
 
   test('a source without structured forms is unsupported; a closed posting is not_found', async ({ db }) => {

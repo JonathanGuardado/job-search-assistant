@@ -10,11 +10,12 @@ const SOURCE_LABELS = {
   form: 'Application form', none: 'Answer',
 }
 
-const BLOCKER_TEXT = {
+const BLOCKER_TEXT: Readonly<Record<NonNullable<QuestionAnswer['blocker']>, string>> = {
   unanswered: 'Needs your answer',
   option_missing: 'Your saved answer is not one of this form\'s options',
   own_words: 'Your saved answer came from a draft, and this employer asks for answers in your own words. Write this one yourself; it is saved for this job only.',
-} as const
+  consent: 'A data-protection consent: you tick it yourself on the application form.',
+}
 
 function ReadinessQuestion({ answer, suggestion, draft, ownerOnly, perJob, jobId, back }: {
   readonly answer: QuestionAnswer

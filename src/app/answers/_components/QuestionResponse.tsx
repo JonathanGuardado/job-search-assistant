@@ -11,6 +11,9 @@ export function QuestionResponse({ question, back, answeredBy, jobId, hasDraft =
   readonly jobId?: string
   readonly hasDraft?: boolean
 }) {
+  if (question.fields.some((field) => field.type === 'consent')) {
+    return <p>You give this consent yourself on the application form; the assistant never ticks it.</p>
+  }
   const standard = answeredBy ?? standardField(question)
   if (standard === 'details') {
     return <p>Fill this in <Link href="/settings#details">Your details in settings</Link>.</p>
