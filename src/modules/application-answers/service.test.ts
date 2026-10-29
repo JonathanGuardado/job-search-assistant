@@ -5,6 +5,7 @@ import { ok, unwrap } from '@/lib/result'
 import type { ModelTrace } from '@/modules/ai'
 import { setJobUserState } from '@/modules/jobs'
 import { questionKey } from './readiness.js'
+import { answerDrafts } from './schema.js'
 import {
   acceptSuggestion, deleteSavedAnswer, jobsToApplyTo, getApplicantDetails, listSavedAnswers, openQuestions, readinessForJobs,
   refreshQuestionMatches, saveAnswer, saveApplicantDetails, type MatchQuestions,
@@ -206,5 +207,79 @@ describe('answers for one job', () => {
       unwrap(await deleteSavedAnswer(scope, questionKey(WHY), first.id))
     })
     expect(await whyIn(first)).toEqual(text('In general.'))
+  })
+})
+
+describe('the own-words rule, by where a saved answer came from (decisions 0014 and 0016)', () => {
+  const PYTHON = 'Describe your Python development experience'
+  const ELSEWHERE = 'Tell us about your work with Python'
+  const text = (value: string) => ({ kind: 'text' as const, text: value })
+
+  /** A GitLab job, and a Canonical job whose form asks for the candidate's own words; both ask PYTHON. */
+  async function setUp(db: Parameters<typeof aCandidate>[0]) {
+    const userId = await aCandidate(db)
+    const board = await aBoard(db)
+    const [gitlab, canonical] = [await aJob(db, board, 'Backend Engineer'), await aJob(db, board, 'Kernel Engineer')]
+    await storeForm(db, gitlab, 'gitlab', [writtenQuestion(PYTHON)])
+    await storeForm(db, canonical, 'canonical', [writtenQuestion(PYTHON)])
+    for (const job of [gitlab, canonical]) await makeEligible(db, userId, job)
+    const draft = (method: 'profile' | 'experience', label = PYTHON) => withTenant(db, userId, async (scope) => {
+      const [row] = await scope.db.insert(answerDrafts).values({
+        userId, questionKey: questionKey(label), label, method, status: 'drafted', answer: text('I built the payments API in Python.'),
+        basis: { facts: [], itemIds: [] }, inputsHash: `test-${method}-${label}`,
+      }).returning({ id: answerDrafts.id })
+      if (!row) throw new Error('draft insert returned no row')
+      return row.id
+    })
+    const pythonIn = async (job: Job) => {
+      const readiness = (await readinessForJobs(db, userId, [job])).get(job.id)
+      if (readiness?.kind !== 'assessed') throw new Error('expected an assessed form')
+      return { answer: readiness.readiness.answers.find((a) => a.questionKey === questionKey(PYTHON)), suggestion: readiness.suggestions.get(questionKey(PYTHON)) }
+    }
+    return { userId, gitlab, canonical, draft, pythonIn }
+  }
+
+  test('an accepted experience draft fills the form that allows it and is withheld where own words are required, even after editing', async ({ db }) => {
+    const { userId, gitlab, canonical, draft, pythonIn } = await setUp(db)
+    const draftId = await draft('experience')
+    await withTenant(db, userId, async (scope) => unwrap(await saveAnswer(scope, { label: PYTHON, answer: text('I built the payments API in Python.') }, { origin: 'draft', draftId })))
+    expect((await pythonIn(gitlab)).answer).toMatchObject({ source: 'saved', blocker: null })
+    expect((await pythonIn(canonical)).answer).toMatchObject({ source: 'none', value: null, blocker: 'own_words' })
+    const open = openQuestions(await readinessForJobs(db, userId, [gitlab, canonical])).find((q) => q.questionKey === questionKey(PYTHON))
+    expect(open).toMatchObject({ jobIds: [canonical.id], ownWordsJobIds: [canonical.id] })
+
+    // Edited by the owner, it is still a draft (decision 0014).
+    await withTenant(db, userId, async (scope) => {
+      unwrap(await saveAnswer(scope, { label: PYTHON, answer: text('I built and ran the payments API in Python.') }))
+      expect((await listSavedAnswers(scope)).find((a) => a.questionKey === questionKey(PYTHON))).toMatchObject({ origin: 'draft' })
+    })
+    expect((await pythonIn(canonical)).answer).toMatchObject({ blocker: 'own_words' })
+  })
+
+  test('a draft whose method cannot be recovered counts as written; a profile-fact draft and the owner\'s own answer fill', async ({ db }) => {
+    const { userId, canonical, draft, pythonIn } = await setUp(db)
+    const save = (provenance?: { origin: 'draft'; draftId: string | null }) => withTenant(db, userId, async (scope) => {
+      await deleteSavedAnswer(scope, questionKey(PYTHON))
+      unwrap(await saveAnswer(scope, { label: PYTHON, answer: text('Python since 2015.') }, provenance))
+    })
+    await save({ origin: 'draft', draftId: null })
+    expect((await pythonIn(canonical)).answer).toMatchObject({ blocker: 'own_words' })
+    await save({ origin: 'draft', draftId: await draft('profile') })
+    expect((await pythonIn(canonical)).answer).toMatchObject({ source: 'saved', blocker: null })
+    await save()
+    expect((await pythonIn(canonical)).answer).toMatchObject({ source: 'saved', blocker: null })
+  })
+
+  test('a written draft is not suggested where own words are required, and reusing it elsewhere keeps it a draft', async ({ db }) => {
+    const { userId, gitlab, canonical, draft, pythonIn } = await setUp(db)
+    const draftId = await draft('experience', ELSEWHERE)
+    await withTenant(db, userId, async (scope) => unwrap(await saveAnswer(scope, { label: ELSEWHERE, answer: text('I built the payments API in Python.') }, { origin: 'draft', draftId })))
+    unwrap(await refreshQuestionMatches(db, userId, stubMatcher((label) => label === PYTHON).match))
+    expect((await pythonIn(gitlab)).suggestion).toMatchObject({ savedQuestionKey: questionKey(ELSEWHERE) })
+    expect((await pythonIn(canonical)).suggestion).toBeUndefined()
+
+    await withTenant(db, userId, async (scope) => unwrap(await acceptSuggestion(scope, { label: PYTHON, savedQuestionKey: questionKey(ELSEWHERE) })))
+    expect((await pythonIn(gitlab)).answer).toMatchObject({ source: 'saved', blocker: null })
+    expect((await pythonIn(canonical)).answer).toMatchObject({ blocker: 'own_words' })
   })
 })

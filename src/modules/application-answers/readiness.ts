@@ -1,4 +1,5 @@
 import type { ApplicationForm, FormField, FormQuestion } from '@/modules/job-sources'
+import { asksOwnWords } from './never-drafted.js'
 
 /*
  * Whether a job's application form could be filled from what the candidate has given, and
@@ -22,7 +23,11 @@ export type ReadinessInput = {
   /** The resume a form's resume field is filled with: the newest version, unless the candidate chose another. */
   readonly resume: { readonly id: string; readonly label: string } | null
   readonly profile: { readonly country: string; readonly city: string } | null
-  readonly savedAnswers: readonly { readonly questionKey: string; readonly label: string; readonly answer: SavedAnswerValue }[]
+  readonly savedAnswers: readonly {
+    readonly questionKey: string; readonly label: string; readonly answer: SavedAnswerValue
+    /** A model wrote it: accepted from an experience or motivation draft, or from a draft whose method is lost. Edited or not. */
+    readonly written: boolean
+  }[]
 }
 
 export type FilledValue =
@@ -38,8 +43,11 @@ export type QuestionAnswer = {
   /** The form field the value goes in, null when there is no value. */
   readonly field: string | null
   readonly value: FilledValue | null
-  /** Why a required question is unfilled; null when it is filled, or optional. */
-  readonly blocker: 'unanswered' | 'option_missing' | null
+  /**
+   * Why a required question is unfilled; null when it is filled, or optional. own_words: the
+   * saved answer was written by a model, and this form asks for the candidate's own words.
+   */
+  readonly blocker: 'unanswered' | 'option_missing' | 'own_words' | null
 }
 
 export type Readiness = {
@@ -49,7 +57,7 @@ export type Readiness = {
 }
 
 type Fill = { readonly source: QuestionAnswer['source']; readonly field: string; readonly value: FilledValue }
-type Attempt = Fill | 'option_missing' | null
+type Attempt = Fill | 'option_missing' | 'own_words' | null
 
 const DETAIL_FIELDS: Readonly<Record<string, 'firstName' | 'lastName' | 'email' | 'phone'>> = {
   first_name: 'firstName', last_name: 'lastName', email: 'email', phone: 'phone',
@@ -88,9 +96,10 @@ function fromDetailsOrResume(question: FormQuestion, input: ReadinessInput): Att
   return null
 }
 
-function fromSaved(question: FormQuestion, key: string, input: ReadinessInput): Attempt {
+function fromSaved(question: FormQuestion, key: string, input: ReadinessInput, ownWords: boolean): Attempt {
   const saved = input.savedAnswers.find((s) => s.questionKey === key)
   if (!saved) return null
+  if (saved.written && ownWords) return 'own_words'
   if (saved.answer.kind === 'text') {
     const field = textField(question)
     return field ? { source: 'saved', field: field.name, value: { kind: 'text', text: saved.answer.text } } : null
@@ -128,23 +137,27 @@ function fromProfile(question: FormQuestion, input: ReadinessInput): Attempt {
   return null
 }
 
-function answer(question: FormQuestion, input: ReadinessInput): QuestionAnswer {
+function answer(question: FormQuestion, input: ReadinessInput, ownWords: boolean): QuestionAnswer {
   const key = questionKey(question.label)
   if (question.fields.every((f) => f.type === 'hidden')) {
     return { question, questionKey: key, source: 'form', field: null, value: null, blocker: null }
   }
   // Standard fields first, then the candidate's own answer to this question, then the profile.
-  let missing = false
-  for (const attempt of [fromDetailsOrResume(question, input), fromSaved(question, key, input), fromProfile(question, input)]) {
-    if (attempt === 'option_missing') missing = true
+  let missing: 'option_missing' | 'own_words' | null = null
+  for (const attempt of [fromDetailsOrResume(question, input), fromSaved(question, key, input, ownWords), fromProfile(question, input)]) {
+    if (attempt === 'option_missing' || attempt === 'own_words') missing ??= attempt
     else if (attempt !== null) return { question, questionKey: key, ...attempt, blocker: null }
   }
-  const blocker = !question.required ? null : missing ? 'option_missing' : 'unanswered'
+  const blocker = !question.required ? null : missing ?? 'unanswered'
   return { question, questionKey: key, source: 'none', field: null, value: null, blocker }
 }
 
+/** Whether any question on the form asks for the candidate's own words: then no model-written answer is used on it (decision 0014). */
+export const formAsksOwnWords = (form: ApplicationForm) => form.questions.some(asksOwnWords)
+
 export function assessReadiness(form: ApplicationForm, input: ReadinessInput): Readiness {
-  const answers = form.questions.map((question) => answer(question, input))
+  const ownWords = formAsksOwnWords(form)
+  const answers = form.questions.map((question) => answer(question, input, ownWords))
   const blockers = answers.filter((a) => a.blocker !== null)
   return { status: blockers.length === 0 ? 'ready' : 'blocked', answers, blockers }
 }

@@ -9,7 +9,7 @@ import { readQuestionsTask, type QuestionForReading } from './prompts/read-quest
 import { NO_DETAILS, questionHash, type QuestionReading } from './question-reading.js'
 import { questionKey } from './readiness.js'
 import { questionReadings } from './schema.js'
-import { jobDraftKey, latestDrafts, listSavedAnswers, newestJobDrafts, openQuestions, readinessForJobs, saveAnswer } from './service.js'
+import { deleteSavedAnswer, jobDraftKey, latestDrafts, listSavedAnswers, newestJobDrafts, openQuestions, readinessForJobs, saveAnswer } from './service.js'
 import { aBoard, aCandidate, aJob, makeEligible, storeForm, updateProfile, withConfirmedItems, writtenQuestion } from './test-fixtures.js'
 
 const SPONSORSHIP = 'Will you now or in the future require sponsorship for a visa to remain in your current location?'
@@ -130,7 +130,10 @@ describe('accepting a draft', () => {
       // A question with no draft has nothing to accept, even with an answer supplied.
       const gitlab = drafts.get(questionKey(GITLAB))?.id ?? ''
       expect(await acceptDraft(scope, { draftId: gitlab, answer: { kind: 'choice', labels: ['No'] } })).toMatchObject({ ok: false, error: { code: 'invalid_input' } })
-      // Rewritten by the candidate, it is theirs.
+      // Edited by the candidate, it is still a draft (decision 0016); deleted and written anew, it is theirs.
+      unwrap(await saveAnswer(scope, { label: SPONSORSHIP, answer: { kind: 'choice', labels: ['No'] } }))
+      expect((await listSavedAnswers(scope))[0]).toMatchObject({ origin: 'draft', answer: { kind: 'choice', labels: ['No'] } })
+      unwrap(await deleteSavedAnswer(scope, questionKey(SPONSORSHIP)))
       unwrap(await saveAnswer(scope, { label: SPONSORSHIP, answer: { kind: 'choice', labels: ['No'] } }))
       expect((await listSavedAnswers(scope))[0]).toMatchObject({ origin: 'owner' })
     })

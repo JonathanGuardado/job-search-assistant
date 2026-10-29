@@ -16,7 +16,7 @@ import { listResumes } from '@/modules/resumes'
 import { matchQuestionsTask, type QuestionForMatching } from './prompts/match-questions.js'
 import { readQuestionsTask } from './prompts/read-questions.js'
 import { questionHash, type QuestionReading, type ReadingKind } from './question-reading.js'
-import { assessReadiness, questionKey, standardField, type FilledValue, type Readiness, type ReadinessInput } from './readiness.js'
+import { assessReadiness, formAsksOwnWords, questionKey, standardField, type FilledValue, type Readiness, type ReadinessInput } from './readiness.js'
 import { neverDrafted, takesAnswer, type NeverDrafted } from './never-drafted.js'
 import { answerDrafts, applicantDetails, questionMatchRuns, questionReadings, savedAnswers } from './schema.js'
 import type { AnswerDraft, ApplicantDetails, SaveAnswer, SavedAnswer } from './types.js'
@@ -61,7 +61,15 @@ export async function saveAnswer(scope: TenantScope, input: SaveAnswer, provenan
   const source = { origin: provenance.origin, draftId: provenance.origin === 'draft' ? provenance.draftId : null }
   const jobId = input.jobId ?? null
   const [row] = await scope.db.insert(savedAnswers).values({ userId: scope.userId, questionKey: key, jobId, label: input.label, answer: input.answer, ...source })
-    .onConflictDoUpdate({ target: [savedAnswers.userId, savedAnswers.questionKey, savedAnswers.jobId], set: { answer: input.answer, ...source, updatedAt: sql`now()` } })
+    .onConflictDoUpdate({
+      target: [savedAnswers.userId, savedAnswers.questionKey, savedAnswers.jobId],
+      set: {
+        answer: input.answer, updatedAt: sql`now()`,
+        // An edited draft stays a draft, with its evidence (decision 0014): only a new draft replaces it.
+        origin: sql`case when excluded.origin = 'draft' then 'draft' else ${savedAnswers.origin} end`,
+        draftId: sql`case when excluded.origin = 'draft' then excluded.draft_id else ${savedAnswers.draftId} end`,
+      },
+    })
     .returning()
   if (!row) throw new Error('saved answer upsert returned no row')
   return ok(toSavedAnswer(row))
@@ -72,6 +80,20 @@ export async function deleteSavedAnswer(scope: TenantScope, key: string, jobId: 
   const deleted = await scope.db.delete(savedAnswers)
     .where(and(eq(savedAnswers.userId, scope.userId), eq(savedAnswers.questionKey, key), forJob(jobId))).returning({ id: savedAnswers.id })
   return deleted.length > 0 ? ok(undefined) : err(domainError('not_found', 'That saved answer was not found.'))
+}
+
+/** A saved answer, and whether a model wrote it: then no form asking for the candidate's own words uses it. */
+type ReusableAnswer = SavedAnswer & { readonly written: boolean }
+
+/**
+ * The candidate's saved answers, each marked written when it came from an experience or
+ * motivation draft, or from a draft whose method is lost: nothing proves it was not written.
+ */
+async function reusableAnswers(scope: TenantScope): Promise<ReusableAnswer[]> {
+  const rows = await scope.db.select({ answer: savedAnswers, method: answerDrafts.method }).from(savedAnswers)
+    .leftJoin(answerDrafts, eq(answerDrafts.id, savedAnswers.draftId))
+    .where(eq(savedAnswers.userId, scope.userId)).orderBy(desc(savedAnswers.updatedAt))
+  return rows.map(({ answer, method }) => ({ ...toSavedAnswer(answer), written: answer.origin === 'draft' && method !== 'profile' }))
 }
 
 // ---------------------------------------------------------------------------
@@ -146,8 +168,8 @@ type CandidateInputs = {
   /** With the general saved answers only; a job's own answers are added for that job. */
   readonly input: ReadinessInput
   /** Answers for every job: the only ones offered for other questions. */
-  readonly saved: SavedAnswer[]
-  readonly jobSaved: ReadonlyMap<string, SavedAnswer[]>
+  readonly saved: ReusableAnswer[]
+  readonly jobSaved: ReadonlyMap<string, ReusableAnswer[]>
   readonly matches: Readonly<Record<string, string>>
   readonly drafts: ReadonlyMap<string, AnswerDraft>
   /** By `jobDraftKey`. */
@@ -157,14 +179,14 @@ type CandidateInputs = {
 async function candidateInputs(db: Db, userId: string): Promise<CandidateInputs> {
   return withTenant(db, userId, async (scope) => {
     const [details, resumes, profile, allSaved, drafts, jobDrafts, [run]] = await Promise.all([
-      getApplicantDetails(scope), listResumes(scope), getCandidateProfile(scope), listSavedAnswers(scope), latestDrafts(scope), newestJobDrafts(scope),
+      getApplicantDetails(scope), listResumes(scope), getCandidateProfile(scope), reusableAnswers(scope), latestDrafts(scope), newestJobDrafts(scope),
       scope.db.select({ matches: questionMatchRuns.matches }).from(questionMatchRuns)
         .where(and(eq(questionMatchRuns.userId, scope.userId), eq(questionMatchRuns.taskVersion, matchQuestionsTask.version)))
         .orderBy(desc(questionMatchRuns.createdAt)).limit(1),
     ])
     const newest = resumes[0]
     const saved = allSaved.filter((s) => s.jobId === null)
-    const jobSaved = new Map<string, SavedAnswer[]>()
+    const jobSaved = new Map<string, ReusableAnswer[]>()
     for (const answer of allSaved) if (answer.jobId !== null) jobSaved.set(answer.jobId, [...(jobSaved.get(answer.jobId) ?? []), answer])
     return {
       input: {
@@ -181,7 +203,7 @@ async function candidateInputs(db: Db, userId: string): Promise<CandidateInputs>
 }
 
 /** The value a saved answer would give this question, if this question's fields can take it. */
-function suggestionFor(question: FormQuestion, saved: SavedAnswer, input: ReadinessInput): Suggestion | null {
+function suggestionFor(question: FormQuestion, saved: ReusableAnswer, input: ReadinessInput): Suggestion | null {
   const reused = { ...saved, questionKey: questionKey(question.label) }
   const [answer] = assessReadiness({ questions: [question] }, { ...input, savedAnswers: [reused] }).answers
   return answer?.source === 'saved' && answer.value ? { savedQuestionKey: saved.questionKey, savedLabel: saved.label, value: answer.value } : null
@@ -208,13 +230,15 @@ function readinessFrom(
     const own = inputs.jobSaved.get(job.id)
     const input = own ? { ...inputs.input, savedAnswers: [...own, ...inputs.input.savedAnswers] } : inputs.input
     const readiness = assessReadiness(stored.form, input)
+    const ownWords = formAsksOwnWords(stored.form)
     const suggestions = new Map<string, Suggestion>()
     const drafts = new Map<string, AnswerDraft>()
     const never = new Map<string, NeverDrafted>()
     const perJob = new Set<string>()
     for (const blocker of readiness.blockers) {
       const saved = byKey.get(inputs.matches[blocker.questionKey] ?? '')
-      const suggestion = saved ? suggestionFor(blocker.question, saved, inputs.input) : null
+      // A model-written answer is never offered to a form asking for the candidate's own words.
+      const suggestion = saved && !(ownWords && saved.written) ? suggestionFor(blocker.question, saved, inputs.input) : null
       if (suggestion) suggestions.set(blocker.questionKey, suggestion)
       const draft = inputs.jobDrafts.get(jobDraftKey(job.id, blocker.questionKey)) ?? inputs.drafts.get(blocker.questionKey)
       if (draft) drafts.set(blocker.questionKey, draft)
@@ -278,20 +302,23 @@ export type OpenQuestion = {
   readonly neverDrafted: NeverDrafted | null
   /** Answered for each job separately (motivation): every answer to it, drafted or not, is for one job. */
   readonly perJob: boolean
+  /** Jobs whose form asks for the candidate's own words and so does not use the drafted answer saved for it. */
+  readonly ownWordsJobIds: readonly string[]
 }
 
 /** Every question blocking at least one job, most widely blocking first: answering the top one unblocks the most. */
 export function openQuestions(readiness: ReadonlyMap<string, JobReadiness>): OpenQuestion[] {
   type Entry = {
     question: FormQuestion; jobIds: string[]; suggestion: Suggestion | null; draft: AnswerDraft | null; draftsByJob: Map<string, AnswerDraft>
-    neverDrafted: NeverDrafted | null; perJob: boolean
+    neverDrafted: NeverDrafted | null; perJob: boolean; ownWordsJobIds: string[]
   }
   const byKey = new Map<string, Entry>()
   for (const [jobId, job] of readiness) {
     if (job.kind !== 'assessed') continue
     for (const blocker of job.readiness.blockers) {
-      const entry: Entry = byKey.get(blocker.questionKey) ?? { question: blocker.question, jobIds: [], suggestion: null, draft: null, draftsByJob: new Map(), neverDrafted: null, perJob: false }
+      const entry: Entry = byKey.get(blocker.questionKey) ?? { question: blocker.question, jobIds: [], suggestion: null, draft: null, draftsByJob: new Map(), neverDrafted: null, perJob: false, ownWordsJobIds: [] }
       entry.jobIds.push(jobId)
+      if (blocker.blocker === 'own_words') entry.ownWordsJobIds.push(jobId)
       entry.suggestion ??= job.suggestions.get(blocker.questionKey) ?? null
       const draft = job.drafts.get(blocker.questionKey) ?? null
       if (draft?.jobId) entry.draftsByJob.set(draft.jobId, draft)
@@ -305,7 +332,7 @@ export function openQuestions(readiness: ReadonlyMap<string, JobReadiness>): Ope
     .map(([key, entry]): OpenQuestion => ({
       questionKey: key, label: entry.question.label, question: entry.question,
       answeredBy: standardField(entry.question) ?? 'saved_answer', jobIds: entry.jobIds, suggestion: entry.suggestion,
-      draft: entry.draft, draftsByJob: entry.draftsByJob, neverDrafted: entry.neverDrafted, perJob: entry.perJob,
+      draft: entry.draft, draftsByJob: entry.draftsByJob, neverDrafted: entry.neverDrafted, perJob: entry.perJob, ownWordsJobIds: entry.ownWordsJobIds,
     }))
     .sort((a, b) => b.jobIds.length - a.jobIds.length || a.label.localeCompare(b.label))
 }

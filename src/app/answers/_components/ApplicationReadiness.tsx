@@ -10,6 +10,12 @@ const SOURCE_LABELS = {
   form: 'Application form', none: 'Answer',
 }
 
+const BLOCKER_TEXT = {
+  unanswered: 'Needs your answer',
+  option_missing: 'Your saved answer is not one of this form\'s options',
+  own_words: 'Your saved answer came from a draft, and this employer asks for answers in your own words. Write this one yourself; it is saved for this job only.',
+} as const
+
 function ReadinessQuestion({ answer, suggestion, draft, ownerOnly, perJob, jobId, back }: {
   readonly answer: QuestionAnswer
   readonly suggestion: Suggestion | undefined
@@ -21,6 +27,8 @@ function ReadinessQuestion({ answer, suggestion, draft, ownerOnly, perJob, jobId
 }) {
   // Questions filled from your details or resume are never drafted: they are answered in settings.
   const drafted = standardField(answer.question) === null
+  // The saved answer came from a draft and this form asks for the candidate's own words: they write one for this job.
+  const ownWords = answer.blocker === 'own_words'
   return (
     <article className={styles.question}>
       <h3>{answer.question.label}</h3>
@@ -28,13 +36,13 @@ function ReadinessQuestion({ answer, suggestion, draft, ownerOnly, perJob, jobId
       {answer.question.required && <span className={styles.badge}>Required</span>}
       {answer.value !== null && <p className={styles.value}>{SOURCE_LABELS[answer.source]}: <AnswerValue value={answer.value} truncate /></p>}
       {answer.blocker !== null ? <>
-        <p>{answer.blocker === 'option_missing' ? 'Your saved answer is not one of this form\'s options' : 'Needs your answer'}</p>
-        {drafted && <DraftOrMarker question={answer.question} questionKey={answer.questionKey} draft={draft}
+        <p>{BLOCKER_TEXT[answer.blocker]}</p>
+        {drafted && !ownWords && <DraftOrMarker question={answer.question} questionKey={answer.questionKey} draft={draft}
           neverDrafted={ownerOnly} back={back} />}
         {suggestion !== undefined && <SuggestedAnswer label={answer.question.label} suggestion={suggestion} back={back} />}
         <QuestionResponse question={answer.question} back={back}
-          hasDraft={drafted && ownerOnly === null && draft?.status === 'drafted'}
-          {...(perJob || draft?.jobId ? { jobId } : {})} />
+          hasDraft={drafted && !ownWords && ownerOnly === null && draft?.status === 'drafted'}
+          {...(ownWords || perJob || draft?.jobId ? { jobId } : {})} />
       </> : answer.value === null && <p className={styles.muted}>Optional, left empty</p>}
     </article>
   )

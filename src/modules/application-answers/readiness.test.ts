@@ -73,8 +73,8 @@ describe('assessReadiness', () => {
       essay('Describe your experience with Linux', 'question_6'),
     ]
     const savedAnswers = [
-      { questionKey: questionKey('How did you perform in mathematics at high school'), label: 'How did you perform in mathematics at high school?', answer: { kind: 'choice' as const, labels: ['Top 20% at school'] } },
-      { questionKey: questionKey('Describe your experience with Linux.'), label: 'Describe your experience with Linux.', answer: { kind: 'text' as const, text: 'Ten years running Ubuntu servers.' } },
+      { questionKey: questionKey('How did you perform in mathematics at high school'), label: 'How did you perform in mathematics at high school?', answer: { kind: 'choice' as const, labels: ['Top 20% at school'] }, written: false },
+      { questionKey: questionKey('Describe your experience with Linux.'), label: 'Describe your experience with Linux.', answer: { kind: 'text' as const, text: 'Ten years running Ubuntu servers.' }, written: false },
     ]
     const readiness = assessReadiness(form(questions), input({ savedAnswers }))
     expect(readiness.status).toBe('ready')
@@ -86,7 +86,7 @@ describe('assessReadiness', () => {
 
   it('blocks a saved choice whose option this form does not offer, rather than picking another', () => {
     const question = choice('Do you require sponsorship?', 'question_7', ['Yes', 'No'])
-    const savedAnswers = [{ questionKey: questionKey('Do you require sponsorship?'), label: 'Do you require sponsorship?', answer: { kind: 'choice' as const, labels: ['No, never'] } }]
+    const savedAnswers = [{ questionKey: questionKey('Do you require sponsorship?'), label: 'Do you require sponsorship?', answer: { kind: 'choice' as const, labels: ['No, never'] }, written: false }]
     const readiness = assessReadiness(form([question]), input({ savedAnswers }))
     expect(readiness.blockers).toEqual([expect.objectContaining({ blocker: 'option_missing', source: 'none' })])
   })
@@ -95,8 +95,8 @@ describe('assessReadiness', () => {
     const single = choice('Pick one', 'q8', ['A', 'B'])
     const free = choice('Pick another', 'q9', ['A', 'B'])
     const savedAnswers = [
-      { questionKey: questionKey('Pick one'), label: 'Pick one', answer: { kind: 'choice' as const, labels: ['A', 'B'] } },
-      { questionKey: questionKey('Pick another'), label: 'Pick another', answer: { kind: 'text' as const, text: 'A' } },
+      { questionKey: questionKey('Pick one'), label: 'Pick one', answer: { kind: 'choice' as const, labels: ['A', 'B'] }, written: false },
+      { questionKey: questionKey('Pick another'), label: 'Pick another', answer: { kind: 'text' as const, text: 'A' }, written: false },
     ]
     const readiness = assessReadiness(form([single, free]), input({ savedAnswers }))
     expect(readiness.blockers.map((b) => b.blocker)).toEqual(['option_missing', 'unanswered'])
@@ -131,7 +131,32 @@ describe('assessReadiness', () => {
   it('answers an optional compliance question only when the candidate saved an answer to it', () => {
     const veteran: FormQuestion = { ...choice('VeteranStatus', 'veteran_status', ["I don't wish to answer", 'I am not a protected veteran'], false), section: 'compliance' }
     expect(assessReadiness(form([veteran]), input()).answers[0]).toMatchObject({ source: 'none', blocker: null })
-    const savedAnswers = [{ questionKey: questionKey('VeteranStatus'), label: 'VeteranStatus', answer: { kind: 'choice' as const, labels: ["I don't wish to answer"] } }]
+    const savedAnswers = [{ questionKey: questionKey('VeteranStatus'), label: 'VeteranStatus', answer: { kind: 'choice' as const, labels: ["I don't wish to answer"] }, written: false }]
     expect(assessReadiness(form([veteran]), input({ savedAnswers })).answers[0]).toMatchObject({ source: 'saved', value: { kind: 'choice', options: [{ label: "I don't wish to answer", value: '0' }] } })
+  })
+})
+
+describe('the own-words rule (decisions 0014 and 0016)', () => {
+  const attestation = choice('During this application process I agree to use only my own words.', 'question_own', ['Yes'])
+  const python = essay('Describe your Python experience', 'question_python')
+  const saved = (written: boolean) => [
+    { questionKey: questionKey(attestation.label), label: attestation.label, answer: { kind: 'choice' as const, labels: ['Yes'] }, written: false },
+    { questionKey: questionKey(python.label), label: python.label, answer: { kind: 'text' as const, text: 'I built the payments API in Python.' }, written },
+  ]
+  const pythonIn = (questions: FormQuestion[], written: boolean) =>
+    assessReadiness(form(questions), input({ savedAnswers: saved(written) })).answers.find((a) => a.question === python)
+
+  it('withholds a model-written answer from a form that asks for the candidate\'s own words, and says why', () => {
+    expect(pythonIn([attestation, python], true)).toMatchObject({ source: 'none', value: null, blocker: 'own_words' })
+  })
+
+  it('fills the same answer on a form that does not ask, and the candidate\'s own answer on one that does', () => {
+    expect(pythonIn([python], true)).toMatchObject({ source: 'saved', blocker: null })
+    expect(pythonIn([attestation, python], false)).toMatchObject({ source: 'saved', blocker: null })
+  })
+
+  it('leaves an optional question empty rather than filling it with a withheld answer', () => {
+    const optional = essay(python.label, 'question_python', false)
+    expect(assessReadiness(form([attestation, optional]), input({ savedAnswers: saved(true) })).answers[1]).toMatchObject({ source: 'none', value: null, blocker: null })
   })
 })

@@ -25,6 +25,20 @@ function JobDrafts({ question, jobNames }: {
   </>
 }
 
+/** Jobs that will not use the drafted answer saved for this question: each needs the candidate's own words. */
+function OwnWordsJobs({ question, jobNames }: {
+  readonly question: OpenQuestion
+  readonly jobNames: ReadonlyMap<string, string>
+}) {
+  return <div className={styles.draftMarker}>
+    <p>Your saved answer came from a draft, and {question.ownWordsJobIds.length === 1 ? 'this employer asks' : 'these employers ask'} for
+      answers in your own words. Write it yourself on each job&apos;s page:</p>
+    <ul>
+      {question.ownWordsJobIds.map((jobId) => <li key={jobId}><Link href={`/jobs/${jobId}`}>{jobNames.get(jobId) ?? 'View job'}</Link></li>)}
+    </ul>
+  </div>
+}
+
 export function BlockingQuestion({ question, jobNames }: {
   readonly question: OpenQuestion
   readonly jobNames: ReadonlyMap<string, string>
@@ -37,7 +51,8 @@ export function BlockingQuestion({ question, jobNames }: {
         <span className={styles.badge}>Required</span>
         <span className={styles.badge}>Blocks {question.jobIds.length} {question.jobIds.length === 1 ? 'job' : 'jobs'}</span>
       </div>
-      {question.answeredBy !== 'saved_answer'
+      {question.ownWordsJobIds.length > 0 && <OwnWordsJobs question={question} jobNames={jobNames} />}
+      {question.ownWordsJobIds.length === question.jobIds.length ? null : question.answeredBy !== 'saved_answer'
         ? <QuestionResponse question={question.question} answeredBy={question.answeredBy} back="/answers" />
         : question.perJob || question.draftsByJob.size > 0 ? <JobDrafts question={question} jobNames={jobNames} /> : <>
           <DraftOrMarker question={question.question} questionKey={question.questionKey} draft={question.draft}
