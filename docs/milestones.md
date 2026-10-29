@@ -3,8 +3,11 @@
 Phase 1 only. Later phases are listed at the bottom so their scope stays visible, but
 nothing from them gets built yet.
 
-**Next milestone: 2.3 form filling, approval mode**, not started. 2.1 and 2.2 are built and
-merged, at the owner's request while 1.8 and 1.9 wait on the owner's checks below. 2.1: saved
+**Active milestone: 2.3 form filling, approval mode** (decision 0016), started on 2026-10-28
+by the owner's exception while 1.8 and 1.9 wait on the owner's checks below. Step 0 is done:
+Greenhouse's terms bind employers only, and the dry run captured what Submit sends on three
+real forms without sending it. Next: the packet, the fill record and the filler. 2.1 and 2.2
+are built and merged. 2.1: saved
 answers, readiness and "same question" suggestions on `/answers` and each job page. 2.2
 (decision 0014 and its amendments): the assistant works only on jobs whose role fits; the
 profile records citizenship and English level; profile-fact questions are drafted in code from

@@ -37,7 +37,7 @@ must survive restarts and run on a schedule; application work is latency-sensiti
 | `matching` | Requirement extraction, comparison and explanation (decision 0010) | Extraction only |
 | `applications` | Pipeline state, artifacts, status history | No |
 | `application-answers` | Saved answers, application readiness, "same question" suggestions (decision 0013); drafted answers (decision 0014) | Pairs questions (2.1); reads what questions ask (2.2); generation with grounding check (2.2) |
-| `automation` | Playwright flows, submission verification (phase 3) | Fallback only |
+| `automation` | Filling Greenhouse forms in a visible browser the owner submits, and the record of each fill (decision 0016) | No |
 | `analytics` | Funnel metrics, source performance | No |
 | `ai` | Provider abstraction, schemas, validation, tracing | n/a |
 

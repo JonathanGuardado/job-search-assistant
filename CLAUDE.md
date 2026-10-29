@@ -73,7 +73,7 @@ brief (`prompts/codex-task-template.md`) instead of doing it yourself.
 ## Stack
 
 TypeScript (strict), Next.js App Router, PostgreSQL via Drizzle, Redis + BullMQ,
-Zod for all boundaries, Vitest, Playwright (phase 3 only).
+Zod for all boundaries, Vitest, Playwright (form filling from milestone 2.3, decision 0016).
 
 ## Commands
 
@@ -101,15 +101,17 @@ its `index.ts`. Violating this is the one thing to reject in review without disc
 
 ```
 profiles  resumes  career-knowledge  job-sources  jobs
-eligibility  matching  applications  application-answers  analytics  ai
+eligibility  matching  applications  application-answers  automation  analytics  ai
 ```
 
-Seven of these never call a model. Keep it that way: `profiles`, `resumes` (storage),
-`job-sources`, `jobs` (storage), `applications`, `analytics`, and the dedupe half of
-`jobs` are model-free.
+Eight of these never call a model. Keep it that way: `profiles`, `resumes` (storage),
+`job-sources`, `jobs` (storage), `applications`, `automation`, `analytics`, and the dedupe
+half of `jobs` are model-free.
 
 ## Current phase
 
-Phase 1 — Discovery. See `docs/milestones.md` for the active milestone.
-Do not implement browser automation, email parsing, analytics dashboards, or outcome
-learning. Those are explicitly deferred.
+Phase 2 — Assisted applications (decision 0013), started by the owner's exception while
+phase 1's 1.8 and 1.9 stay open (decision 0016). See `docs/milestones.md` for the active
+milestone. Browser automation is allowed only to fill Greenhouse forms that the owner
+submits (decision 0016). Do not implement automatic submission (2.4) or email parsing (2.5)
+before their milestones, and do not implement analytics dashboards or outcome learning.
