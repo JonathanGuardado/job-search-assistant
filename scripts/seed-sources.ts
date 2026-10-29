@@ -1,7 +1,8 @@
 import { z } from 'zod'
 import { closeDb, getDb } from '@/lib/db/client'
 import { addSource, NewSourceSchema } from '@/modules/job-sources'
-// The starter boards approved for M1.4. Script data, so it lives beside the script, not in the module.
+// The boards the owner approved: the M1.4 starters, then remote-friendly boards found on 2026-10-29.
+// Script data, so it lives beside the script, not in the module.
 import seedSources from './seed-sources.json'
 
 const entries = z.array(NewSourceSchema).parse(seedSources)
