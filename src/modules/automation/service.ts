@@ -53,6 +53,18 @@ export async function prepareFill(db: Db, userId: string, jobId: string, now = n
   })
 }
 
+export async function getFill(scope: TenantScope, fillId: string): Promise<Fill | null> {
+  const [row] = await scope.db.select().from(applicationFills).where(byId(scope, fillId))
+  return row ?? null
+}
+
+/** The job's newest fill, whatever its status: what the job page shows. */
+export async function latestFillForJob(scope: TenantScope, jobId: string): Promise<Fill | null> {
+  const [row] = await scope.db.select().from(applicationFills)
+    .where(and(eq(applicationFills.userId, scope.userId), eq(applicationFills.jobId, jobId))).orderBy(desc(applicationFills.createdAt)).limit(1)
+  return row ?? null
+}
+
 /** Starts the fill the owner reviewed, if nothing else for the job is in progress; other prepared fills for it go stale. */
 export async function startFill(scope: TenantScope, fillId: string, packetHash: string, now = new Date()): Promise<Result<Fill>> {
   await expireFills(scope, now)

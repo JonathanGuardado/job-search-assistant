@@ -8,7 +8,7 @@
 export { applicationFills } from './schema.js'
 
 export {
-  cancelFill, claimFill, endAttempt, expireFills, finishPending, finishRecording, LEASE_MS, markFilling, markStale, prepareFill, PREPARED_TTL_MS,
+  cancelFill, claimFill, endAttempt, expireFills, finishPending, finishRecording, getFill, latestFillForJob, LEASE_MS, markFilling, markStale, prepareFill, PREPARED_TTL_MS,
   QUEUED_TTL_MS, recordReport, recordSubmission, renewLease, settleFill, startFill,
 } from './service.js'
 export type { Fill } from './service.js'

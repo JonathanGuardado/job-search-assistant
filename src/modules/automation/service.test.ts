@@ -6,7 +6,7 @@ import { unwrap } from '@/lib/result'
 import { createApplication, listApplications } from '@/modules/applications'
 import { getJobRawVersion } from '@/modules/jobs'
 import {
-  cancelFill, claimFill, endAttempt, expireFills, finishPending, finishRecording, markFilling, markStale, prepareFill, recordReport, recordSubmission,
+  cancelFill, claimFill, endAttempt, expireFills, finishPending, finishRecording, getFill, latestFillForJob, markFilling, markStale, prepareFill, recordReport, recordSubmission,
   renewLease, settleFill, startFill, LEASE_MS, PREPARED_TTL_MS, QUEUED_TTL_MS, type Fill,
 } from './service.js'
 import { anApplicant, changeAnAnswer, type Applicant } from './test-fixtures.js'
@@ -43,6 +43,19 @@ describe('preparing and starting a fill (decision 0016)', () => {
     await changeAnAnswer(db, applicant.userId)
     const changed = unwrap(await prepareFill(db, applicant.userId, applicant.job.id, later(PREPARED_TTL_MS + 2)))
     expect(changed.packetHash).not.toBe(first.packetHash)
+  })
+
+  test('reads a fill by id, and a job\'s newest fill, for its owner only', async ({ db }) => {
+    const applicant = await anApplicant(db)
+    const first = unwrap(await prepareFill(db, applicant.userId, applicant.job.id, T0))
+    await changeAnAnswer(db, applicant.userId)
+    const second = unwrap(await prepareFill(db, applicant.userId, applicant.job.id, later(1_000)))
+    await as(db, applicant, async (scope) => {
+      expect(await getFill(scope, first.id)).toMatchObject({ id: first.id })
+      expect(await latestFillForJob(scope, applicant.job.id)).toMatchObject({ id: second.id })
+    })
+    const stranger = await anApplicant(db)
+    await as(db, stranger, async (scope) => expect(await getFill(scope, first.id)).toBeNull())
   })
 
   test('refuses what the packet refuses: a job the candidate cannot apply to', async ({ db }) => {
