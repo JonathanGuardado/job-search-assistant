@@ -298,6 +298,7 @@ fingerprint), `outcome` (`confirmed`, `rejected`, `unknown`, `user_reported`) an
 `outcome_evidence`, `application_id` (only when submitted; referenced with `user_id`, as events
 are), `error`, `created_at`, `updated_at`. A partial unique index allows one fill in progress per
 `(user_id, job_id)`: `queued` through `uncertain`, or `submitted` with no application yet.
+The job page shows the fill that holds this slot, when there is one, before any newer review.
 
 ### `application_events`
 Owned by `applications`. Append-only: the app role has no UPDATE or DELETE. `id`,

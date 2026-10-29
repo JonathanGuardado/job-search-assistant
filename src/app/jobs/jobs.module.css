@@ -29,4 +29,14 @@
 .page blockquote { margin: 16px 0; padding-left: 16px; border-left: 3px solid #dce2ed; white-space: pre-wrap; overflow-wrap: anywhere; }
 .matchSection { padding-top: 18px; margin-top: 18px; border-top: 1px solid #edf0f5; }
 .description { white-space: pre-wrap; }
+.fillGroup { margin: 22px 0; }
+.fillList { margin: 0 0 16px; padding: 0; list-style: none; }
+.fillList > li { padding: 14px 0; border-bottom: 1px solid #edf0f5; }
+.fillList p { margin: 6px 0; }
+.fillValue { white-space: pre-wrap; }
+.fillSource, .fillNote { color: #627087; }
+.fillSource { font-size: 12px; }
+.fillNote { max-width: 620px; margin: 8px 0 0; }
+.fillActions { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 16px; margin-top: 20px; }
+.fillStart { flex: 1 1 320px; }
 @media(max-width: 650px) { .section { padding: 20px; } .tabs { gap: 8px; } .page h1 { font-size: 28px; } .filter { align-items: stretch; flex-direction: column; } }

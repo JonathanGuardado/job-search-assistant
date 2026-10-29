@@ -58,6 +58,19 @@ describe('preparing and starting a fill (decision 0016)', () => {
     await as(db, stranger, async (scope) => expect(await getFill(scope, first.id)).toBeNull())
   })
 
+  test('the job\'s fill to show is the one holding its slot, even when a newer review exists', async ({ db }) => {
+    const applicant = await anApplicant(db)
+    const blocking = await opened(db, applicant)
+    await changeAnAnswer(db, applicant.userId)
+    const newer = unwrap(await prepareFill(db, applicant.userId, applicant.job.id, later(1_000)))
+    await as(db, applicant, async (scope) => {
+      await expireFills(scope, later(LEASE_MS * 2))
+      expect(await latestFillForJob(scope, applicant.job.id)).toMatchObject({ id: blocking.id, status: 'uncertain' })
+      unwrap(await settleFill(scope, blocking.id, 'not_submitted'))
+      expect(await latestFillForJob(scope, applicant.job.id)).toMatchObject({ id: newer.id })
+    })
+  })
+
   test('refuses what the packet refuses: a job the candidate cannot apply to', async ({ db }) => {
     const applicant = await anApplicant(db)
     await as(db, applicant, async (scope) => unwrap(await createApplication(scope, {
@@ -119,6 +132,18 @@ describe('the worker: claim, lease and endings (decision 0016)', () => {
       unwrap(await startFill(scope, fill.id, fill.packetHash, T0))
       await expireFills(scope, later(QUEUED_TTL_MS + 1))
       expect(await claimFill(scope, fill.id, WORKER, later(QUEUED_TTL_MS + 2))).toBeNull()
+    })
+  })
+
+  test('a review left unstarted past its time is abandoned, and the newest prepared one is kept', async ({ db }) => {
+    const applicant = await anApplicant(db)
+    const expired = unwrap(await prepareFill(db, applicant.userId, applicant.job.id, T0))
+    await changeAnAnswer(db, applicant.userId)
+    const fresh = unwrap(await prepareFill(db, applicant.userId, applicant.job.id, later(PREPARED_TTL_MS)))
+    await as(db, applicant, async (scope) => {
+      await expireFills(scope, later(PREPARED_TTL_MS + 1))
+      expect(await getFill(scope, expired.id)).toMatchObject({ status: 'abandoned', error: 'The review expired before it was started.' })
+      expect(await getFill(scope, fresh.id)).toMatchObject({ status: 'prepared' })
     })
   })
 

@@ -58,24 +58,31 @@ export async function getFill(scope: TenantScope, fillId: string): Promise<Fill 
   return row ?? null
 }
 
-/** The job's newest fill, whatever its status: what the job page shows. */
+/** The fills that hold the job's slot: the same condition as the unique index on application_fills. */
+const holdsSlot = () => or(inArray(applicationFills.status, IN_PROGRESS), and(eq(applicationFills.status, 'submitted'), isNull(applicationFills.applicationId)))
+
+/**
+ * What the job page shows: the fill holding the job's slot, so one that is running or waits
+ * for the owner's word is never hidden behind a newer review; otherwise the newest fill.
+ */
 export async function latestFillForJob(scope: TenantScope, jobId: string): Promise<Fill | null> {
   const [row] = await scope.db.select().from(applicationFills)
-    .where(and(eq(applicationFills.userId, scope.userId), eq(applicationFills.jobId, jobId))).orderBy(desc(applicationFills.createdAt)).limit(1)
+    .where(and(eq(applicationFills.userId, scope.userId), eq(applicationFills.jobId, jobId)))
+    .orderBy(desc(sql`${holdsSlot()}`), desc(applicationFills.createdAt)).limit(1)
   return row ?? null
 }
 
 /** Starts the fill the owner reviewed, if nothing else for the job is in progress; other prepared fills for it go stale. */
 export async function startFill(scope: TenantScope, fillId: string, packetHash: string, now = new Date()): Promise<Result<Fill>> {
-  await expireFills(scope, now)
   const [fill] = await scope.db.select().from(applicationFills).where(byId(scope, fillId))
   if (!fill) return err(domainError('not_found', 'That fill was not found.'))
   if (fill.status !== 'prepared') return err(domainError('conflict', 'This fill was already started or has ended.'))
   if (fill.packetHash !== packetHash) return err(domainError('conflict', 'What you reviewed has changed. Review the application again.'))
   if (now.getTime() - fill.createdAt.getTime() > PREPARED_TTL_MS) return err(domainError('invalid_input', 'This review expired. Review the application again.'))
+  await expireFills(scope, now)
   const [busy] = await scope.db.select({ id: applicationFills.id }).from(applicationFills).where(and(
     eq(applicationFills.userId, scope.userId), eq(applicationFills.jobId, fill.jobId),
-    or(inArray(applicationFills.status, IN_PROGRESS), and(eq(applicationFills.status, 'submitted'), isNull(applicationFills.applicationId))),
+    holdsSlot(),
   ))
   if (busy) return inProgress()
   try {
@@ -178,7 +185,8 @@ export async function endAttempt(scope: TenantScope, fillId: string, worker: str
 
 /**
  * A lease that ran out leaves its fill uncertain: the browser may have been open. A fill
- * queued too long without a worker is abandoned: no browser ever opened for it.
+ * queued too long without a worker is abandoned: no browser ever opened for it. So is a
+ * review left unstarted past PREPARED_TTL_MS, so its page offers "Review again".
  */
 export async function expireFills(scope: TenantScope, now = new Date()): Promise<void> {
   await scope.db.update(applicationFills)
@@ -186,6 +194,8 @@ export async function expireFills(scope: TenantScope, now = new Date()): Promise
     .where(and(eq(applicationFills.userId, scope.userId), inArray(applicationFills.status, OPEN), lt(applicationFills.leaseExpiresAt, now)))
   await scope.db.update(applicationFills).set({ status: 'abandoned', error: 'No worker took this fill.', updatedAt: now })
     .where(and(eq(applicationFills.userId, scope.userId), eq(applicationFills.status, 'queued'), lt(applicationFills.updatedAt, new Date(now.getTime() - QUEUED_TTL_MS))))
+  await scope.db.update(applicationFills).set({ status: 'abandoned', error: 'The review expired before it was started.', updatedAt: now })
+    .where(and(eq(applicationFills.userId, scope.userId), eq(applicationFills.status, 'prepared'), lt(applicationFills.createdAt, new Date(now.getTime() - PREPARED_TTL_MS))))
 }
 
 /**

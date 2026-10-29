@@ -173,7 +173,7 @@ final outcome, it creates a new attempt. The
 owner's Start is tied to that record and its packet fingerprint. The worker fills the stored
 packet and never rebuilds it. Before opening the browser it re-fetches the form and rebuilds
 the packet only to compare; any difference marks the fill `stale` and asks for a new review.
-A prepared fill expires after 24 hours. The application records the posting version that was
+A prepared fill expires after 24 hours and is then marked `abandoned`. The application records the posting version that was
 reviewed: `createApplication` takes an optional `rawJobId`, checked to belong to the job.
 
 **Three kinds of evidence, kept apart:**

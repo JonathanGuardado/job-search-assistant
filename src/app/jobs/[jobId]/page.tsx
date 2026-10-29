@@ -6,6 +6,7 @@ import { withTenant } from '@/lib/db/tenancy'
 import { DEV_USER } from '@/lib/dev-user'
 import { readinessForJobs } from '@/modules/application-answers'
 import { getApplicationForJob } from '@/modules/applications'
+import { expireFills, latestFillForJob } from '@/modules/automation'
 import { getAssessment, reviewGroup } from '@/modules/eligibility'
 import { getJob, getJobUserState } from '@/modules/jobs'
 import { getMatchCard } from '@/modules/matching'
@@ -20,6 +21,7 @@ import { JobActions } from '../_components/JobActions'
 import { MatchDetails } from '../_components/MatchDetails'
 import { formatLocation, formatSalary } from '../_lib/format'
 import styles from '../jobs.module.css'
+import { FillApplication } from './apply/_components/FillApplication'
 
 export const dynamic = 'force-dynamic'
 
@@ -45,6 +47,7 @@ export default async function JobPage({ params, searchParams }: {
   const readiness = tab === 'can_apply' ? (await readinessForJobs(db, DEV_USER.id, [job])).get(jobId) ?? { kind: 'not_fetched' } : null
   const applicationContext = await withTenant(db, DEV_USER.id, async (scope) => ({
     application: await getApplicationForJob(scope, jobId),
+    fill: await expireFills(scope).then(() => latestFillForJob(scope, jobId)),
     resumes: await listResumes(scope), profile: await getCandidateProfile(scope),
   }))
   const application = applicationContext.application
@@ -72,6 +75,7 @@ export default async function JobPage({ params, searchParams }: {
       <EligibilityDetails assessment={assessment} />
       <MatchDetails card={card} />
       {readiness !== null && <ApplicationReadiness readiness={readiness} jobId={jobId} back={`/jobs/${jobId}`} />}
+      {tab === 'can_apply' && application === null && <FillApplication jobId={jobId} fill={applicationContext.fill} />}
       <section className={styles.section} aria-labelledby="application-heading">
         <h2 id="application-heading">Your application</h2>
         {application !== null ? <>
