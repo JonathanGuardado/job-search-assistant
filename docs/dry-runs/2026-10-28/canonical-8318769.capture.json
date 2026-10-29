@@ -1,0 +1,210 @@
+{
+  "formUrl": "https://job-boards.greenhouse.io/canonical/jobs/8318769",
+  "checkedAt": "2026-10-29T00:49:57.525Z",
+  "conclusive": true,
+  "reason": "captured the application request whole",
+  "requestsAfterSubmit": [
+    {
+      "method": "POST",
+      "url": "https://grnhse-prod-jben-us-east-1.s3.amazonaws.com/",
+      "outcome": "mocked"
+    },
+    {
+      "method": "POST",
+      "url": "https://www.recaptcha.net/recaptcha/enterprise/reload",
+      "outcome": "aborted"
+    },
+    {
+      "method": "POST",
+      "url": "https://boards.greenhouse.io/canonical/jobs/8318769",
+      "outcome": "aborted"
+    }
+  ],
+  "fields": {
+    "first_name": "typed",
+    "last_name": "typed",
+    "email": "typed",
+    "phone": "typed",
+    "resume": "file set",
+    "resume_text": "not on page",
+    "question_70134650": "chose \"Yes\"",
+    "question_70134651": "typed",
+    "question_70134652": "typed",
+    "question_70134653": "chose \"Cannot recall\"",
+    "question_70134654": "chose \"Cannot recall\"",
+    "question_70134655": "typed",
+    "question_70134656": "typed",
+    "question_70134657": "chose \"Yes\"",
+    "question_70134658": "typed",
+    "question_70134659": "typed",
+    "question_70134660": "chose \"Afghanistan\"",
+    "question_70134661": "chose \"Acknowledge/Confirm\"",
+    "question_70134662": "chose \"Female\"",
+    "question_70134663[]": "chose \"Afghan\"",
+    "question_70134664": "chose \"Asian\"",
+    "disability_status": "chose \"I do not want to answer\"",
+    "veteran_status": "chose \"I don't wish to answer\"",
+    "race": "not on page",
+    "gender": "chose \"Decline To Self Identify\"",
+    "country": "chose the first option for \"El Salvador\"",
+    "candidate-location": "not on page"
+  },
+  "invalidAfterSubmit": [],
+  "application": {
+    "url": "https://boards.greenhouse.io/canonical/jobs/8318769",
+    "payload": {
+      "job_application": {
+        "first_name": "Test value",
+        "last_name": "Test value",
+        "email": "dry-run@example.invalid",
+        "answers_attributes": {
+          "70134650": {
+            "question_id": "70134650",
+            "priority": 0,
+            "boolean_value": 1
+          },
+          "70134651": {
+            "question_id": "70134651",
+            "priority": 1,
+            "text_value": "Test value"
+          },
+          "70134652": {
+            "question_id": "70134652",
+            "priority": 2,
+            "text_value": "Test value"
+          },
+          "70134653": {
+            "question_id": "70134653",
+            "priority": 3,
+            "answer_selected_options_attributes": {
+              "0": {
+                "question_option_id": "757756902"
+              }
+            }
+          },
+          "70134654": {
+            "question_id": "70134654",
+            "priority": 4,
+            "answer_selected_options_attributes": {
+              "0": {
+                "question_option_id": "757756911"
+              }
+            }
+          },
+          "70134655": {
+            "question_id": "70134655",
+            "priority": 5,
+            "text_value": "Test value"
+          },
+          "70134656": {
+            "question_id": "70134656",
+            "priority": 6,
+            "text_value": "Test value"
+          },
+          "70134657": {
+            "question_id": "70134657",
+            "priority": 7,
+            "boolean_value": 1
+          },
+          "70134658": {
+            "question_id": "70134658",
+            "priority": 8,
+            "text_value": "Test value"
+          },
+          "70134659": {
+            "question_id": "70134659",
+            "priority": 9,
+            "text_value": "Test value"
+          },
+          "70134660": {
+            "question_id": "70134660",
+            "priority": 10,
+            "answer_selected_options_attributes": {
+              "0": {
+                "question_option_id": "757757160"
+              }
+            }
+          },
+          "70134661": {
+            "question_id": "70134661",
+            "priority": 11,
+            "answer_selected_options_attributes": {
+              "0": {
+                "question_option_id": "757756920"
+              }
+            }
+          },
+          "70134662": {
+            "question_id": "70134662",
+            "priority": 12,
+            "answer_selected_options_attributes": {
+              "0": {
+                "question_option_id": "757756921"
+              }
+            }
+          },
+          "70134663": {
+            "question_id": "70134663",
+            "priority": 13,
+            "answer_selected_options_attributes": {
+              "0": {
+                "question_option_id": "757756925"
+              }
+            }
+          },
+          "70134664": {
+            "question_id": "70134664",
+            "priority": 14,
+            "answer_selected_options_attributes": {
+              "0": {
+                "question_option_id": "757757151"
+              }
+            }
+          }
+        },
+        "demographic_answers": [],
+        "data_compliance": {},
+        "attachments": {},
+        "from_job_board_renderer": true,
+        "employments": [
+          {
+            "start_date": {
+              "month": null,
+              "year": null
+            },
+            "end_date": {
+              "month": null,
+              "year": null
+            },
+            "current": false
+          }
+        ],
+        "phone": "Test value",
+        "resume_url": "https://grnhse-prod-jben-us-east-1.s3.amazonaws.com/stash/applications/resumes/1793234987573-vc2wz926ebd-ad9667c669fc6fa1ce89853a92a1f58c",
+        "resume_url_filename": "test-resume.pdf",
+        "gender": "3",
+        "veteran_status": "3",
+        "disability_status": "3",
+        "educations": [
+          {
+            "school_name_id": null,
+            "degree_id": null,
+            "discipline_id": null,
+            "start_date": {
+              "month": null,
+              "year": null
+            },
+            "end_date": {
+              "month": null,
+              "year": null
+            }
+          }
+        ],
+        "mapped_url_token": null,
+        "appcast_click_id": null,
+        "time_zone": "UTC"
+      },
+      "fingerprint": "10facd7a8dc689c4afc4f50635eaaaf4af47881a"
+    }
+  }
+}

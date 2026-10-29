@@ -1,0 +1,150 @@
+{
+  "formUrl": "https://job-boards.greenhouse.io/gitlab/jobs/8725225002",
+  "checkedAt": "2026-10-29T00:49:43.863Z",
+  "conclusive": true,
+  "reason": "captured the application request whole",
+  "requestsAfterSubmit": [
+    {
+      "method": "POST",
+      "url": "https://grnhse-prod-jben-us-east-1.s3.amazonaws.com/",
+      "outcome": "mocked"
+    },
+    {
+      "method": "POST",
+      "url": "https://grnhse-prod-jben-us-east-1.s3.amazonaws.com/",
+      "outcome": "mocked"
+    },
+    {
+      "method": "POST",
+      "url": "https://www.recaptcha.net/recaptcha/enterprise/reload",
+      "outcome": "aborted"
+    },
+    {
+      "method": "POST",
+      "url": "https://boards.greenhouse.io/gitlab/jobs/8725225002",
+      "outcome": "aborted"
+    }
+  ],
+  "fields": {
+    "first_name": "typed",
+    "last_name": "typed",
+    "email": "typed",
+    "phone": "typed",
+    "resume": "file set",
+    "resume_text": "not on page",
+    "cover_letter": "file set",
+    "cover_letter_text": "not on page",
+    "question_37853225002": "typed",
+    "question_37853226002": "typed",
+    "question_37853227002": "chose \"Afghanistan\"",
+    "question_37853228002": "chose \"Yes\"",
+    "question_37853229002": "chose \"Yes\"",
+    "question_37853230002": "typed",
+    "longitude": "not on page",
+    "latitude": "not on page",
+    "location": "not on page",
+    "veteran_status": "chose \"I don't wish to answer\"",
+    "race": "not on page",
+    "gender": "chose \"Decline To Self Identify\"",
+    "country": "chose the first option for \"El Salvador\"",
+    "candidate-location": "chose the first option for \"San Salvador\""
+  },
+  "invalidAfterSubmit": [],
+  "application": {
+    "url": "https://boards.greenhouse.io/gitlab/jobs/8725225002",
+    "payload": {
+      "job_application": {
+        "first_name": "Test value",
+        "last_name": "Test value",
+        "email": "dry-run@example.invalid",
+        "answers_attributes": {
+          "37853225002": {
+            "question_id": "37853225002",
+            "priority": 0,
+            "text_value": "Test value"
+          },
+          "37853226002": {
+            "question_id": "37853226002",
+            "priority": 1,
+            "text_value": "Test value"
+          },
+          "37853227002": {
+            "question_id": "37853227002",
+            "priority": 2,
+            "answer_selected_options_attributes": {
+              "0": {
+                "question_option_id": "251664600002"
+              }
+            }
+          },
+          "37853228002": {
+            "question_id": "37853228002",
+            "priority": 3,
+            "answer_selected_options_attributes": {
+              "0": {
+                "question_option_id": "251664798002"
+              }
+            }
+          },
+          "37853229002": {
+            "question_id": "37853229002",
+            "priority": 4,
+            "boolean_value": 1
+          },
+          "37853230002": {
+            "question_id": "37853230002",
+            "priority": 5,
+            "text_value": "Test value"
+          }
+        },
+        "demographic_answers": [],
+        "data_compliance": {},
+        "attachments": {},
+        "from_job_board_renderer": true,
+        "employments": [
+          {
+            "start_date": {
+              "month": null,
+              "year": null
+            },
+            "end_date": {
+              "month": null,
+              "year": null
+            },
+            "current": false
+          }
+        ],
+        "phone": "Test value",
+        "location": "San Salvador, El Salvador",
+        "latitude": "13.698156",
+        "longitude": "-89.191355",
+        "country_short_name": "SV",
+        "resume_url": "https://grnhse-prod-jben-us-east-1.s3.amazonaws.com/stash/applications/resumes/1793234973072-y0004hj3iy-63d940a03cd495cdf711f8ff454c8e11",
+        "resume_url_filename": "test-resume.pdf",
+        "cover_letter_url": "https://grnhse-prod-jben-us-east-1.s3.amazonaws.com/stash/applications/resumes/1793234973080-53g6qqa2du4-ba24f5de8fbc8fa6649b2f9fe5161a19",
+        "cover_letter_url_filename": "test-resume.pdf",
+        "gender": "3",
+        "veteran_status": "3",
+        "educations": [
+          {
+            "school_name_id": null,
+            "degree_id": null,
+            "discipline_id": null,
+            "start_date": {
+              "month": null,
+              "year": null
+            },
+            "end_date": {
+              "month": null,
+              "year": null
+            }
+          }
+        ],
+        "mapped_url_token": null,
+        "appcast_click_id": null,
+        "time_zone": "UTC"
+      },
+      "fingerprint": "00149e5abaffc60ae3bc8e4d38b0e69ab44a3439"
+    }
+  }
+}

@@ -1,0 +1,171 @@
+{
+  "formUrl": "https://job-boards.greenhouse.io/embed/job_app?for=elastic&token=8162469",
+  "checkedAt": "2026-10-29T00:50:11.684Z",
+  "conclusive": true,
+  "reason": "captured the application request whole",
+  "requestsAfterSubmit": [
+    {
+      "method": "POST",
+      "url": "https://grnhse-prod-jben-us-east-1.s3.amazonaws.com/",
+      "outcome": "mocked"
+    },
+    {
+      "method": "POST",
+      "url": "https://grnhse-prod-jben-us-east-1.s3.amazonaws.com/",
+      "outcome": "mocked"
+    },
+    {
+      "method": "POST",
+      "url": "https://www.recaptcha.net/recaptcha/enterprise/reload",
+      "outcome": "aborted"
+    },
+    {
+      "method": "POST",
+      "url": "https://boards.greenhouse.io/embed/elastic/jobs/8162469",
+      "outcome": "aborted"
+    }
+  ],
+  "fields": {
+    "first_name": "typed",
+    "last_name": "typed",
+    "preferred_name": "typed",
+    "email": "typed",
+    "phone": "typed",
+    "resume": "file set",
+    "resume_text": "not on page",
+    "cover_letter": "file set",
+    "cover_letter_text": "not on page",
+    "question_68861694": "typed",
+    "question_68861695": "typed",
+    "question_68861696": "chose \"Yes\"",
+    "question_68861697": "typed",
+    "question_68861698": "typed",
+    "question_68861699": "chose \"Yes\"",
+    "question_68861700": "chose \"Yes\"",
+    "question_68861701": "chose \"Yes\"",
+    "question_68861702": "chose \"I acknowledge\"",
+    "question_68861703[]": "checked the first box",
+    "longitude": "not on page",
+    "latitude": "not on page",
+    "location": "not on page",
+    "country": "chose the first option for \"El Salvador\"",
+    "candidate-location": "chose the first option for \"San Salvador\""
+  },
+  "invalidAfterSubmit": [],
+  "application": {
+    "url": "https://boards.greenhouse.io/embed/elastic/jobs/8162469",
+    "payload": {
+      "job_application": {
+        "first_name": "Test value",
+        "last_name": "Test value",
+        "email": "dry-run@example.invalid",
+        "answers_attributes": {
+          "68861694": {
+            "question_id": "68861694",
+            "priority": 0,
+            "text_value": "Test value"
+          },
+          "68861695": {
+            "question_id": "68861695",
+            "priority": 1,
+            "text_value": "Test value"
+          },
+          "68861696": {
+            "question_id": "68861696",
+            "priority": 2,
+            "boolean_value": 1
+          },
+          "68861697": {
+            "question_id": "68861697",
+            "priority": 3,
+            "text_value": "Test value"
+          },
+          "68861698": {
+            "question_id": "68861698",
+            "priority": 4,
+            "text_value": "Test value"
+          },
+          "68861699": {
+            "question_id": "68861699",
+            "priority": 5,
+            "boolean_value": 1
+          },
+          "68861700": {
+            "question_id": "68861700",
+            "priority": 6,
+            "boolean_value": 1
+          },
+          "68861701": {
+            "question_id": "68861701",
+            "priority": 7,
+            "boolean_value": 1
+          },
+          "68861702": {
+            "question_id": "68861702",
+            "priority": 8,
+            "answer_selected_options_attributes": {
+              "0": {
+                "question_option_id": "749612449"
+              }
+            }
+          },
+          "68861703": {
+            "question_id": "68861703",
+            "priority": 9,
+            "answer_selected_options_attributes": {
+              "0": {
+                "question_option_id": "749612450"
+              }
+            }
+          }
+        },
+        "demographic_answers": [],
+        "data_compliance": {},
+        "attachments": {},
+        "from_job_board_renderer": true,
+        "employments": [
+          {
+            "start_date": {
+              "month": null,
+              "year": null
+            },
+            "end_date": {
+              "month": null,
+              "year": null
+            },
+            "current": false
+          }
+        ],
+        "preferred_name": "Test value",
+        "phone": "Test value",
+        "location": "San Salvador, El Salvador",
+        "latitude": "13.698156",
+        "longitude": "-89.191355",
+        "country_short_name": "SV",
+        "resume_url": "https://grnhse-prod-jben-us-east-1.s3.amazonaws.com/stash/applications/resumes/1793235001017-xy4frctbk9-6cf52970d83081965b159a966291e5eb",
+        "resume_url_filename": "test-resume.pdf",
+        "cover_letter_url": "https://grnhse-prod-jben-us-east-1.s3.amazonaws.com/stash/applications/resumes/1793235001024-aq2r46s2kmq-23f98c2544db1f6d124c22d3203ec08c",
+        "cover_letter_url_filename": "test-resume.pdf",
+        "educations": [
+          {
+            "school_name_id": null,
+            "degree_id": null,
+            "discipline_id": null,
+            "start_date": {
+              "month": null,
+              "year": null
+            },
+            "end_date": {
+              "month": null,
+              "year": null
+            }
+          }
+        ],
+        "mapped_url_token": null,
+        "appcast_click_id": null,
+        "time_zone": "UTC"
+      },
+      "fingerprint": "8bb4b30468b0236fc2089b57646d865397a42661"
+    }
+  }
+}

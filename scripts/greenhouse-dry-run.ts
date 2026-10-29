@@ -12,6 +12,10 @@ import { chromium, type Page, type Request } from 'playwright'
  *
  * --submit fills every question the board's API lists with made-up values (the first option
  * of each choice, a one-page fake PDF), presses Submit, and records the requests it makes.
+ * A run is conclusive only when it captured the application request itself, to
+ * boards.greenhouse.io/[embed/]<board>/jobs/<id>, with a complete JSON body. It writes that
+ * capture to <out-dir>/<board>-<job-id>.capture.json, without the reCAPTCHA token or the S3
+ * upload signatures, and exits non-zero when any run is inconclusive.
  */
 
 const READS = new Set(['GET', 'HEAD', 'OPTIONS'])
@@ -87,9 +91,32 @@ async function fillFake(page: Page, questions: readonly ApiQuestion[]): Promise<
   return report
 }
 
-async function inspect(url: string, outDir: string, submit: { board: string; jobId: string } | null): Promise<void> {
+/** The S3 upload's form fields, by name only: their values are a signed upload policy. */
+const fieldNames = (body: string | null) => [...(body ?? '').matchAll(/name="([^"]+)"/g)].map((m) => m[1])
+
+type Capture = { conclusive: boolean; reason: string; application: { url: string; payload: unknown } | null }
+
+/** The application request among those Submit made, if it was captured whole. */
+function applicationRequest(after: readonly Seen[], submit: { board: string; jobId: string }): Capture {
+  const path = new RegExp(`^https://boards\\.greenhouse\\.io/(embed/)?${submit.board}/jobs/${submit.jobId}$`)
+  const request = after.find((r) => r.method === 'POST' && r.outcome === 'aborted' && path.test(r.url))
+  if (!request) return { conclusive: false, reason: 'no application request was seen after Submit', application: null }
+  try {
+    const payload: unknown = JSON.parse(request.postData ?? '')
+    if (typeof payload !== 'object' || payload === null || !('job_application' in payload)) {
+      return { conclusive: false, reason: 'the application request has no job_application', application: null }
+    }
+    const kept = Object.fromEntries(Object.entries(payload).filter(([key]) => key !== 'g-recaptcha-enterprise-token'))
+    return { conclusive: true, reason: 'captured the application request whole', application: { url: request.url, payload: kept } }
+  } catch {
+    return { conclusive: false, reason: 'the application request body is not complete JSON', application: null }
+  }
+}
+
+async function inspect(url: string, outDir: string, submit: { board: string; jobId: string } | null): Promise<boolean> {
   const browser = await chromium.launch()
-  const context = await browser.newContext()
+  // A neutral time zone and locale: the page sends the browser's time zone with the application.
+  const context = await browser.newContext({ timezoneId: 'UTC', locale: 'en-US' })
   const seen: Seen[] = []
   await context.route('**/*', async (route) => {
     const request = route.request()
@@ -125,14 +152,25 @@ async function inspect(url: string, outDir: string, submit: { board: string; job
   const frames = page.frames().map((f) => f.url())
   const slug = new URL(url).pathname.replaceAll('/', '_') + new URL(url).search.replace(/[^a-z0-9]/gi, '_')
   await writeFile(join(outDir, `${slug}.html`), await page.content())
+  const capture = submit ? applicationRequest(afterSubmit, submit) : null
+  if (submit && capture) {
+    await writeFile(join(outDir, `${submit.board}-${submit.jobId}.capture.json`), `${JSON.stringify({
+      formUrl: url, checkedAt: new Date().toISOString(), conclusive: capture.conclusive, reason: capture.reason,
+      requestsAfterSubmit: afterSubmit.map((r) => ({ method: r.method, url: r.url.split('?')[0], outcome: r.outcome })),
+      fields: filled, invalidAfterSubmit: invalid, application: capture.application,
+    }, null, 2)}\n`)
+    console.log(`${capture.conclusive ? 'CONCLUSIVE' : 'INCONCLUSIVE'}: ${capture.reason}`)
+  }
   await writeFile(join(outDir, `${slug}.json`), JSON.stringify({ url, finalUrl: page.url(), status: response?.status() ?? null, frames, controls, filled, invalid, afterSubmit, requests: seen }, null, 2))
   if (submit) console.log(JSON.stringify({ filled, invalid, afterSubmit: afterSubmit.map((r) => `${r.method} ${r.url.slice(0, 120)}${r.outcome === 'sent' ? '' : ` (${r.outcome})`}`) }, null, 2))
   console.log(`${url}\n  → ${page.url()} (${response?.status()})  frames: ${frames.length}  controls: ${controls.length}  requests: ${seen.length}, aborted: ${seen.filter((s) => s.outcome === 'aborted').length}, mocked: ${seen.filter((s) => s.outcome === 'mocked').length}`)
   await browser.close()
+  return capture?.conclusive ?? true
 }
 
 function describe(request: Request, outcome: Seen['outcome']): Seen {
-  return { method: request.method(), url: request.url().slice(0, 300), type: request.resourceType(), outcome, postData: outcome === 'sent' ? null : (request.postData()?.slice(0, 4000) ?? null) }
+  const body = outcome === 'sent' ? null : request.postData()
+  return { method: request.method(), url: request.url(), type: request.resourceType(), outcome, postData: outcome === 'mocked' ? fieldNames(body).join(', ') : body }
 }
 
 const [outDir, ...rest] = process.argv.slice(2)
@@ -140,4 +178,6 @@ const submit = rest[0] === '--submit' && rest[1] && rest[2] ? { board: rest[1], 
 const urls = submit ? rest.slice(3) : rest
 if (!outDir || urls.length === 0) throw new Error('usage: greenhouse-dry-run.ts <out-dir> [--submit <board> <job-id>] <form-url>…')
 await mkdir(outDir, { recursive: true })
-for (const url of urls) await inspect(url, outDir, submit)
+let conclusive = true
+for (const url of urls) conclusive = (await inspect(url, outDir, submit)) && conclusive
+if (!conclusive) process.exitCode = 1

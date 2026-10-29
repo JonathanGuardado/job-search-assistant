@@ -12,17 +12,54 @@ application can only go through the employer's form in a browser.
 
 The plan went through three external review rounds before any code. Step 0 ran on 2026-10-28.
 
-**Terms.** Greenhouse's legal documents bind its employer customers. None addresses people
-applying through a job board, and none mentions automated tools. Its privacy policy names the
-employer as the controller of application data. `job-boards.greenhouse.io/robots.txt`
-disallows nothing; `boards.greenhouse.io/robots.txt` disallows `/embed/` to crawlers. Employers
-can add their own rules in the form itself: Canonical's attestation forbids AI-generated
-content, which the own-words rule covers (decision 0014). To be checked again before 2.4.
+**Terms**, checked 2026-10-28. The documents read:
+
+- Greenhouse's legal index (`greenhouse.com/legal`): the master subscription agreement, the data
+  processing addendum, the privacy policy, the cookie notice and the CCPA notice for people
+  applying to Greenhouse itself;
+- the MyGreenhouse User Agreement (`my.greenhouse.io/users/agreement`, effective 2025-01-29);
+- both job boards' `robots.txt`.
+
+What they say:
+
+- **The legal index binds employers.** Its documents are written for Greenhouse's employer
+  customers. None addresses people applying through an employer's form, or automated tools. The
+  privacy policy names the employer as the controller of application data.
+- **MyGreenhouse forbids automation.** MyGreenhouse is Greenhouse's account service for job
+  seekers. Its agreement, section 3(z), forbids using "automated means, including spiders,
+  robots, crawlers, or similar means or processes to access or use the Services".
+- **robots.txt:** `job-boards.greenhouse.io/robots.txt` disallows nothing.
+  `boards.greenhouse.io/robots.txt` disallows `/embed/` to crawlers.
+- **Employers' own rules:** an employer can add rules in the form itself. Canonical's
+  attestation forbids AI-generated content, which the own-words rule covers (decision 0014).
+
+**Scope.** This decision covers the employer's application form, used without a MyGreenhouse
+account. The filler:
+
+- never signs in to MyGreenhouse;
+- never uses its autofill or stored profile;
+- runs in a fresh browser context holding no Greenhouse cookies.
+
+The form page's own script asks MyGreenhouse whether someone is signed in
+(`my.greenhouse.io/users/self`). The filler leaves that call to the page and acts on nothing
+it returns.
+
+**Still open.** The documents do not settle whether Greenhouse counts its hosted form page as
+part of MyGreenhouse's Services. In 2.3 a person always presses Submit. 2.4 must settle this
+before the system sends anything without the owner.
 
 **Dry run** (`scripts/greenhouse-dry-run.ts`). It loaded the GitLab, Canonical and Elastic forms
-in Chromium, filled them with made-up values and pressed Submit. Every request that is not a
-read was aborted, and file uploads were answered in the browser as S3 would, so nothing reached
-Greenhouse. All three runs were conclusive.
+in Chromium, with the time zone set to UTC, filled them with made-up values and pressed Submit.
+Nothing reached Greenhouse: every request that is not a read was aborted, and file uploads
+were answered in the browser as S3 would.
+
+- **What "conclusive" means.** A run is conclusive only when it captured the application
+  request to `boards.greenhouse.io/[embed/]<board>/jobs/<id>` with a complete JSON body. The
+  script checks this and exits with an error otherwise.
+- **The evidence.** All three runs were conclusive. Their captures are in
+  [`docs/dry-runs/2026-10-28/`](../dry-runs/2026-10-28/). Each holds every request made after
+  Submit and the full application payload, without the reCAPTCHA token or the upload
+  signatures.
 
 - **Pages.** Hosted boards serve the form at `job-boards.greenhouse.io/<board>/jobs/<id>`.
   Elastic's redirects to its own careers site, but `job-boards.greenhouse.io/embed/job_app?for=<board>&token=<id>`
@@ -108,8 +145,11 @@ drafted saved answer keeps it a draft.
 - **Comparing the two:** after the page loads, the filler lists every visible control and
   matches it to the packet. A control on the page and not in the packet is reported, and is
   unresolved if required. A packet field not found on the page is reported.
-- **Phone country:** set from the stored phone's international dialing code when it has one;
-  otherwise unresolved.
+- **Phone country:** set only when the stored phone's international dialing code belongs to
+  exactly one country among the picker's own options (the page lists each country's code).
+  Otherwise it is unresolved:
+  - a code shared by several countries, such as +1 (the North American Numbering Plan) or +7;
+  - a phone stored without an international code.
 - **Location:** set only when an autocomplete suggestion equals the profile's "City, Country"
   exactly. Its coordinates come only from that suggestion, never guessed.
 
@@ -121,7 +161,10 @@ embed page instead.
 **The packet is fixed at review.** Preparing a fill is a server action (`prepareFill`), never
 a side effect of rendering. It stores the packet and fingerprints of the packet, the form
 (`application_forms.payload`), the posting version (`raw_job_id`) and the resume file, then
-redirects to the review page. Preparing the same packet again returns the same record. The
+redirects to the review page. Preparing again returns the existing record only when that
+record is still `prepared`, has not expired, and matches every pinned fingerprint: the packet,
+the form, the posting version and the resume file. Otherwise, including after expiry or any
+final outcome, it creates a new attempt. The
 owner's Start is tied to that record and its packet fingerprint. The worker fills the stored
 packet and never rebuilds it. Before opening the browser it re-fetches the form and rebuilds
 the packet only to compare; any difference marks the fill `stale` and asks for a new review.
