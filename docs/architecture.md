@@ -81,6 +81,7 @@ exported from that module's `index.ts`. Queues:
 | `match-questions` | One candidate's "same question, different wording" run | On saving an answer; on opening the answers page (at most every ten minutes) |
 | `draft-answers` | One candidate's drafting run (decision 0014) | On opening the answers page (at most every ten minutes); on profile save |
 | `resume-parse` | One resume version → draft career items | On upload |
+| `application-fill` | One started fill: a visible browser filled from the reviewed packet, waiting for the owner to submit (decision 0016) | When the owner presses Start; one at a time, never retried or re-run after a stall |
 
 Every job is idempotent and keyed so a retry cannot double-write. Workflows are state
 machines with persisted state: a crash resumes at the last committed step.

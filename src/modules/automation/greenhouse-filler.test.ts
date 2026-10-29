@@ -1,7 +1,7 @@
-import { fileURLToPath } from 'node:url'
 import { chromium, type Browser, type Page } from 'playwright'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import type { Packet, PacketItem } from '@/modules/application-answers'
+import { GITLAB_PAGES, replayContext } from './browser-fixtures.js'
 import { fillGreenhouseForm } from './greenhouse-filler.js'
 
 /*
@@ -10,8 +10,6 @@ import { fillGreenhouseForm } from './greenhouse-filler.js'
  * aborted, and the page's application request is never answered: nothing can be sent.
  */
 
-const PAGE = 'https://job-boards.greenhouse.io/gitlab/jobs/8725225002'
-const HAR = fileURLToPath(new URL('./__fixtures__/greenhouse-gitlab-page.har', import.meta.url))
 const SPONSORSHIP = 'question_37853228002'
 const AGREEMENTS = 'question_37853229002'
 const LOCATED_IN = 'question_37853227002'
@@ -42,19 +40,17 @@ let browser: Browser
 beforeAll(async () => { browser = await chromium.launch() })
 afterAll(async () => { await browser.close() })
 
-/** The recorded page, with every request it makes that is not a read recorded and aborted. */
+/** The recorded page, Greenhouse played by the test, with every request that is not a read listed. */
 async function formPage(): Promise<{ page: Page; sent: string[] }> {
-  const context = await browser.newContext({ timezoneId: 'UTC', locale: 'en-US' })
-  await context.routeFromHAR(HAR, { notFound: 'abort' })
+  const context = await replayContext(browser, 'accepts')
   const sent: string[] = []
-  await context.route('**/*', (route) => {
-    if (['GET', 'HEAD', 'OPTIONS'].includes(route.request().method())) return route.fallback()
-    sent.push(`${route.request().method()} ${route.request().url()}`)
-    return route.abort()
+  context.on('request', (request) => {
+    if (!['GET', 'HEAD', 'OPTIONS'].includes(request.method())) sent.push(`${request.method()} ${request.url()}`)
   })
   const page = await context.newPage()
-  await page.goto(PAGE)
+  await page.goto(GITLAB_PAGES.page)
   await page.locator('[id="first_name"]').waitFor()
+  await page.waitForLoadState('networkidle')
   return { page, sent }
 }
 
@@ -76,7 +72,7 @@ describe('filling a Greenhouse form (decision 0016)', { timeout: 60_000 }, () =>
     expect(resultFor(report, 'location')).toMatchObject({ result: 'set' })
     expect(await shown(page, 'candidate-location')).toBe('San Salvador, El Salvador')
     expect(await shown(page, 'country')).toBe('+503')
-    // Attaching the resume uploads it to Greenhouse's storage at once (aborted here). Nothing else is sent: no application, no reCAPTCHA.
+    // Attaching the resume uploads it to Greenhouse's storage at once (answered in the browser here). Nothing else is sent: no application, no reCAPTCHA.
     expect(sent.filter((request) => !request.includes('c.spl.greenhouse.io'))).toEqual(['POST https://grnhse-prod-jben-us-east-1.s3.amazonaws.com/'])
     await page.context().close()
   })

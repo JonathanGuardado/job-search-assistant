@@ -1,7 +1,7 @@
 import { and, asc, count, eq, getTableColumns, inArray, lte, min, or, isNull, sql } from 'drizzle-orm'
 import type { Db } from '@/lib/db/client'
 import { domainError, err, ok, type Result } from '@/lib/result'
-import { AdapterConfigSchema, type ApplicationForm, type Fetcher, type FetchResult } from './adapter.js'
+import { AdapterConfigSchema, type ApplicationForm, type ApplicationPages, type Fetcher, type FetchResult } from './adapter.js'
 import { contentHash } from './content-hash.js'
 import { POLL_INTERVAL_MS } from './queues.js'
 import { getAdapter } from './registry.js'
@@ -226,6 +226,16 @@ export async function getApplicationForms(db: Db, postings: readonly PostingRef[
     .where(or(...postings.map((p) => and(eq(applicationForms.sourceId, p.sourceId), eq(applicationForms.externalId, p.externalId)))))
   for (const row of rows) found.set(postingKey(row), { form: row.form, fetchedAt: row.fetchedAt })
   return found
+}
+
+/** Where a posting's form is filled and its application sent; only sources that publish forms have them. */
+export async function applicationPages(db: Db, posting: PostingRef): Promise<Result<ApplicationPages>> {
+  const [source] = await db.select().from(jobSources).where(eq(jobSources.id, posting.sourceId))
+  if (!source) return err(domainError('not_found', `source ${posting.sourceId} not found`))
+  const config = AdapterConfigSchema.safeParse(source.config)
+  if (!config.success) return err(domainError('invalid_input', `source ${source.id} has an invalid configuration`))
+  const pages = getAdapter(source.adapterKey).applicationPages?.({ name: source.name, config: config.data }, posting.externalId)
+  return pages ? ok(pages) : err(domainError('invalid_input', 'This source publishes no application form to fill.'))
 }
 
 /** One posting's stored form, with a fingerprint of the payload it was read from: a fill is tied to it (decision 0016). */

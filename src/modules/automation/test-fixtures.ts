@@ -21,7 +21,10 @@ import { uploadResume, type Resume } from '@/modules/resumes'
 
 let nextPostingId = 9_700_000
 
-const gitlabForm: unknown = JSON.parse(readFileSync(new URL('../job-sources/__fixtures__/greenhouse-application-gitlab.json', import.meta.url), 'utf8'))
+/** The API form of the job whose page the tests replay (greenhouse-gitlab-page.har), so its fields match the page. */
+const gitlabForm: unknown = JSON.parse(readFileSync(new URL('./__fixtures__/greenhouse-gitlab-form.json', import.meta.url), 'utf8'))
+export const SPONSORSHIP = 'Will you now or in the future require sponsorship for a visa to remain in your current location?'
+const AGREEMENTS = 'Are you subject to any employment agreements and/or post-employment restrictions with your current employer or a past employer?'
 
 const profile: CandidateProfileInput = {
   country: 'SV', city: 'San Salvador', timezone: 'America/El_Salvador', workAuthorizations: [], willingToRelocate: false,
@@ -42,9 +45,9 @@ const trace: ModelTrace = {
 }
 const worldwide: EligibilityClaims = { ...UNSPECIFIED_CLAIMS, remoteScope: { kind: 'worldwide', quote: 'Home based, worldwide.' }, onsite: { kind: 'remote', quote: 'Home based, worldwide.' } }
 
-export type Applicant = { readonly userId: string; readonly job: Job; readonly resume: Resume }
+export type Applicant = { readonly userId: string; readonly job: Job; readonly resume: Resume; readonly storageRoot: string }
 
-/** A candidate who could open a fill for a GitLab job right away. */
+/** A candidate who could open a fill for a GitLab job right away, every required question answered. */
 export async function anApplicant(db: Db): Promise<Applicant> {
   const user = await ensureUser(db, { email: `fill-${randomUUID()}@test.local` })
   const board = unwrap(await addSource(db, { adapterKey: 'greenhouse', name: `Umbrella ${randomUUID()}`, token: randomUUID() }, async () => Response.json({ name: 'Umbrella' })))
@@ -66,14 +69,15 @@ export async function anApplicant(db: Db): Promise<Applicant> {
   const resume = await withTenant(db, user.id, async (scope) => {
     unwrap(await saveCandidateProfile(scope, profile))
     unwrap(await saveApplicantDetails(scope, { firstName: 'Ana', lastName: 'Pérez', email: 'ana@example.com', phone: '+503 7000 0000', linkedinUrl: null, githubUrl: null, websiteUrl: null }))
+    for (const label of [SPONSORSHIP, AGREEMENTS]) unwrap(await saveAnswer(scope, { label, answer: { kind: 'choice', labels: ['No'] } }))
     return unwrap(await uploadResume(scope, { filename: 'cv.pdf', bytes: pdf }, { storageRoot }))
   })
   const outcome = unwrap(await assessJobForUser(db, { userId: user.id, jobId: job.id }, async () => ok({ value: worldwide, traces: [trace] })))
   if (outcome.kind !== 'assessed' || outcome.verdict !== 'eligible') throw new Error('expected eligible')
-  return { userId: user.id, job, resume }
+  return { userId: user.id, job, resume, storageRoot }
 }
 
 /** Changes what the packet would enter, so a reviewed packet goes stale. */
 export async function changeAnAnswer(db: Db, userId: string, text = 'Yes'): Promise<void> {
-  await withTenant(db, userId, async (scope) => unwrap(await saveAnswer(scope, { label: 'Have you previously worked at or consulted for GitLab?', answer: { kind: 'choice', labels: [text] } })))
+  await withTenant(db, userId, async (scope) => unwrap(await saveAnswer(scope, { label: SPONSORSHIP, answer: { kind: 'choice', labels: [text] } })))
 }

@@ -1,5 +1,6 @@
 import type { Page } from 'playwright'
 import type { Packet, PacketItem } from '@/modules/application-answers'
+import { UPLOAD } from './capture.js'
 import type { FieldResult, FillReport } from './types.js'
 
 /*
@@ -19,6 +20,8 @@ export type FileToUpload = { readonly name: string; readonly mimeType: string; r
 type Fill = Extract<PacketItem, { kind: 'fill' }>
 
 const OPTION_WAIT_MS = 5_000
+/** How long Greenhouse's storage has to take an attached file. */
+const UPLOAD_WAIT_MS = 30_000
 const byId = (page: Page, id: string) => page.locator(`[id="${id.replaceAll('"', '\\"')}"]`)
 const firstLine = (error: unknown) => (error instanceof Error ? error.message.split('\n')[0] ?? error.message : String(error))
 
@@ -53,8 +56,11 @@ async function fillOne(page: Page, item: Fill, files: { readonly resume: FileToU
     if (value.kind === 'file') {
       if (!files.resume) return result('left_for_owner', 'The resume file could not be read: attach it yourself.')
       if (await byId(page, item.field).count() === 0) return result('not_on_page')
+      // Attaching uploads the file at once: it is set only once Greenhouse's storage took it.
+      const uploaded = page.waitForResponse((response) => UPLOAD.test(response.url()), { timeout: UPLOAD_WAIT_MS }).catch(() => null)
       await byId(page, item.field).setInputFiles(files.resume)
-      return result('set')
+      const response = await uploaded
+      return response && response.status() < 300 ? result('set') : result('failed', 'Greenhouse did not take the file: attach it yourself.')
     }
     if (item.field === 'location' && value.kind === 'text') return await fillLocation(page, item, value.text)
     if (value.kind === 'text') {
@@ -137,6 +143,16 @@ export async function fillGreenhouseForm(page: Page, packet: Packet, files: { re
       results.push({ questionKey: item.questionKey, field: item.fields[0] ?? item.questionKey, label: item.label, result: 'left_for_owner', required: true, detail: `Yours to answer on the form (${item.reason}).` })
     }
   }
+  // A page still taking over its server-rendered inputs can empty them: enter again any text it dropped.
+  for (const [index, result] of results.entries()) {
+    const item = packet.items.find((i): i is Fill => i.kind === 'fill' && i.field === result.field)
+    if (result.result !== 'set' || item?.value.kind !== 'text' || item.field === 'location') continue
+    const input = byId(page, item.field)
+    if (await input.inputValue() === item.value.text) continue
+    await input.fill(item.value.text)
+    if (await input.inputValue() !== item.value.text) results[index] = { ...result, result: 'failed', detail: 'The page did not keep this value.' }
+  }
+
   const phone = packet.items.find((i): i is Fill => i.kind === 'fill' && i.field === 'phone')
   const country = await fillPhoneCountry(page, phone?.value.kind === 'text' ? phone.value.text : null)
   if (country) results.push(country)

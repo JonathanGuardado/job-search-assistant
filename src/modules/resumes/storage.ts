@@ -1,5 +1,5 @@
 import { createHash, randomUUID } from 'node:crypto'
-import { mkdir, rename, rm, stat, writeFile } from 'node:fs/promises'
+import { mkdir, readFile, rename, rm, stat, writeFile } from 'node:fs/promises'
 import { dirname, join, resolve } from 'node:path'
 
 /**
@@ -34,6 +34,15 @@ export async function storeFile(root: string, key: string, bytes: Uint8Array): P
   const temporary = `${path}.${randomUUID()}.partial`
   await writeFile(temporary, bytes, { mode: 0o600 })
   await rename(temporary, path)
+}
+
+/** A stored file's bytes, or null when it is not there. */
+export async function readStoredFile(root: string, key: string): Promise<Uint8Array | null> {
+  try {
+    return await readFile(join(resolve(root), key))
+  } catch {
+    return null
+  }
 }
 
 export async function removeFile(root: string, key: string): Promise<void> {

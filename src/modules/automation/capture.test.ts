@@ -1,8 +1,8 @@
 import { createHash } from 'node:crypto'
-import { fileURLToPath } from 'node:url'
-import { chromium, type Browser, type BrowserContext, type Page, type Route } from 'playwright'
+import { chromium, type Browser, type BrowserContext, type Page } from 'playwright'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import type { Packet, PacketItem } from '@/modules/application-answers'
+import { GITLAB_APPLICATION, GITLAB_PAGES, replayContext, type Greenhouse } from './browser-fixtures.js'
 import { attachCapture, judgeOutcome, type Capture } from './capture.js'
 import { fillGreenhouseForm } from './greenhouse-filler.js'
 
@@ -11,9 +11,6 @@ import { fillGreenhouseForm } from './greenhouse-filler.js'
  * application request are answered or failed in the browser, never sent.
  */
 
-const PAGE = 'https://job-boards.greenhouse.io/gitlab/jobs/8725225002'
-const APPLICATION = /^https:\/\/boards\.greenhouse\.io\/(embed\/)?gitlab\/jobs\/8725225002$/
-const HAR = fileURLToPath(new URL('./__fixtures__/greenhouse-gitlab-page.har', import.meta.url))
 const PDF = Buffer.from('%PDF-1.1\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\ntrailer<</Root 1 0 R>>\n%%EOF\n')
 
 const text = (field: string, value: string): PacketItem =>
@@ -33,45 +30,23 @@ let browser: Browser
 beforeAll(async () => { browser = await chromium.launch() })
 afterAll(async () => { await browser.close() })
 
-type Greenhouse = 'accepts' | 'rejects' | 'fails'
-
 /** The recorded page, filled, with capture attached before it opened; Greenhouse answers as told. */
 async function filled(greenhouse: Greenhouse): Promise<{ context: BrowserContext; page: Page; capture: Capture }> {
-  const context = await browser.newContext({ timezoneId: 'UTC', locale: 'en-US' })
-  const capture = attachCapture(context, APPLICATION)
-  await context.routeFromHAR(HAR, { notFound: 'abort' })
-  await context.route('**/*', (route) => answer(route, greenhouse))
+  const context = await replayContext(browser, greenhouse)
+  const capture = attachCapture(context, GITLAB_APPLICATION)
   const page = await context.newPage()
-  await page.goto(PAGE)
+  await page.goto(GITLAB_PAGES.page)
   await page.locator('[id="first_name"]').waitFor()
+  await page.waitForLoadState('networkidle')
   await fillGreenhouseForm(page, packet, { resume: { name: 'cv.pdf', mimeType: 'application/pdf', buffer: PDF } })
   capture.fillerDone()
   return { context, page, capture }
 }
 
-function answer(route: Route, greenhouse: Greenhouse) {
-  const request = route.request()
-  if (request.isNavigationRequest() && request.url().endsWith('/confirmation')) {
-    return route.fulfill({ status: 200, contentType: 'text/html', body: '<html><body><h1>Thank you for applying.</h1></body></html>' })
-  }
-  if (['GET', 'HEAD', 'OPTIONS'].includes(request.method())) return route.fallback()
-  if (request.url().includes('.s3.amazonaws.com')) {
-    const key = /name="key"\r?\n\r?\n([^\r\n]+)/.exec(request.postData() ?? '')?.[1] ?? 'key'
-    return route.fulfill({
-      status: 201, contentType: 'application/xml', headers: { 'access-control-allow-origin': '*' },
-      body: `<?xml version="1.0"?><PostResponse><Location>${request.url()}${key}</Location><Bucket>b</Bucket><Key>${key}</Key><ETag>"0"</ETag></PostResponse>`,
-    })
-  }
-  if (APPLICATION.test(request.url())) {
-    if (greenhouse === 'fails') return route.abort('connectionreset')
-    return route.fulfill({ status: greenhouse === 'accepts' ? 200 : 422, contentType: 'application/json', body: greenhouse === 'accepts' ? '{}' : '{"errors":["Email is invalid"]}' })
-  }
-  return route.abort()
-}
-
 const submit = (page: Page) => page.getByRole('button', { name: 'Submit application' }).click()
 const until = async (check: () => boolean) => {
-  for (let i = 0; i < 100 && !check(); i++) await new Promise((resolve) => setTimeout(resolve, 100))
+  // Generous: the whole suite runs several browsers at once.
+  for (let i = 0; i < 300 && !check(); i++) await new Promise((resolve) => setTimeout(resolve, 100))
 }
 
 describe('capturing what the browser sent (decision 0016)', { timeout: 60_000 }, () => {
@@ -95,7 +70,7 @@ describe('capturing what the browser sent (decision 0016)', { timeout: 60_000 },
   it('judges an error response rejected and a request that never completed unknown', async () => {
     const rejected = await filled('rejects')
     await submit(rejected.page)
-    await until(() => rejected.capture.snapshot().submission?.response !== null && rejected.capture.snapshot().submission !== null)
+    await until(() => (rejected.capture.snapshot().submission?.response ?? null) !== null)
     expect(await judgeOutcome(rejected.page, rejected.capture.snapshot())).toMatchObject({ outcome: 'rejected', evidence: { kind: 'error', status: 422 } })
     await rejected.context.close()
 

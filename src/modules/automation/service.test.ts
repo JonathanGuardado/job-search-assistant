@@ -6,7 +6,7 @@ import { unwrap } from '@/lib/result'
 import { createApplication, listApplications } from '@/modules/applications'
 import { getJobRawVersion } from '@/modules/jobs'
 import {
-  cancelFill, claimFill, endAttempt, expireFills, finishRecording, markFilling, markStale, prepareFill, recordReport, recordSubmission,
+  cancelFill, claimFill, endAttempt, expireFills, finishPending, finishRecording, markFilling, markStale, prepareFill, recordReport, recordSubmission,
   renewLease, settleFill, startFill, LEASE_MS, PREPARED_TTL_MS, QUEUED_TTL_MS, type Fill,
 } from './service.js'
 import { anApplicant, changeAnAnswer, type Applicant } from './test-fixtures.js'
@@ -155,6 +155,9 @@ describe('recording a submission (decision 0016)', () => {
     const blocked = unwrap(await prepareFill(db, applicant.userId, applicant.job.id, later(1_000)))
     await as(db, applicant, async (scope) => expect(await startFill(scope, blocked.id, blocked.packetHash, later(1_000))).toMatchObject({ ok: false, error: { code: 'conflict' } }))
 
+    // Opening the app finishes what the crash left: one application, linked.
+    expect(await as(db, applicant, (scope) => finishPending(scope, '2026-10-28'))).toEqual({ recorded: 1, conflicts: 0 })
+    expect(await as(db, applicant, (scope) => finishPending(scope, '2026-10-28'))).toEqual({ recorded: 0, conflicts: 0 })
     const application = await as(db, applicant, async (scope) => unwrap(await finishRecording(scope, fill.id, '2026-10-28')))
     expect(application).toMatchObject({ jobId: applicant.job.id, mode: 'assisted', rawJobId: fill.rawJobId, resumeId: applicant.resume.id })
     expect(await as(db, applicant, async (scope) => unwrap(await finishRecording(scope, fill.id, '2026-10-28')))).toMatchObject({ id: application.id })

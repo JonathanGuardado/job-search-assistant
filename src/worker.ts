@@ -1,3 +1,4 @@
+import { hostname } from 'node:os'
 import type { Worker } from 'bullmq'
 import { closeDb, getDb } from '@/lib/db/client'
 import { getEnv } from '@/lib/env'
@@ -7,6 +8,7 @@ import {
   answerDraftQueue, draftAnswers, formFetchRequest, matchQuestionsWithModel, questionMatchQueue, readQuestionsWithModel, refreshQuestionMatches,
   writeExperienceWithModel, writeMotivationWithModel,
 } from '@/modules/application-answers'
+import { applicationFillQueue, openVisibleBrowser, runFill, type RunnerDeps } from '@/modules/automation'
 import { resumeParseQueue, runResumeParse } from '@/modules/career-knowledge'
 import {
   assessEligibilityQueue, assessJobForUser, enqueueAssessmentsForJob, enqueueAssessmentsForUser, extractClaimsWithModel, reassessUserQueue,
@@ -16,7 +18,7 @@ import {
   assessMatchForUser, assessMatchQueue, enqueueMatch, enqueueMatchesForUser, extractRequirementsWithModel, rematchUserQueue,
 } from '@/modules/matching'
 import {
-  applicationFormFetchQueue, DISPATCH_EVERY_MS, dispatchSourcePolls, pollSourcePage, refreshApplicationForm, sourcePollDispatchQueue, sourcePollKey,
+  applicationFormFetchQueue, applicationPages, DISPATCH_EVERY_MS, dispatchSourcePolls, pollSourcePage, refreshApplicationForm, sourcePollDispatchQueue, sourcePollKey,
   sourcePollQueue, type SourcePollPayload,
 } from '@/modules/job-sources'
 import { domainError, err, ok, type Result } from '@/lib/result'
@@ -37,6 +39,11 @@ const matchProducer = assessMatchQueue.open({ connection })
 const rematchProducer = rematchUserQueue.open({ connection })
 const enqueueMatchJob = async (payload: { userId: string; jobId: string }, key: string) => { await matchProducer.enqueue(payload, key) }
 const formProducer = applicationFormFetchQueue.open({ connection })
+const fillDeps: RunnerDeps = {
+  worker: `${hostname()}:${process.pid}`, storageRoot: getEnv().STORAGE_DIR, openBrowser: openVisibleBrowser,
+  refreshForm: (posting) => refreshApplicationForm(db, posting, fetch), pages: (posting) => applicationPages(db, posting),
+  waitMs: 30 * 60_000, pollMs: 1_000, renewEveryMs: 30_000, lingerMs: 60_000,
+}
 
 /** A normalized job is assessed for every candidate, unless it is closed or a linked duplicate. */
 async function normalizeJob(rawJobId: string): Promise<Result<void>> {
@@ -173,6 +180,12 @@ const workers: Worker[] = [
     return drafted.ok ? ok(undefined) : drafted
   }),
   sourcePollDispatchQueue.work({ connection }, () => dispatchSourcePolls(db, new Date(), enqueuePoll)),
+  // One visible browser at a time, and a fill is never run again after its worker dies (decision 0016).
+  applicationFillQueue.work({ connection, concurrency: 1, maxStalledCount: 0 }, async ({ userId, fillId }) => {
+    const ran = await runFill(db, userId, fillId, fillDeps)
+    if (ran.ok) logEvent('automation.fill_ended', { userId, fillId, outcome: ran.value })
+    return ran.ok ? ok(undefined) : ran
+  }),
 ]
 
 for (const worker of workers) {

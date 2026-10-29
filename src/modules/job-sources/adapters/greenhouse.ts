@@ -139,6 +139,14 @@ export const greenhouseAdapter: JobSourceAdapter = {
     return form.ok ? ok({ payload: fetched.value, form: form.value }) : form
   },
   readApplicationForm,
+  applicationPages(source, externalId) {
+    const [board, id] = [encodeURIComponent(source.config.token), encodeURIComponent(externalId)]
+    return {
+      page: `https://job-boards.greenhouse.io/${board}/jobs/${id}`,
+      embedPage: `https://job-boards.greenhouse.io/embed/job_app?for=${board}&token=${id}`,
+      applicationUrls: [`https://boards.greenhouse.io/${board}/jobs/${id}`, `https://boards.greenhouse.io/embed/${board}/jobs/${id}`],
+    }
+  },
   async health(source, fetcher) {
     const checkedAt = new Date()
     const result = await getJson(`https://boards-api.greenhouse.io/v1/boards/${source.config.token}`, z.object({ name: z.string() }), fetcher)

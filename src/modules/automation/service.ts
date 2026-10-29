@@ -108,9 +108,9 @@ export async function claimFill(scope: TenantScope, fillId: string, worker: stri
   return row ?? null
 }
 
-/** Before the browser opens: what was reviewed changed, so the owner reviews again. */
-export async function markStale(scope: TenantScope, fillId: string, worker: string): Promise<Result<Fill>> {
-  const [row] = await scope.db.update(applicationFills).set({ status: 'stale', ...released })
+/** Before the browser opens: what was reviewed changed, or cannot be checked, so the owner reviews again. */
+export async function markStale(scope: TenantScope, fillId: string, worker: string, why: string | null = null): Promise<Result<Fill>> {
+  const [row] = await scope.db.update(applicationFills).set({ status: 'stale', error: why, ...released })
     .where(held(scope, fillId, worker, ['launching'])).returning()
   return row ? ok(row) : notHeld()
 }
@@ -189,6 +189,21 @@ export async function settleFill(scope: TenantScope, fillId: string, said: 'subm
     : await scope.db.update(applicationFills).set({ status: 'abandoned', ...released })
       .where(and(byId(scope, fillId), eq(applicationFills.status, 'uncertain'))).returning()
   return row ? ok(row) : err(domainError('conflict', 'This fill cannot be settled that way now.'))
+}
+
+/** Finishes recording every submitted fill whose application is not recorded yet; run when the owner opens the app. */
+export async function finishPending(scope: TenantScope, appliedOn: string): Promise<{ readonly recorded: number; readonly conflicts: number }> {
+  const pending = await scope.db.select({ id: applicationFills.id }).from(applicationFills).where(and(
+    eq(applicationFills.userId, scope.userId), eq(applicationFills.status, 'submitted'), isNull(applicationFills.applicationId),
+  ))
+  let recorded = 0
+  let conflicts = 0
+  for (const { id } of pending) {
+    const result = await finishRecording(scope, id, appliedOn)
+    if (result.ok) recorded++
+    else conflicts++
+  }
+  return { recorded, conflicts }
 }
 
 /**

@@ -92,6 +92,9 @@ export type FormQuestion = z.infer<typeof FormQuestionSchema>
 export const ApplicationFormSchema = z.object({ questions: z.array(FormQuestionSchema) })
 export type ApplicationForm = z.infer<typeof ApplicationFormSchema>
 
+/** page: the form's own page; embedPage: the same form for a board embedded on an employer's site; applicationUrls: where Submit sends it. */
+export type ApplicationPages = { readonly page: string; readonly embedPage: string; readonly applicationUrls: readonly string[] }
+
 export type RawJob = {
   readonly externalId: string
   /** Exactly as the source returned it. Stored verbatim in raw_jobs and never mutated. */
@@ -154,6 +157,8 @@ export type JobSourceAdapter = {
    * the form read from it, so the form can be re-read from what was stored. Never throws.
    */
   fetchApplicationForm?(source: SourceRef, externalId: string, fetcher: Fetcher): Promise<Result<{ readonly payload: unknown; readonly form: ApplicationForm }>>
+  /** Where a posting's form is filled, and where its application is sent (decision 0016). Present whenever fetchApplicationForm is. */
+  applicationPages?(source: SourceRef, externalId: string): ApplicationPages
   /** Pure: the form read from a stored payload. Present whenever fetchApplicationForm is. */
   readApplicationForm?(payload: unknown): Result<ApplicationForm>
 }

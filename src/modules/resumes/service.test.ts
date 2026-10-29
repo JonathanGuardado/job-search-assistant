@@ -19,6 +19,7 @@ import {
   getLatestParse,
   getResume,
   listResumes,
+  readResumeFile,
   removeUnusedResumeFile,
   renewParseLease,
   startParse,
@@ -173,6 +174,18 @@ describe('resume versions', () => {
 
     const withText = await withTenant(db, user.id, (scope) => getResume(scope, first?.id ?? ''))
     expect(withText.ok && withText.value.extractedText).toContain('Acme Corp')
+  })
+
+  test('reads a stored version\'s file back for its owner only, and refuses one whose bytes changed on disk', async ({ db }) => {
+    const user = await aUser(db)
+    const resume = await withTenant(db, user.id, async (scope) => unwrap(await uploadResume(scope, { filename: 'cv.pdf', bytes: pdf }, { storageRoot })))
+    const file = await withTenant(db, user.id, async (scope) => unwrap(await readResumeFile(scope, resume.id, { storageRoot })))
+    expect(file).toMatchObject({ filename: 'cv.pdf', contentType: 'application/pdf', sha256: resume.contentSha256 })
+    expect(Buffer.from(file.bytes)).toEqual(Buffer.from(pdf))
+    const stranger = await aUser(db)
+    expect(await withTenant(db, stranger.id, (scope) => readResumeFile(scope, resume.id, { storageRoot }))).toMatchObject({ ok: false, error: { code: 'not_found' } })
+    const elsewhere = await mkdtemp(join(tmpdir(), 'resumes-test-'))
+    expect(await withTenant(db, user.id, (scope) => readResumeFile(scope, resume.id, { storageRoot: elsewhere }))).toMatchObject({ ok: false, error: { code: 'not_found' } })
   })
 
   test('re-uploading identical bytes makes a new version sharing one stored file', async ({ db }) => {

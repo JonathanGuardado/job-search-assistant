@@ -15,7 +15,8 @@ import type { CapturedSubmission, FillOutcome, OutcomeEvidence } from './types.j
 
 const READS = new Set(['GET', 'HEAD', 'OPTIONS'])
 const ANALYTICS = 'https://c.spl.greenhouse.io/'
-const UPLOAD = /^https:\/\/grnhse-[^/]+\.s3\.amazonaws\.com\//
+/** Greenhouse's storage, which takes each file as soon as it is attached. */
+export const UPLOAD = /^https:\/\/grnhse-[^/]+\.s3\.amazonaws\.com\//
 const CONFIRMATION = /^https:\/\/[^/]*greenhouse\.io\/.*\/confirmation(\?|$)/
 const RECAPTCHA_TOKEN = 'g-recaptcha-enterprise-token'
 

@@ -91,6 +91,14 @@ describe('reading a Greenhouse application form', () => {
     expect(read({ ...(canonical as object), data_compliance: [unknown] })).toMatchObject({ ok: false, error: { code: 'invalid_input', message: expect.stringContaining('requires_marketing_consent') } })
   })
 
+  it('names the pages a job\'s form is filled on, and the address its application goes to (decision 0016)', () => {
+    expect(greenhouseAdapter.applicationPages?.({ name: 'Elastic', config: { token: 'elastic' } }, '8162469')).toEqual({
+      page: 'https://job-boards.greenhouse.io/elastic/jobs/8162469',
+      embedPage: 'https://job-boards.greenhouse.io/embed/job_app?for=elastic&token=8162469',
+      applicationUrls: ['https://boards.greenhouse.io/elastic/jobs/8162469', 'https://boards.greenhouse.io/embed/elastic/jobs/8162469'],
+    })
+  })
+
   it('fetches the form from the job board API and returns the verbatim payload', async () => {
     const payload = fixture('gitlab')
     const fetcher = vi.fn<typeof fetch>().mockResolvedValue(Response.json(payload))

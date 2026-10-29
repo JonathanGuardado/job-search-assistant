@@ -14,6 +14,7 @@ export {
   getLatestParse,
   getResume,
   listResumes,
+  readResumeFile,
   removeUnusedResumeFile,
   renewParseLease,
   startParse,

@@ -63,7 +63,8 @@ export function defineQueue<S extends z.ZodType>(name: string, payloadSchema: S)
 
     /** The processor is an edge: it turns error results into throws so BullMQ records and retries them. */
     work(
-      options: QueueConnectionOptions & { readonly concurrency?: number },
+      /** maxStalledCount 0: a job whose worker died is failed, never run again (decision 0016's fills). */
+      options: QueueConnectionOptions & { readonly concurrency?: number; readonly maxStalledCount?: number },
       handler: (payload: Payload) => Promise<Result<unknown, DomainError>>,
     ): Worker {
       const worker: Worker = new Worker(
@@ -88,6 +89,7 @@ export function defineQueue<S extends z.ZodType>(name: string, payloadSchema: S)
         {
           connection: options.connection,
           concurrency: options.concurrency ?? 1,
+          ...(options.maxStalledCount === undefined ? {} : { maxStalledCount: options.maxStalledCount }),
           ...(options.prefix === undefined ? {} : { prefix: options.prefix }),
         },
       )

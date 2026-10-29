@@ -4,7 +4,7 @@ import type { TenantScope } from '@/lib/db/tenancy'
 import { domainError, err, ok, type Result } from '@/lib/result'
 import type { ModelTrace } from '@/modules/ai'
 import { resumeParses, resumes } from './schema.js'
-import { removeFile, sha256, storageKeyFor, storeFile } from './storage.js'
+import { readStoredFile, removeFile, sha256, storageKeyFor, storeFile } from './storage.js'
 import { extractResumeText } from './text-extraction.js'
 import {
   MAX_RESUME_BYTES,
@@ -140,6 +140,20 @@ export async function getResume(scope: TenantScope, resumeId: string): Promise<R
   return row
     ? ok({ ...toResume(row), extractedText: row.extractedText })
     : err(domainError('not_found', `resume ${resumeId} not found`))
+}
+
+/**
+ * A version's file, for uploading it with an application (decision 0016): only the owner's,
+ * and only when the bytes on disk still match the version's fingerprint.
+ */
+export async function readResumeFile(scope: TenantScope, resumeId: string, options: { readonly storageRoot: string }): Promise<Result<{
+  readonly filename: string; readonly contentType: string; readonly sha256: string; readonly bytes: Uint8Array
+}>> {
+  const [row] = await scope.db.select().from(resumes).where(eq(resumes.id, resumeId))
+  if (!row) return err(domainError('not_found', `resume ${resumeId} not found`))
+  const bytes = await readStoredFile(options.storageRoot, row.storageKey)
+  if (bytes === null || sha256(bytes) !== row.contentSha256) return err(domainError('not_found', `The file of resume version ${row.version} is missing or changed.`))
+  return ok({ filename: row.filename, contentType: row.contentType, sha256: row.contentSha256, bytes })
 }
 
 /** Source cleanup stays inside the module that owns career items. */
