@@ -11,7 +11,7 @@ import type { Result } from '@/lib/result'
  * The M1.5 mapping into NewJob is type-checked, so drift fails to compile.
  */
 
-export const ADAPTER_KEYS = ['greenhouse', 'lever'] as const
+export const ADAPTER_KEYS = ['greenhouse', 'lever', 'ashby'] as const
 export const AdapterKeySchema = z.enum(ADAPTER_KEYS)
 export type AdapterKey = z.infer<typeof AdapterKeySchema>
 
@@ -117,7 +117,7 @@ export type SourceHealth = {
   readonly message?: string
 }
 
-/** Every adapter in M1.4 needs only a board token (Greenhouse) or site name (Lever). */
+/** Every adapter needs only a board token (Greenhouse), site name (Lever), or job board name (Ashby). */
 export const AdapterConfigSchema = z.object({ token: z.string().trim().regex(/^[A-Za-z0-9_-]{1,100}$/) })
 export type AdapterConfig = z.infer<typeof AdapterConfigSchema>
 

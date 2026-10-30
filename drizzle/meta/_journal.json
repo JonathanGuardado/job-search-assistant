@@ -141,6 +141,13 @@
       "when": 1793235976078,
       "tag": "0019_application-fills",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1793318583866,
+      "tag": "0020_ashby-adapter",
+      "breakpoints": true
     }
   ]
 }

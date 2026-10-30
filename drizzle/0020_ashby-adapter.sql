@@ -1,0 +1,2 @@
+ALTER TABLE "job_sources" DROP CONSTRAINT "job_sources_adapter_key_check";--> statement-breakpoint
+ALTER TABLE "job_sources" ADD CONSTRAINT "job_sources_adapter_key_check" CHECK ("job_sources"."adapter_key" in ('greenhouse', 'lever', 'ashby'));

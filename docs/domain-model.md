@@ -123,8 +123,8 @@ Owned by `career-knowledge`.
   CHECK ties `verified_by_user` to `verified_at`.
 
 ### `job_sources`
-Owned by `job-sources`. `id`, `adapter_key` (`greenhouse` | `lever`), `name`, `config`
-(jsonb, `{ token }`: the Greenhouse board token or Lever site name), `enabled`, `cursor`,
+Owned by `job-sources`. `id`, `adapter_key` (`greenhouse` | `lever` | `ashby`), `name`, `config`
+(jsonb, `{ token }`: the Greenhouse board token, Lever site name, or Ashby job board name), `enabled`, `cursor`,
 `last_polled_at`, `health_status` (`unknown` | `ok` | `failing`), `health_message`,
 `health_checked_at`, `created_at`.
 

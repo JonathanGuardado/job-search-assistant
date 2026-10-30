@@ -1,10 +1,12 @@
 import { getDb } from '@/lib/db/client'
-import { ADAPTER_KEYS, listSources } from '@/modules/job-sources'
+import { ADAPTER_KEYS, listSources, type AdapterKey } from '@/modules/job-sources'
 import { AppNavigation } from '../_components/AppNavigation'
 import styles from '../resumes/resumes.module.css'
 import { addSourceAction, pollSourceAction, toggleSourceAction } from './actions'
 
 export const dynamic = 'force-dynamic'
+
+const ADAPTER_LABELS: Record<AdapterKey, string> = { greenhouse: 'Greenhouse', lever: 'Lever', ashby: 'Ashby' }
 
 const date = (value: Date | null) => value?.toLocaleString('en-US', { timeZone: 'America/El_Salvador' }) ?? 'Not yet'
 
@@ -19,9 +21,9 @@ export default async function SourcesPage({ searchParams }: { readonly searchPar
       </header>
       {searchParams.error && <p role="alert" className={styles.error}>{searchParams.error}</p>}
       <form action={addSourceAction} className={styles.upload}>
-        <div><h2>Add a job board</h2><p className={styles.muted}>Use the company name and its Greenhouse board token or Lever site name.</p></div>
+        <div><h2>Add a job board</h2><p className={styles.muted}>Use the company name and its Greenhouse board token, Lever site name, or Ashby job board name.</p></div>
         <div className={styles.fields}>
-          <label>Adapter<select name="adapterKey" required>{ADAPTER_KEYS.map((key) => <option key={key} value={key}>{key === 'greenhouse' ? 'Greenhouse' : 'Lever'}</option>)}</select></label>
+          <label>Adapter<select name="adapterKey" required>{ADAPTER_KEYS.map((key) => <option key={key} value={key}>{ADAPTER_LABELS[key]}</option>)}</select></label>
           <label>Company name<input name="name" maxLength={100} required /></label>
           <label>Board token / site name<input name="token" pattern="[A-Za-z0-9_-]{1,100}" maxLength={100} required /></label>
           <div className={styles.actions}><button type="submit" className={styles.primaryButton}>Add source</button></div>

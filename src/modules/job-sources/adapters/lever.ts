@@ -3,6 +3,7 @@ import { domainError, err, ok } from '@/lib/result'
 import type { JobSourceAdapter, NormalizedJob, NormalizedSalary } from '../adapter.js'
 import { htmlToPlainText } from '../html-text.js'
 import { getJson } from '../http.js'
+import { annualSalary } from '../salary.js'
 
 export const LEVER_PAGE_SIZE = 100
 const PageSchema = z.array(z.looseObject({ id: z.string().min(1) }))
@@ -17,25 +18,9 @@ const PostingSchema = z.looseObject({
   salaryRange: SalaryRangeSchema.nullable().optional(), applyUrl: z.url({ protocol: /^https?$/ }).optional(), hostedUrl: z.url({ protocol: /^https?$/ }), createdAt: z.unknown().optional(),
 })
 
-/** undefined: absent. null: present but not a usable amount. */
-function salaryBound(value: unknown): number | undefined | null {
-  if (value === undefined || value === null) return undefined
-  return typeof value === 'number' && Number.isFinite(value) && value >= 0 ? value : null
-}
-
 function salaryFromRange(range: z.infer<typeof SalaryRangeSchema> | null | undefined): NormalizedSalary {
-  if (!range || range.interval !== 'per-year-salary' || !range.currency || !/^[A-Z]{3}$/.test(range.currency)) return { source: 'unknown' }
-  const { currency } = range
-  const min = salaryBound(range.min)
-  const max = salaryBound(range.max)
-  if (min === null || max === null || (min === undefined && max === undefined)) return { source: 'unknown' }
-  if (min !== undefined && max !== undefined && min > max) return { source: 'unknown' }
-  const digits = new Intl.NumberFormat('en', { style: 'currency', currency }).resolvedOptions().maximumFractionDigits ?? 2
-  const minor = (bound: number | undefined) => bound === undefined ? null : Math.round(bound * 10 ** digits)
-  const minMinor = minor(min)
-  const maxMinor = minor(max)
-  if ([minMinor, maxMinor].some((bound) => bound !== null && !Number.isSafeInteger(bound))) return { source: 'unknown' }
-  return { source: 'posted', minMinor, maxMinor, currency }
+  if (!range || range.interval !== 'per-year-salary') return { source: 'unknown' }
+  return annualSalary(range.min, range.max, range.currency)
 }
 
 function workplacePolicy(value: string | undefined): NormalizedJob['locationPolicy'] {
