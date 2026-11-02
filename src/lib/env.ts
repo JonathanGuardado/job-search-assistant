@@ -14,6 +14,8 @@ const optionalSecret = z
   .optional()
 
 const provider = z.enum(['deepseek', 'gemini', 'openai', '']).optional().transform((value) => value || undefined)
+// OpenAI's reasoning effort; unset means none.
+const reasoning = z.enum(['none', 'low', 'medium', 'high', '']).optional().transform((value) => value || undefined)
 
 export const ModelPriceSchema = z.object({
   input: z.number().nonnegative(),
@@ -44,9 +46,11 @@ export const EnvSchema = z.object({
   AI_PRIMARY_PROVIDER: provider,
   AI_PRIMARY_MODEL: optionalSecret,
   AI_PRIMARY_API_KEY: optionalSecret,
+  AI_PRIMARY_REASONING: reasoning,
   AI_SECONDARY_PROVIDER: provider,
   AI_SECONDARY_MODEL: optionalSecret,
   AI_SECONDARY_API_KEY: optionalSecret,
+  AI_SECONDARY_REASONING: reasoning,
   AI_MODEL_PRICING: pricingJson,
   /** Resume files (decision 0006). Relative paths resolve from the process's working directory. */
   STORAGE_DIR: z.string().min(1).default('.data/storage'),

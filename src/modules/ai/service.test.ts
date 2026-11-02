@@ -48,6 +48,16 @@ function caller(provider: Provider, traces: ModelTrace[] = []) {
 }
 
 describe('callModel', () => {
+  it('sends the vendor id and prices by it, but records the configured name on the trace', async () => {
+    const { provider, requests } = scriptedProvider(reply('{"country":"MX"}'))
+    const traces: ModelTrace[] = []
+    const call = createModelCaller({ model: () => ({ provider, id: 'deepseek-flash', name: 'deepseek-flash@reasoning-low' }), onTrace: (trace) => traces.push(trace) })
+    await call({ task, schema: CountrySchema, input: { text: 'Mexico only' } })
+
+    expect(requests[0]?.model).toBe('deepseek-flash')
+    expect(traces[0]).toMatchObject({ model: 'deepseek-flash@reasoning-low', costMicroUsd: 420 })
+  })
+
   it('returns the validated value and a costed trace', async () => {
     const { provider, requests } = scriptedProvider(reply('{"country":"MX"}'))
     const result = await caller(provider)({ task, schema: CountrySchema, input: { text: 'Mexico only' } })

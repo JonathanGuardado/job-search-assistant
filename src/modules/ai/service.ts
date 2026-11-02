@@ -53,7 +53,7 @@ export function createModelCaller(deps: ModelCallerDeps) {
     schema,
     input,
   }: CallModelArgs<I, S>): Promise<Result<CallModelSuccess<z.output<S>>, AiError>> {
-    const { provider, id: model } = deps.model(task.role)
+    const { provider, id: model, name } = deps.model(task.role)
     const price = priceOf(provider.name, model, deps.prices)
     // A configuration error, not a domain failure: fail before spending anything.
     if (!price) throw new Error(`no price for model ${model} on ${provider.name}; configure AI_MODEL_PRICING`)
@@ -82,7 +82,7 @@ export function createModelCaller(deps: ModelCallerDeps) {
         task: task.name,
         taskVersion: task.version,
         provider: provider.name,
-        model,
+        model: name ?? model,
         attempt,
         stopReason: rawStopReason,
         ...usage,

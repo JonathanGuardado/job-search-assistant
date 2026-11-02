@@ -37,7 +37,8 @@ stops only its own tasks. Restart the web and worker processes after a change.
 **Changing a model is a settings change, so the eval is on you.** The evals read the same
 settings and store their extractions per model, so after a change they measure the new
 model. As of 2026-10-27, DeepSeek Flash fails the eligibility eval (it hides jobs the
-candidate can take) and passes the matching eval; see the eval reports.
+candidate can take) and passes the matching eval. As of 2026-11-01, GPT-6 Luna passes both,
+eligibility only with low reasoning; see the eval reports.
 
 There is no fallback: when a provider fails or runs out of credit (reported as "out of
 credit (HTTP 402)"), its tasks wait and retry rather than run on the other role.
@@ -65,7 +66,11 @@ uses `/v1/chat/completions` with a JSON response schema in non-strict mode, beca
 mode rejects the optional fields task schemas use; local Zod validation is always applied.
 `reasoning_effort` is `none`, like DeepSeek's disabled thinking, so hidden reasoning cannot
 consume the task's output budget; reasoning tokens would otherwise be billed as output.
-`store` is `false`. OpenAI does not train on API data unless the account opts in, and keeps
+`store` is `false`. A role can turn reasoning on with `AI_PRIMARY_REASONING` or
+`AI_SECONDARY_REASONING` (`none`, `low`, `medium`, `high`; OpenAI only). The level becomes
+part of the model name traces and evals record, such as `gpt-6-luna@reasoning-low`, and
+its tokens are billed as output and count against the task's output budget. Eligibility
+needs `low` to pass its eval (decision 0015, amended 2026-11-01). OpenAI does not train on API data unless the account opts in, and keeps
 it up to 30 days for abuse monitoring.
 
 OpenAI reports an empty balance as HTTP 429 with code `insufficient_quota`, not 402. The

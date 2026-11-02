@@ -60,6 +60,16 @@ the queue retries, but its message reads "out of credit" instead of a bare statu
 Readings already stored stay valid: every trace records the provider and model that made it,
 and changing a model does not bump a task's version, so stored extractions are not redone.
 
+## Amendment, 2026-11-01: both roles on GPT-6 Luna
+
+OpenAI is the third provider. At the owner's request, both roles moved to `gpt-6-luna` to cut
+the cost of reading each posting by about 60%. Eligibility needs `AI_PRIMARY_REASONING=low`:
+without reasoning, Luna fails the holdout as DeepSeek did; with it, it matches Gemini (see
+the eligibility eval). Matching passes without reasoning (required skills found 97.0%).
+The reasoning level is part of the recorded model name (`gpt-6-luna@reasoning-low`), so
+readings made with and without it are never confused. Readings already stored by Gemini
+stay valid and are not redone.
+
 ## Consequences
 
 - Both roles must be configured for the whole app to work. Without the secondary, matching

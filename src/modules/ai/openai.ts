@@ -23,7 +23,9 @@ function toStop(reason: string): ProviderStop {
   return 'other'
 }
 
-export function openaiProvider(apiKey: string, fetcher: typeof fetch = fetch): Provider {
+export type ReasoningEffort = 'none' | 'low' | 'medium' | 'high'
+
+export function openaiProvider(apiKey: string, fetcher: typeof fetch = fetch, reasoningEffort: ReasoningEffort = 'none'): Provider {
   return {
     name: 'openai',
     async complete(request) {
@@ -36,8 +38,8 @@ export function openaiProvider(apiKey: string, fetcher: typeof fetch = fetch): P
         body: {
           model: request.model,
           max_completion_tokens: request.maxTokens,
-          // Extraction uses a bounded output budget; hidden reasoning must not consume it.
-          reasoning_effort: 'none',
+          // Off unless the role's setting turns it on: reasoning tokens share the task's output budget.
+          reasoning_effort: reasoningEffort,
           // Chat Completions keeps no application state by default; say so rather than rely on it.
           store: false,
           response_format: { type: 'json_schema', json_schema: { name: 'output', schema, strict: false } },

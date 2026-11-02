@@ -159,6 +159,12 @@ describe('OpenAI adapter', () => {
     },
   )
 
+  it('sends the configured reasoning effort', async () => {
+    const fetcher = vi.fn<typeof fetch>().mockResolvedValue(Response.json(openaiResponse()))
+    await openaiProvider('test-key', fetcher, 'low').complete(request)
+    expect(JSON.parse(z.string().parse(fetcher.mock.calls[0]![1]?.body))).toMatchObject({ reasoning_effort: 'low' })
+  })
+
   it('reports a refusal message as refused', async () => {
     const fetcher = vi.fn<typeof fetch>().mockResolvedValue(Response.json(openaiResponse('stop', 'I cannot help with that.')))
     const result = await openaiProvider('test-key', fetcher).complete(request)
@@ -236,8 +242,8 @@ describe('provider HTTP failures', () => {
 
 describe('provider selection', () => {
   const unset = {
-    AI_PRIMARY_PROVIDER: undefined, AI_PRIMARY_MODEL: undefined, AI_PRIMARY_API_KEY: undefined,
-    AI_SECONDARY_PROVIDER: undefined, AI_SECONDARY_MODEL: undefined, AI_SECONDARY_API_KEY: undefined,
+    AI_PRIMARY_PROVIDER: undefined, AI_PRIMARY_MODEL: undefined, AI_PRIMARY_API_KEY: undefined, AI_PRIMARY_REASONING: undefined,
+    AI_SECONDARY_PROVIDER: undefined, AI_SECONDARY_MODEL: undefined, AI_SECONDARY_API_KEY: undefined, AI_SECONDARY_REASONING: undefined,
   }
 
   it('takes each role\'s provider, model and key from the configuration, either provider in either role', () => {
@@ -250,7 +256,17 @@ describe('provider selection', () => {
     expect(configuredModel(config, 'secondary')).toMatchObject({ provider: { name: 'gemini' }, id: 'gemini-3.5-flash-lite' })
     expect(configuredModelName(config, 'secondary')).toBe('gemini/gemini-3.5-flash-lite')
     const luna = { ...config, AI_PRIMARY_PROVIDER: 'openai' as const, AI_PRIMARY_MODEL: 'gpt-6-luna' }
-    expect(configuredModel(luna, 'primary')).toMatchObject({ provider: { name: 'openai' }, id: 'gpt-6-luna' })
+    expect(configuredModel(luna, 'primary')).toMatchObject({ provider: { name: 'openai' }, id: 'gpt-6-luna', name: 'gpt-6-luna' })
+  })
+
+  it('names a reasoning level in the model name, so its readings are told apart, and allows it only for OpenAI', () => {
+    const luna = {
+      ...unset, AI_PRIMARY_PROVIDER: 'openai' as const, AI_PRIMARY_MODEL: 'gpt-6-luna', AI_PRIMARY_API_KEY: 'k', AI_PRIMARY_REASONING: 'low' as const,
+    }
+    expect(configuredModel(luna, 'primary')).toMatchObject({ id: 'gpt-6-luna', name: 'gpt-6-luna@reasoning-low' })
+    expect(configuredModelName(luna, 'primary')).toBe('openai/gpt-6-luna@reasoning-low')
+    expect(configuredModelName({ ...luna, AI_PRIMARY_REASONING: 'none' as const }, 'primary')).toBe('openai/gpt-6-luna')
+    expect(() => configuredModel({ ...luna, AI_PRIMARY_PROVIDER: 'gemini' as const }, 'primary')).toThrow('AI_PRIMARY_REASONING is only supported for openai')
   })
 
   it('needs only the settings of the role asked for, and names what is missing', () => {

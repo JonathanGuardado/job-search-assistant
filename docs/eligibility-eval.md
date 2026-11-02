@@ -173,6 +173,30 @@ DeepSeek also misses. Its many unquoted claims are discarded by design, which tu
 plain listings ("London, United Kingdom") into needs_review rather than a rejection: safe,
 but a candidate for a later prompt change.
 
+## GPT-6 Luna (2026-11-01, prompt v3, engine v2): accepted with low reasoning
+
+Run to cut the cost of reading every posting. Without reasoning, Luna repeats DeepSeek's
+failure: the holdout fails (precision 93.0%, 53/57) with the same Toptal pattern,
+"Canada, Central America, South America" read as CA alone, plus Elastic's Canadian listing
+with "we hire wherever they are". With `reasoning_effort: low` it matches Gemini:
+
+| All 277 labels | Gemini 3.5 Flash Lite | Luna, no reasoning | Luna, low reasoning |
+| --- | --- | --- | --- |
+| Precision on not_eligible | 99.4% (157/158) | 96.8% (152/157) | **99.4%** (154/155) |
+| False rejections | 1 | 5 | 1 |
+| Recall on not_eligible | 88.7% | 85.9% | 87.0% |
+| needs_review share | 13.4% | 17.0% | 16.2% |
+| Quote validation rate | 99.4% | 98.8% | 99.7% |
+| Cost per posting | $0.0012 | $0.00034 | $0.00047 |
+
+Per split with low reasoning: tuning 98.6%, holdout 100% (53/53), holdout 2 100% (30/30);
+every target passes on every split. The one false rejection is Canonical's
+self-contradicting DevRel posting, which every model misses.
+
+Every first answer omits the two claims' `required` keys (authorization and relocation),
+likely because the JSON Schema keyword shares the name; the corrective retry always fixes
+it, and the cost above includes that retry. Stopping it would save about $0.0002 a posting.
+
 ## Caveats before the phase gate
 
 
