@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-export const PROVIDER_NAMES = ['deepseek', 'gemini'] as const
+export const PROVIDER_NAMES = ['deepseek', 'gemini', 'openai'] as const
 export type ProviderName = (typeof PROVIDER_NAMES)[number]
 
 /**

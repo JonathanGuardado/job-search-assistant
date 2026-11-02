@@ -5,7 +5,7 @@ export type Price = z.infer<typeof ModelPriceSchema>
 
 /**
  * USD per million tokens equals micro-USD per token. These are estimates:
- * DeepSeek uses peak rates; Gemini uses standard paid text rates. Overrides
+ * DeepSeek uses peak rates; Gemini and OpenAI use standard paid text rates. Overrides
  * support new models and account-specific rates without a code change.
  * Sources and limitations: docs/ai-providers.md (checked 2026-09-25).
  */
@@ -13,6 +13,7 @@ const PRICES: Readonly<Record<string, Price>> = {
   'deepseek/deepseek-flash': { input: 0.3, output: 1.2, cacheRead: 0.006, cacheWrite: 0 },
   'deepseek/deepseek-v4-pro': { input: 1.32, output: 3.96, cacheRead: 0.044, cacheWrite: 0 },
   'gemini/gemini-3.5-flash-lite': { input: 0.3, output: 2.5, cacheRead: 0.03, cacheWrite: 0 },
+  'openai/gpt-6-luna': { input: 0.1, output: 0.5, cacheRead: 0.01, cacheWrite: 0 },
 }
 
 export function priceOf(

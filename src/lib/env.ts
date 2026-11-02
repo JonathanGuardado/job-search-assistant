@@ -13,7 +13,7 @@ const optionalSecret = z
   .transform((value) => (value === '' ? undefined : value))
   .optional()
 
-const provider = z.enum(['deepseek', 'gemini', '']).optional().transform((value) => value || undefined)
+const provider = z.enum(['deepseek', 'gemini', 'openai', '']).optional().transform((value) => value || undefined)
 
 export const ModelPriceSchema = z.object({
   input: z.number().nonnegative(),

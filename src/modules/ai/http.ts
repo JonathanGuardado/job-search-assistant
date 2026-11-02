@@ -9,6 +9,18 @@ type JsonRequest<S extends z.ZodType> = {
   readonly schema: S
 }
 
+/**
+ * OpenAI reports an empty balance as HTTP 429 with code `insufficient_quota`, unlike a rate
+ * limit, which resets on its own. The body is read only to tell the two apart.
+ */
+async function isInsufficientQuota(response: Response): Promise<boolean> {
+  try {
+    return (await response.text()).includes('insufficient_quota')
+  } catch {
+    return false
+  }
+}
+
 /** API errors can echo prompts or credentials, so only status codes leave this boundary. */
 export async function postJson<S extends z.ZodType>(
   request: JsonRequest<S>,
@@ -30,11 +42,12 @@ export async function postJson<S extends z.ZodType>(
       return err(domainError('upstream_failed', `${request.provider}: network failure or timeout`))
     }
     if (!response.ok) {
-      await response.body?.cancel()
-      const retryable = [408, 409, 429].includes(response.status) || response.status >= 500
+      const outOfCredit = response.status === 402 || (response.status === 429 && await isInsufficientQuota(response))
+      if (!response.bodyUsed) await response.body?.cancel()
+      const retryable = !outOfCredit && ([408, 409, 429].includes(response.status) || response.status >= 500)
       if (retryable && attempt < 2) continue
       // Out of credit: still upstream_failed, so callers write nothing and the call can succeed once credit is added.
-      if (response.status === 402) return err(domainError('upstream_failed', `${request.provider}: out of credit (HTTP 402); add credit with the provider`))
+      if (outOfCredit) return err(domainError('upstream_failed', `${request.provider}: out of credit (HTTP ${response.status}); add credit with the provider`))
       return err(domainError(response.status === 429 ? 'rate_limited' : 'upstream_failed', `${request.provider}: HTTP ${response.status}`))
     }
     try {

@@ -1,6 +1,6 @@
 # AI provider setup
 
-The application uses DeepSeek and the Gemini Developer API side by side. Neither the
+The application can use DeepSeek, the Gemini Developer API and the OpenAI API, in any mix. Neither the
 Anthropic API nor its SDK is used. Provider adapters implement the `Provider` interface
 inside `src/modules/ai`; product code uses `callModel`. No additional npm dependency is
 needed.
@@ -9,10 +9,10 @@ needed.
 
 Tasks run on one of two configured models, by role. `.env.local` says which provider,
 model and key fill each role; code only says which role each task uses (decision 0015).
-Either provider can fill either role.
+Any provider can fill either role, and one provider can fill both.
 
 ```dotenv
-AI_PRIMARY_PROVIDER=gemini            # gemini | deepseek
+AI_PRIMARY_PROVIDER=gemini            # gemini | deepseek | openai
 AI_PRIMARY_MODEL=gemini-3.5-flash-lite
 AI_PRIMARY_API_KEY=your-key
 AI_SECONDARY_PROVIDER=deepseek
@@ -28,6 +28,8 @@ stops only its own tasks. Restart the web and worker processes after a change.
 | --- | --- | --- |
 | `eligibility.extract-claims` | primary | `pnpm eval:eligibility` |
 | `career-knowledge.extract-resume` | primary | none (personal data: keep it on a provider trusted with it) |
+| `application-answers.write-experience` | primary | none (the grounding check, then the owner accepts each draft) |
+| `application-answers.write-motivation` | primary | none (the grounding check, then the owner accepts each draft) |
 | `matching.extract-requirements` | secondary | `pnpm eval:matching` |
 | `application-answers.read-questions` | secondary | none (every draft is accepted by the owner) |
 | `application-answers.match-questions` | secondary | none (every pair is accepted by the owner) |
@@ -55,6 +57,21 @@ The adapter uses `generateContent` with a JSON response schema. It does not conf
 Vertex AI authentication. Rates below are paid-tier rates; on the free tier, Google may
 use the content, which is why resume reading stays on a paid key.
 
+## OpenAI
+
+As checked on 2026-11-01, `gpt-6-luna` is served on Chat Completions and Responses, supports
+structured outputs, and is a reasoning model whose effort defaults to `medium`. The adapter
+uses `/v1/chat/completions` with a JSON response schema in non-strict mode, because strict
+mode rejects the optional fields task schemas use; local Zod validation is always applied.
+`reasoning_effort` is `none`, like DeepSeek's disabled thinking, so hidden reasoning cannot
+consume the task's output budget; reasoning tokens would otherwise be billed as output.
+`store` is `false`. OpenAI does not train on API data unless the account opts in, and keeps
+it up to 30 days for abuse monitoring.
+
+OpenAI reports an empty balance as HTTP 429 with code `insufficient_quota`, not 402. The
+adapter's HTTP layer reads that code and reports "out of credit (HTTP 429)" without retrying,
+so the queue does not mistake it for a rate limit that resets.
+
 ## New models and cost estimates
 
 Model IDs are not restricted to a compiled enum. New versions require no adapter
@@ -68,10 +85,11 @@ Built-in rates are USD per million tokens:
 | `deepseek/deepseek-flash` | 0.30 | 1.20 | 0.006 |
 | `deepseek/deepseek-v4-pro` | 1.32 | 3.96 | 0.044 |
 | `gemini/gemini-3.5-flash-lite` | 0.30 | 2.50 | 0.03 |
+| `openai/gpt-6-luna` | 0.10 | 0.50 | 0.01 |
 
 `costMicroUsd` is an estimate rounded to integer micro-USD, not an invoice amount.
-DeepSeek defaults use peak rates; actual off-peak charges may be lower. Gemini
-defaults use standard paid text rates, not free-tier, batch, or priority rates.
+DeepSeek defaults use peak rates; actual off-peak charges may be lower. Gemini and
+OpenAI defaults use standard paid text rates, not free-tier, batch, flex, or priority rates.
 No explicit cache is created, so storage charges are outside this estimate.
 
 Override rates or add a new model with `AI_MODEL_PRICING`, a JSON object keyed by
@@ -92,7 +110,7 @@ validated. DeepSeek completion usage is taken directly from the API.
 
 ## Failure behavior and verification
 
-Both adapters validate HTTP response envelopes with Zod, use a 60-second request
+The adapters validate HTTP response envelopes with Zod, use a 60-second request
 timeout, and retry network errors and HTTP 408/409/429/5xx up to twice. HTTP error
 bodies are not logged because they may echo private input. Refusals and truncated
 outputs are surfaced without a validation retry. Invalid model JSON/schema output
@@ -110,3 +128,6 @@ wiring, not eligibility quality; that needs the separate eligibility eval suite.
 - [Gemini GenerateContent reference](https://ai.google.dev/api/generate-content)
 - [Gemini Flash-Lite model](https://ai.google.dev/gemini-api/docs/models/gemini-3.5-flash-lite)
 - [Gemini pricing](https://ai.google.dev/gemini-api/docs/pricing)
+- [OpenAI GPT-6 Luna model](https://developers.openai.com/api/docs/models/gpt-6-luna)
+- [OpenAI pricing](https://developers.openai.com/api/docs/pricing)
+- [OpenAI API data controls](https://developers.openai.com/api/docs/guides/your-data)
