@@ -29,6 +29,8 @@ import { domainError, err, ok, type Result } from '@/lib/result'
  */
 
 const connection = connectRedis(getEnv().REDIS_URL)
+/** Model calls in flight per queue: eligibility and matching read every posting once. */
+const MODEL_CONCURRENCY = 4
 const db = getDb()
 const pollProducer = sourcePollQueue.open({ connection })
 const dispatchProducer = sourcePollDispatchQueue.open({ connection })
@@ -149,11 +151,12 @@ const workers: Worker[] = [
   // Concurrency 1: linking reads and rewrites a fingerprint's cluster, so two normalizations
   // of one cluster must not interleave.
   jobNormalizeQueue.work({ connection, concurrency: 1 }, ({ rawJobId }) => normalizeJob(rawJobId)),
-  // One at a time: a provider quota error pauses this worker (lib/queue) until the quota resets.
-  assessEligibilityQueue.work({ connection, concurrency: 1 }, assessJob),
+  // Four at a time, well inside OpenAI's quota (decision 0015, amended 2026-11-01); a quota error
+  // still pauses this worker (lib/queue) until it resets. Each job writes only its own rows.
+  assessEligibilityQueue.work({ connection, concurrency: MODEL_CONCURRENCY }, assessJob),
   reassessUserQueue.work({ connection }, ({ userId }) => reassessUser(userId)),
-  // One at a time, like eligibility: both share the provider's quota.
-  assessMatchQueue.work({ connection, concurrency: 1 }, async (payload) => {
+  // Like eligibility: both share the provider's quota.
+  assessMatchQueue.work({ connection, concurrency: MODEL_CONCURRENCY }, async (payload) => {
     const outcome = await assessMatchForUser(db, payload, extractRequirementsWithModel)
     return outcome.ok ? ok(undefined) : outcome
   }),
