@@ -12,12 +12,13 @@
 .tabs, .pagination { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; }
 .tabs a { padding: 8px 12px; border: 1px solid #dce2ed; border-radius: 8px; background: #fff; text-decoration: none; }
 .tabs a[aria-current=page] { background: #4057cf; color: #fff; border-color: #4057cf; }
-.filter { display: flex; align-items: flex-end; gap: 12px; margin: 24px 0; }
-.filter label { flex: 1; max-width: 420px; }
-.page input:not([type=hidden]) { display: block; width: 100%; padding: 9px 11px; border: 1px solid #dce2ed; border-radius: 7px; background: #fcfdff; color: #202b3e; font: inherit; }
+.filter { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px; margin: 24px 0; }
+.filter label { flex: 1; min-width: 180px; max-width: 320px; }
+.filter > a { align-self: center; }
+.page :is(input:not([type=hidden]), select) { display: block; width: 100%; padding: 9px 11px; border: 1px solid #dce2ed; border-radius: 7px; background: #fcfdff; color: #202b3e; font: inherit; }
 .page button { min-height: 38px; padding: 8px 14px; border: 1px solid #d5dce7; border-radius: 8px; background: #fff; color: #202b3e; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
 .page button:hover { background: #f0f3f9; }
-.page :is(input, button, a):focus-visible { outline: 3px solid #8195ef; outline-offset: 3px; }
+.page :is(input, select, button, a):focus-visible { outline: 3px solid #8195ef; outline-offset: 3px; }
 .company { margin: 0 0 4px; font-weight: 600; color: #627087; }
 .actions { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px; margin: 16px 0 22px; }
 .section .actions { margin-bottom: 0; }

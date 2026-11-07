@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto'
-import { and, eq, sql } from 'drizzle-orm'
+import { and, eq, inArray, sql } from 'drizzle-orm'
 import type { Db } from '@/lib/db/client'
 import { withTenant, type TenantScope } from '@/lib/db/tenancy'
 import { domainError, err, ok, type Result } from '@/lib/result'
@@ -13,6 +13,7 @@ import { extractClaimsTask } from './prompts/extract-claims.js'
 import { assessmentKey } from './queues.js'
 import { eligibilityAssessments, jobEligibilityClaims } from './schema.js'
 import {
+  EligibilityClaimsSchema,
   ENGINE_VERSION,
   UNSPECIFIED_CLAIMS,
   type AssessmentReasons,
@@ -233,6 +234,33 @@ export async function listJobIdsWorthMatching(scope: TenantScope): Promise<strin
   const rows = await scope.db.select({ jobId: eligibilityAssessments.jobId, verdict: eligibilityAssessments.verdict, userOverride: eligibilityAssessments.userOverride, reasons: eligibilityAssessments.reasons })
     .from(eligibilityAssessments).where(eq(eligibilityAssessments.engineVersion, ENGINE_VERSION))
   return rows.filter(isWorthMatching).map((row) => row.jobId)
+}
+
+/** Where a posting says the work happens, as the model read it from the posting. */
+export type WorkplaceClaims = Pick<EligibilityClaims, 'remoteScope' | 'onsite'>
+const WorkplaceClaimsSchema = EligibilityClaimsSchema.pick({ remoteScope: true, onsite: true })
+/** Claims rows read per query, well under Postgres's limit on bound parameters. */
+const CLAIMS_PER_QUERY = 5_000
+
+/**
+ * The workplace claims behind the given claims rows, by job, for filtering a list; verdicts
+ * never come from here. Claims belong to the job, not to a user. A row that no longer parses
+ * is left out, so its job matches no workplace filter.
+ */
+export async function workplaceClaimsFor(db: Db, claimsIds: readonly string[]): Promise<Map<string, WorkplaceClaims>> {
+  const byJob = new Map<string, WorkplaceClaims>()
+  for (let start = 0; start < claimsIds.length; start += CLAIMS_PER_QUERY) {
+    const rows = await db.select({
+      jobId: jobEligibilityClaims.jobId,
+      remoteScope: sql<unknown>`${jobEligibilityClaims.claims}->'remoteScope'`,
+      onsite: sql<unknown>`${jobEligibilityClaims.claims}->'onsite'`,
+    }).from(jobEligibilityClaims).where(inArray(jobEligibilityClaims.id, claimsIds.slice(start, start + CLAIMS_PER_QUERY)))
+    for (const row of rows) {
+      const parsed = WorkplaceClaimsSchema.safeParse({ remoteScope: row.remoteScope, onsite: row.onsite })
+      if (parsed.success) byJob.set(row.jobId, parsed.data)
+    }
+  }
+  return byJob
 }
 
 export async function getAssessment(scope: TenantScope, jobId: string): Promise<Assessment | null> {

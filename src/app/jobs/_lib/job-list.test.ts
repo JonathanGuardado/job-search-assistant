@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { REVIEW_GROUPS, type Assessment } from '@/modules/eligibility'
+import { REVIEW_GROUPS, type Assessment, type WorkplaceClaims } from '@/modules/eligibility'
 import type { Job, JobUserState } from '@/modules/jobs'
 import type { Dimension, DimensionStatus, Match } from '@/modules/matching'
 import { buildJobList, type JobListInput, type JobTab } from './job-list'
@@ -44,8 +44,14 @@ const rejection: Pick<Assessment, 'verdict' | 'reasons'> = {
 }
 
 function list(input: Partial<JobListInput> = {}) {
-  return buildJobList({ assessments: [], jobs: [], matches: [], userStates: [], tab: 'can_apply', page: 1, company: '', ...input })
+  return buildJobList({
+    assessments: [], jobs: [], matches: [], userStates: [], tab: 'can_apply', page: 1, company: '',
+    work: '', region: '', location: '', workplace: new Map(), ...input,
+  })
 }
+
+type Workplace = WorkplaceClaims
+const remote = (remoteScope: Workplace['remoteScope']): Workplace => ({ remoteScope, onsite: { kind: 'remote' } })
 
 describe('buildJobList', () => {
   it('uses all five review groups and lets an override decide the group', () => {
@@ -102,6 +108,48 @@ describe('buildJobList', () => {
     expect(result.tabs[0]?.count).toBe(2)
     expect(result.rows.map((row) => row.job.id)).toEqual([id(1)])
     expect(list({ ...input, company: '   ' }).rows).toHaveLength(2)
+  })
+
+  it('filters by region as the posting reads: LATAM includes worldwide; a job never read matches only "any region"', () => {
+    const jobs = [1, 2, 3, 4, 5].map((n) => job(n))
+    const assessments = [1, 2, 3, 4, 5].map((n) => assessment(n))
+    const workplace = new Map<string, Workplace>([
+      [id(1), remote({ kind: 'worldwide' })],
+      [id(2), remote({ kind: 'regions', regions: ['latam', 'namer'] })],
+      [id(3), remote({ kind: 'countries', countries: ['US'] })],
+      [id(4), remote({ kind: 'regions', regions: ['emea'] })],
+    ])
+    const ids = (region: JobListInput['region']) => list({ jobs, assessments, workplace, region }).rows.map((row) => row.job.id).sort()
+    expect(ids('latam')).toEqual([id(1), id(2)])
+    expect(ids('worldwide')).toEqual([id(1)])
+    expect(ids('namer')).toEqual([id(1), id(2), id(3)])
+    expect(ids('emea')).toEqual([id(1), id(4)])
+    expect(ids('')).toHaveLength(5)
+  })
+
+  it('filters by work type from either the posting\'s own field or its text', () => {
+    const jobs = [
+      job(1, { locationPolicy: 'remote' }), job(2, { locationPolicy: 'unknown' }), job(3, { locationPolicy: 'hybrid' }), job(4, { locationPolicy: 'unknown' }),
+    ]
+    const assessments = [1, 2, 3, 4].map((n) => assessment(n))
+    const workplace = new Map<string, Workplace>([
+      [id(2), { remoteScope: { kind: 'worldwide' }, onsite: { kind: 'remote' } }],
+      [id(3), { remoteScope: { kind: 'unspecified' }, onsite: { kind: 'unspecified' } }],
+      [id(4), { remoteScope: { kind: 'unspecified' }, onsite: { kind: 'unspecified' } }],
+    ])
+    const ids = (work: JobListInput['work']) => list({ jobs, assessments, workplace, work }).rows.map((row) => row.job.id).sort()
+    expect(ids('remote')).toEqual([id(1), id(2)])
+    expect(ids('hybrid')).toEqual([id(3)])
+    expect(ids('onsite')).toEqual([])
+    expect(ids('not_stated')).toEqual([id(4)])
+  })
+
+  it('filters by a case-insensitive location substring, and says how many match across pages while tab counts stay unfiltered', () => {
+    const jobs = [job(1, { locationText: 'Remote - LATAM' }), job(2, { locationText: 'San Francisco, CA' }), job(3)]
+    const result = list({ jobs, assessments: [assessment(1), assessment(2), assessment(3)], location: '  latam ' })
+    expect(result.rows.map((row) => row.job.id)).toEqual([id(1)])
+    expect(result.matching).toBe(1)
+    expect(result.tabs[0]?.count).toBe(3)
   })
 
   it('orders role meets before partial before unmatched, regardless of posting date', () => {

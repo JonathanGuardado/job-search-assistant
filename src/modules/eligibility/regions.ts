@@ -1,4 +1,4 @@
-import type { Region } from './types.js'
+import type { EligibilityClaims, Region } from './types.js'
 
 /**
  * Minimal country → region mapping. Extend as sources surface new phrasings.
@@ -46,4 +46,16 @@ export function countryInAnyRegion(
     if (result === 'unknown') sawUnknown = true
   }
   return sawUnknown ? 'unknown' : 'out'
+}
+
+/**
+ * Whether a posting's remote scope lets someone work from `region`, for filtering a list; never
+ * read by a rule. A worldwide posting is open to every region, and only it to "worldwide". A
+ * posting naming countries is open to the regions those countries are in.
+ */
+export function openToRegion(scope: EligibilityClaims['remoteScope'], region: Region): boolean {
+  const worldwide = scope.kind === 'worldwide' || (scope.kind === 'regions' && (scope.regions ?? []).includes('worldwide'))
+  if (worldwide || region === 'worldwide') return worldwide
+  if (scope.kind !== 'regions' && scope.kind !== 'countries') return false
+  return (scope.regions ?? []).includes(region) || (scope.countries ?? []).some((country) => countryInRegion(country, region) === 'in')
 }
