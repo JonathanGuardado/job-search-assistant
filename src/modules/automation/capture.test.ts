@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto'
 import { chromium, type Browser, type BrowserContext, type Page } from 'playwright'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import type { Packet, PacketItem } from '@/modules/application-answers'
-import { GITLAB_APPLICATION, GITLAB_PAGES, replayContext, type Greenhouse } from './browser-fixtures.js'
+import { GITLAB_APPLICATION, GITLAB_PAGES, replayContext, SECURITY_CODE, type Greenhouse } from './browser-fixtures.js'
 import { attachCapture, judgeOutcome, type Capture } from './capture.js'
 import { fillGreenhouseForm } from './greenhouse-filler.js'
 
@@ -44,6 +44,11 @@ async function filled(greenhouse: Greenhouse): Promise<{ context: BrowserContext
 }
 
 const submit = (page: Page) => page.getByRole('button', { name: 'Submit application' }).click()
+/** The owner types the emailed code into Greenhouse's eight boxes. */
+async function enterCode(page: Page) {
+  await page.locator('[id="security-input-0"]').waitFor()
+  for (const [index, char] of [...SECURITY_CODE].entries()) await page.locator(`[id="security-input-${index}"]`).fill(char)
+}
 const until = async (check: () => boolean) => {
   // Generous: the whole suite runs several browsers at once.
   for (let i = 0; i < 300 && !check(); i++) await new Promise((resolve) => setTimeout(resolve, 100))
@@ -67,11 +72,15 @@ describe('capturing what the browser sent (decision 0016)', { timeout: 60_000 },
     await context.close()
   })
 
-  it('judges an error response rejected and a request that never completed unknown', async () => {
+  it('judges an error response only once the window is done, rejected with Greenhouse\'s answer; a request that never completed is unknown', async () => {
     const rejected = await filled('rejects')
     await submit(rejected.page)
     await until(() => (rejected.capture.snapshot().submission?.response ?? null) !== null)
-    expect(await judgeOutcome(rejected.page, rejected.capture.snapshot())).toMatchObject({ outcome: 'rejected', evidence: { kind: 'error', status: 422 } })
+    // The page shows the error and lets the owner fix the field and submit again: not an outcome yet.
+    expect(await judgeOutcome(rejected.page, rejected.capture.snapshot())).toBeNull()
+    expect(await judgeOutcome(rejected.page, rejected.capture.snapshot(), { ended: true })).toMatchObject({
+      outcome: 'rejected', evidence: { kind: 'error', status: 422, text: expect.stringContaining('invalid-attributes') },
+    })
     await rejected.context.close()
 
     const failed = await filled('fails')
@@ -79,6 +88,44 @@ describe('capturing what the browser sent (decision 0016)', { timeout: 60_000 },
     await until(() => failed.capture.snapshot().failed)
     expect(await judgeOutcome(failed.page, failed.capture.snapshot())).toMatchObject({ outcome: 'unknown' })
     await failed.context.close()
+  })
+
+  it('a security code is a step, not an outcome: the page asks for it, and the owner\'s next Submit is what is judged', async () => {
+    const { context, page, capture } = await filled('asks_code')
+    await submit(page)
+    await until(() => (capture.snapshot().submission?.response ?? null) !== null)
+    expect(capture.snapshot()).toMatchObject({ attempts: 1, submission: { response: { status: 428 } } })
+    expect(await judgeOutcome(page, capture.snapshot())).toBeNull()
+    // Greenhouse's own page script shows the code box for this answer.
+    await enterCode(page)
+    await submit(page)
+    await until(() => capture.snapshot().confirmationUrl !== null)
+    const snapshot = capture.snapshot()
+    expect(snapshot).toMatchObject({ attempts: 2, submission: { response: { status: 200 }, payload: { job_application: { first_name: 'Ana' } } } })
+    // Like the reCAPTCHA token, the one-time code proves who pressed Submit; it is not part of the application.
+    expect(JSON.stringify(snapshot.submission)).not.toContain(SECURITY_CODE)
+    await page.waitForLoadState()
+    expect(await judgeOutcome(page, snapshot)).toMatchObject({ outcome: 'confirmed' })
+    await context.close()
+  })
+
+  it('a code asked for and never entered ends rejected, unless the browser sent more after Greenhouse answered', async () => {
+    const abandoned = await filled('asks_code')
+    await submit(abandoned.page)
+    await until(() => (abandoned.capture.snapshot().submission?.response ?? null) !== null)
+    await abandoned.context.close()
+    expect(abandoned.capture.snapshot().unsafeSinceAnswer).toBe(0)
+    expect(await judgeOutcome(abandoned.page, abandoned.capture.snapshot(), { ended: true })).toMatchObject({
+      outcome: 'rejected', evidence: { kind: 'error', status: 428, text: expect.stringContaining('captcha-failed') },
+    })
+
+    const more = await filled('asks_code')
+    await submit(more.page)
+    await until(() => (more.capture.snapshot().submission?.response ?? null) !== null)
+    await more.page.locator('[id="cover_letter"]').setInputFiles({ name: 'letter.pdf', mimeType: 'application/pdf', buffer: PDF })
+    await until(() => more.capture.snapshot().unsafeSinceAnswer > 0)
+    expect(await judgeOutcome(more.page, more.capture.snapshot(), { ended: true })).toMatchObject({ outcome: 'unknown', evidence: { status: 428 } })
+    await more.context.close()
   })
 
   it('records what was actually sent after the owner edits the form, however Submit is pressed', async () => {

@@ -149,8 +149,10 @@ export async function runFill(db: Db, userId: string, fillId: string, deps: Runn
 }
 
 /**
- * Waits for the first of: Greenhouse's answer to a submission, the window closing, the time
- * running out, or the lease being lost. Renews the lease while it waits.
+ * Waits for the first of: Greenhouse's final answer to a submission, the window closing, the
+ * time running out, or the lease being lost. Renews the lease while it waits. An error answer
+ * is not final while the window is open: the owner may fix the form, or enter the code
+ * Greenhouse emailed, and submit again; each submission is waited on afresh.
  */
 async function waitForOwner(page: Page, context: BrowserContext, capture: Capture, renew: (now: Date) => Promise<boolean>, deps: RunnerDeps): Promise<Ending> {
   let closed = false
@@ -158,7 +160,8 @@ async function waitForOwner(page: Page, context: BrowserContext, capture: Captur
   context.on('close', () => { closed = true })
   const started = Date.now()
   let renewed = started
-  let sentAt: number | null = null
+  let attempt = 0
+  let sentAt = started
   let answeredAt: number | null = null
   for (;;) {
     const now = Date.now()
@@ -168,15 +171,19 @@ async function waitForOwner(page: Page, context: BrowserContext, capture: Captur
     }
     const snapshot = capture.snapshot()
     if (snapshot.submission) {
-      sentAt ??= now
+      if (snapshot.attempts !== attempt) {
+        attempt = snapshot.attempts
+        sentAt = now
+        answeredAt = null
+      }
       if (snapshot.submission.response) answeredAt ??= now
       const judged = closed ? null : await judgeOutcome(page, snapshot)
       const waitingForConfirmation = judged?.outcome === 'unknown' && answeredAt !== null && !snapshot.failed && now - answeredAt < CONFIRMATION_WAIT_MS
       if (judged && !waitingForConfirmation) return { kind: 'judged', ...judged }
       const gaveUp = closed || now - started >= deps.waitMs || (answeredAt === null && now - sentAt >= RESPONSE_WAIT_MS)
       if (gaveUp) {
-        const final = await judgeOutcome(page, snapshot)
-        return final && final.outcome !== 'unknown'
+        const final = await judgeOutcome(page, snapshot, { ended: true })
+        return final
           ? { kind: 'judged', ...final }
           : { kind: 'judged', outcome: 'unknown', evidence: { kind: 'error', status: snapshot.submission.response?.status ?? null, text: 'The application went out, but Greenhouse\'s answer was not seen.' } }
       }

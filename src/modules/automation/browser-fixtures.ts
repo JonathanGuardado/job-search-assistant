@@ -17,8 +17,21 @@ export const GITLAB_PAGES: ApplicationPages = {
 export const GITLAB_APPLICATION = /^https:\/\/boards\.greenhouse\.io\/(embed\/)?gitlab\/jobs\/8725225002$/
 const HAR = fileURLToPath(new URL('./__fixtures__/greenhouse-gitlab-page.har', import.meta.url))
 
-/** How Greenhouse answers the application: accepted (then its confirmation page), rejected, or the request fails. */
-export type Greenhouse = 'accepts' | 'rejects' | 'fails'
+/**
+ * How Greenhouse answers the application: accepted (then its confirmation page), rejected, the
+ * request fails, or a security code is emailed first and the application accepted with it.
+ */
+export type Greenhouse = 'accepts' | 'rejects' | 'fails' | 'asks_code'
+
+/** The code the tests' owner reads from the email Greenhouse "sent". */
+export const SECURITY_CODE = 'ABCD1234'
+/*
+ * Greenhouse's answers by their `code`, as its page script handles them (entry.client in the
+ * recording): "captcha-failed" with a recipient shows the security-code box, and the next
+ * Submit sends `security_code`. The 428 status is what three real Canonical forms answered.
+ */
+const CODE_EMAILED = '{"code":"captcha-failed","security_code_recipient":"ana@example.com"}'
+const INVALID = '{"code":"invalid-attributes","message":"email"}'
 
 function answer(route: Route, greenhouse: Greenhouse) {
   const request = route.request()
@@ -35,7 +48,10 @@ function answer(route: Route, greenhouse: Greenhouse) {
   }
   if (GITLAB_APPLICATION.test(request.url())) {
     if (greenhouse === 'fails') return route.abort('connectionreset')
-    return route.fulfill({ status: greenhouse === 'accepts' ? 200 : 422, contentType: 'application/json', body: greenhouse === 'accepts' ? '{}' : '{"errors":["Email is invalid"]}' })
+    const json = (status: number, body: string) => route.fulfill({ status, contentType: 'application/json', body })
+    if (greenhouse === 'rejects') return json(422, INVALID)
+    if (greenhouse === 'asks_code' && !(request.postData() ?? '').includes(`"security_code":"${SECURITY_CODE}"`)) return json(428, CODE_EMAILED)
+    return json(200, '{}')
   }
   return route.abort()
 }

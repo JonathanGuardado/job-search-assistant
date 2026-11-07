@@ -5,7 +5,7 @@ import { withTenant } from '@/lib/db/tenancy'
 import { dbTest as test } from '@/lib/db/testing'
 import { ok, unwrap } from '@/lib/result'
 import { listApplications } from '@/modules/applications'
-import { GITLAB_PAGES, replayContext, type Greenhouse } from './browser-fixtures.js'
+import { GITLAB_PAGES, replayContext, SECURITY_CODE, type Greenhouse } from './browser-fixtures.js'
 import { runFill, type RunnerDeps } from './runner.js'
 import { expireFills, prepareFill, startFill, LEASE_MS } from './service.js'
 import { anApplicant, changeAnAnswer, type Applicant } from './test-fixtures.js'
@@ -61,6 +61,29 @@ describe('the worker runs one fill (decision 0016)', { timeout: 90_000 }, () => 
     const [application] = await withTenant(db, applicant.userId, listApplications)
     expect(application).toMatchObject({ jobId: applicant.job.id, mode: 'assisted', rawJobId: fill.rawJobId })
     expect(row?.applicationId).toBe(application?.id)
+  })
+
+  test('Greenhouse emails a security code: the window stays open, the owner enters it and submits again, and the fill is submitted', async ({ db }) => {
+    const { applicant, fill, deps } = await started(db, 'asks_code', async (page) => {
+      await presses(page)
+      await page.locator('[id="security-input-0"]').waitFor()
+      for (const [index, char] of [...SECURITY_CODE].entries()) await page.locator(`[id="security-input-${index}"]`).fill(char)
+      await presses(page)
+    })
+    expect(unwrap(await runFill(db, applicant.userId, fill.id, deps))).toBe('submitted')
+    expect(await fillRow(db, applicant, fill.id)).toMatchObject({ status: 'submitted', outcome: 'confirmed', submission: { response: { status: 200 } } })
+  })
+
+  test('Greenhouse asks for a security code and the owner closes the window: failed, with Greenhouse\'s answer as the evidence', async ({ db }) => {
+    const { applicant, fill, deps } = await started(db, 'asks_code', async (page) => {
+      await presses(page)
+      await page.locator('[id="security-input-0"]').waitFor()
+      await page.close()
+    })
+    expect(unwrap(await runFill(db, applicant.userId, fill.id, deps))).toBe('failed')
+    expect(await fillRow(db, applicant, fill.id)).toMatchObject({
+      status: 'failed', outcome: 'rejected', outcomeEvidence: { kind: 'error', status: 428, text: expect.stringContaining('captcha-failed') },
+    })
   })
 
   test('the owner closes the window without submitting: nothing went out, so the fill is abandoned', async ({ db }) => {

@@ -77,6 +77,14 @@ describe('filling a Greenhouse form (decision 0016)', { timeout: 60_000 }, () =>
     await page.context().close()
   })
 
+  it('keeps a phone typed without spaces, which the page formats as it goes', async () => {
+    const { page } = await formPage()
+    const report = await fillGreenhouseForm(page, complete({ phone: '+50376815852' }), { resume: null })
+    expect(resultFor(report, 'phone')).toMatchObject({ result: 'set' })
+    expect((await page.locator('[id="phone"]').inputValue()).replace(/\D/g, '')).toContain('76815852')
+    await page.context().close()
+  })
+
   it('leaves to the owner what it cannot set exactly: a shared dialing code, a location with no exact match, a missing option', async () => {
     const { page } = await formPage()
     const report = await fillGreenhouseForm(page, complete({ phone: '+1 415 555 0100', location: 'Atlantis, Nowhere', sponsorship: 'Maybe' }), { resume: null })

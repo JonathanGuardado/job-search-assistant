@@ -180,10 +180,13 @@ reviewed: `createApplication` takes an optional `rawJobId`, checked to belong to
 
 - **The packet:** what the owner reviewed.
 - **The submission:** the captured final request, its address and every field as sent. The
-  reCAPTCHA token is removed. A file is kept as its name, size and fingerprint.
+  reCAPTCHA token and an emailed security code are removed. A file is kept as its name, size
+  and fingerprint.
 - **The outcome:** `confirmed` (a success response, then the confirmation page), `rejected`
-  (an error response, or the form's own errors), `unknown` (the request went out, but the
-  result is unclear), or `user_reported` (the owner says it was submitted).
+  (an error response still standing when the window closed or the time ran out, with
+  Greenhouse's answer as evidence), `unknown` (the request went out, but the result is
+  unclear), or `user_reported` (the owner says it was submitted). An error response is not an
+  outcome while the window is open; see the amendment below.
 
 The submission and the outcome are independent. A captured request stays recorded when the
 owner reports the outcome. Sent values are unknown only when nothing was captured. An
@@ -246,3 +249,23 @@ browser is done only by `scripts/` and test helpers. The filler only listens.
 - **2.4:** reCAPTCHA Enterprise runs on every form, so the system pressing Submit without the
   owner may be challenged or scored as a bot. 2.4 must answer that before relying on it, and
   check the terms again.
+
+## Amendment, 2026-11-05: an error answer is a step, not an outcome
+
+The first three real fills (Canonical) were recorded `rejected` on Greenhouse's first answer,
+HTTP 428, and the browser closed. Greenhouse's page script (in the recorded GitLab page) shows
+what that answer was: an error body carries a `code`, and `captcha-failed` with a
+`security_code_recipient` makes the page ask for the 8-character code it emailed, which the next
+Submit sends as `security_code` to the same address. After any error the page lets the owner
+fix the form and submit again.
+
+- While the window is open, an error answer is not an outcome. The worker keeps waiting, and
+  judges the latest application request. Only a confirmation, the window closing or the time
+  running out ends the wait.
+- An error still standing at the end is `rejected` (the fill `failed`) when nothing beyond the
+  known safe requests went out after Greenhouse answered; otherwise `unknown`, for the owner to
+  settle.
+- The evidence for an error is Greenhouse's own answer (status and body, cut to 1,000
+  characters), not the page's text, which is the posting.
+- The security code is removed from the captured payload, like the reCAPTCHA token.
+- A request that fails without any answer still ends the wait as `unknown`.

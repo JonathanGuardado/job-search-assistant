@@ -123,6 +123,13 @@ const LIST_CONTROLS = `[...document.querySelectorAll('form input, form textarea,
     return { id: el.id, label: label.replace(/\\s+/g, ' ').trim().slice(0, 200), required: el.required || el.getAttribute('aria-required') === 'true' }
   })`
 
+/** Whether a text field holds what was typed. The phone field formats a number as it is typed, so a phone is compared by its digits. */
+function kept(field: string, shown: string, wanted: string): boolean {
+  if (field !== 'phone') return shown === wanted
+  const digits = (text: string) => text.replace(/\D/g, '')
+  return digits(shown) !== '' && digits(shown) === digits(wanted)
+}
+
 /** Which packet field, if any, a control on the page belongs to. */
 function owner(control: string, fields: ReadonlySet<string>): boolean {
   if (fields.has(control)) return true
@@ -148,9 +155,10 @@ export async function fillGreenhouseForm(page: Page, packet: Packet, files: { re
     const item = packet.items.find((i): i is Fill => i.kind === 'fill' && i.field === result.field)
     if (result.result !== 'set' || item?.value.kind !== 'text' || item.field === 'location') continue
     const input = byId(page, item.field)
-    if (await input.inputValue() === item.value.text) continue
-    await input.fill(item.value.text)
-    if (await input.inputValue() !== item.value.text) results[index] = { ...result, result: 'failed', detail: 'The page did not keep this value.' }
+    const wanted = item.value.text
+    if (kept(item.field, await input.inputValue(), wanted)) continue
+    await input.fill(wanted)
+    if (!kept(item.field, await input.inputValue(), wanted)) results[index] = { ...result, result: 'failed', detail: 'The page did not keep this value.' }
   }
 
   const phone = packet.items.find((i): i is Fill => i.kind === 'fill' && i.field === 'phone')

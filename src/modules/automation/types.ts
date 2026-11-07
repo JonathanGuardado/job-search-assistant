@@ -16,9 +16,9 @@ export type FillStatus = (typeof FILL_STATUSES)[number]
 export const IN_PROGRESS: readonly FillStatus[] = ['queued', 'launching', 'filling', 'waiting', 'uncertain']
 
 /**
- * confirmed: a success response, then the confirmation page; rejected: an error response or the
- * form's own errors; unknown: the request went out, the result is unclear; user_reported: the
- * owner says it was submitted.
+ * confirmed: a success response, then the confirmation page; rejected: an error response still
+ * standing when the window closed or the time ran out; unknown: the request went out, the result
+ * is unclear; user_reported: the owner says it was submitted.
  */
 export const FILL_OUTCOMES = ['confirmed', 'rejected', 'unknown', 'user_reported'] as const
 export type FillOutcome = (typeof FILL_OUTCOMES)[number]

@@ -293,7 +293,7 @@ what is left to the candidate) and `packet_hash`, `status` (`prepared`, `queued`
 `filling`, `waiting`, `submitted`, `uncertain`, `failed`, `abandoned`, `stale`), `lease_owner`
 and `lease_expires_at` (both or neither), `fill_report` (what the filler did with each field, and
 controls the page showed that the packet did not describe), `submission` (the application
-request as captured from the network, without the reCAPTCHA token; files by name, size and
+request as captured from the network, without the reCAPTCHA token or security code; files by name, size and
 fingerprint), `outcome` (`confirmed`, `rejected`, `unknown`, `user_reported`) and
 `outcome_evidence`, `application_id` (only when submitted; referenced with `user_id`, as events
 are), `error`, `created_at`, `updated_at`. A partial unique index allows one fill in progress per
