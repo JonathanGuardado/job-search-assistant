@@ -127,6 +127,17 @@ as a concern, never as a rejection.
 | `salary-below-floor` | Posted max is below the candidate's floor, same currency, salary marked hard |
 | `relocation-required` | Relocation required and candidate will not relocate |
 
+**Contested worldwide (engine v5).** A `worldwide` scope quoted from the description, not the
+title or location line, is *contested* when the location line names only places outside where
+the candidate can work (no "worldwide"/"global"/"anywhere", none of their regions, not their
+country by name or code), or when the posting states hybrid or onsite work. Company wording
+("We hire globally", "a globally distributed company") and perks ("work from anywhere for up
+to 4 weeks per year") read as a role's scope otherwise. A contested scope does not fit the
+candidate and is contradictory: `remote-scope-excludes-country` and `onsite-requires-relocation`
+return `unknown` instead of passing or failing, and no authorization requirement is implied
+from the office work. It never produces a rejection. A stated authorization requirement with
+sponsorship refused still rejects.
+
 Rules return `unknown` when the claim they depend on is `unspecified`. If any rule
 returns `unknown` and no rule returns `fail`, the verdict is `needs_review` with those
 questions attached. When the posting was read and names a place but never states an arrangement

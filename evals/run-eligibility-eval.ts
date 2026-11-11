@@ -33,7 +33,7 @@ const LabelSchema = z.object({
   quote: z.string(),
   basis: z.enum(['stated', 'location-only']),
 })
-const SPLITS = ['tuning', 'holdout', 'holdout-2'] as const
+const SPLITS = ['tuning', 'holdout', 'holdout-2', 'misreads'] as const
 const CaseSchema = z.object({
   id: z.string(),
   jobId: z.uuid(),
@@ -41,6 +41,8 @@ const CaseSchema = z.object({
   /**
    * tuning: prompts and rules were shaped against it. holdout: labeled before any run, never tuned on.
    * holdout-2: labeled before any run after engine v2 was fitted to a holdout miss.
+   * misreads: live postings the engine called eligible on company wording or a travel perk
+   * (2026-11-10), labeled before engine v5 was written; tuned on, so never an unseen measurement.
    */
   split: z.enum(SPLITS),
   posting: z.object({

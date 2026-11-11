@@ -197,6 +197,34 @@ Every first answer omits the two claims' `required` keys (authorization and relo
 likely because the JSON Schema keyword shares the name; the corrective retry always fixes
 it, and the cost above includes that retry. Stopping it would save about $0.0002 a posting.
 
+## Engine v5 (2026-11-10): contested worldwide claims
+
+Live data showed about a quarter of the owner's 679 "Can apply" jobs resting on a worldwide
+claim that came from company wording ("We hire globally", "ClickHouse is a globally distributed
+company") or a perk ("work from anywhere for up to 4 weeks per year"), while the location line
+named somewhere else: Supabase "Remote, EMEA", ClickHouse "Germany", Lyft's hybrid Seattle
+roles. The tuning and holdout sets had no such case.
+
+A new split, `misreads`, holds 20 of those live postings (15 misreads, 5 worldwide controls),
+labeled for `sv-remote` from full text before the rule was written. It was selected from the
+engine's failures and the rule was fitted to it, so it is not an unseen measurement. Prompt v3
+is unchanged; the rule re-scores cached extractions (the 20 new extractions cost about $0.01).
+
+| Split | Before (engine v4) | After (engine v5) |
+| --- | --- | --- |
+| tuning + holdout + holdout-2 (277 labels) | 99.4% precision, 88.1% recall, 15.5% needs_review | identical: no verdict changed |
+| misreads: wrongly eligible | 9 of 15 | **1 of 15** |
+| misreads: controls still eligible | 5 of 5 | 5 of 5 |
+
+All 297 labels: precision 99.4% (160/161), recall 85.6%, needs_review 17.8%, quotes 99.7%.
+
+Six misreads labeled `not_eligible` now come out `needs_review`: cautious, by design, because
+a contradiction must not reject. The remaining wrong "eligible" is Offchain Labs' bare "Remote"
+location line with "Remote-first global workforce": the line names no place, so the rule
+cannot see the conflict. A prompt that tells the model company wording and perks are not a
+scope would catch it and turn the cautious reviews into rejections, at the cost of
+re-extracting every open posting (about $7); deferred.
+
 ## Caveats before the phase gate
 
 

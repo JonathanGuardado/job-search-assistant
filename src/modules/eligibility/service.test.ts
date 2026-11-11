@@ -6,6 +6,7 @@ import { err, unwrap } from '@/lib/result'
 import { saveCandidateProfile } from '@/modules/profiles'
 import type { ExtractClaims } from './extract.js'
 import { eligibilityAssessments } from './schema.js'
+import { ENGINE_VERSION } from './types.js'
 import { assessJobForUser, enqueueAssessmentsForJob, enqueueAssessmentsForUser, getAssessment, listAssessments, reviewGroup, setUserOverride } from './service.js'
 import { aBoard, aCandidate, aPosting, latamClaims, publish, remoteSeeker, stubExtract } from './test-fixtures.js'
 
@@ -73,6 +74,23 @@ describe('assessing a job for a candidate', () => {
     expect(calls).toHaveLength(1)
     expect(await withTenant(db, userId, (scope) => getAssessment(scope, job.id)))
       .toMatchObject({ verdict: 'not_eligible', userOverride: 'eligible', overrideReason: 'I asked the recruiter' })
+  })
+
+  test('carries the user override onto the verdict of a new engine version', async ({ db }) => {
+    const job = await publish(db, await aBoard(db), aPosting())
+    const userId = await aCandidate(db)
+    const { extract, calls } = stubExtract()
+    unwrap(await assessJobForUser(db, { userId, jobId: job.id }, extract))
+    // As if the stored verdict came from the previous engine, with the user's own verdict on it.
+    await withTenant(db, userId, (scope) => scope.db.update(eligibilityAssessments)
+      .set({ engineVersion: ENGINE_VERSION - 1, userOverride: 'not_eligible', overrideReason: 'Asked: US only' })
+      .where(eq(eligibilityAssessments.jobId, job.id)))
+    expect(await withTenant(db, userId, (scope) => getAssessment(scope, job.id))).toBeNull()
+
+    expect(unwrap(await assessJobForUser(db, { userId, jobId: job.id }, extract))).toEqual({ kind: 'assessed', verdict: 'eligible' })
+    expect(calls).toHaveLength(1)
+    expect(await withTenant(db, userId, (scope) => getAssessment(scope, job.id)))
+      .toMatchObject({ engineVersion: ENGINE_VERSION, verdict: 'eligible', userOverride: 'not_eligible', overrideReason: 'Asked: US only' })
   })
 
   test('a quota error writes nothing so the queue can retry; an unreadable posting is needs_review', async ({ db }) => {

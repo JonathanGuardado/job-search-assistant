@@ -122,6 +122,69 @@ describe('a remote scope the candidate fits outranks office options (engine v2)'
   })
 })
 
+describe('a worldwide claim the role\'s own location line does not support is an open question (engine v5)', () => {
+  // Real cases (2026-11-10): Supabase "Remote, EMEA" with "We hire globally."; Lyft's hybrid
+  // Seattle role with "work from anywhere for up to 4 weeks per year". Company wording and
+  // perks were read as the role's scope.
+  const worldwide = (quote: string, onsite: EligibilityClaims['onsite'] = { kind: 'remote', quote: 'Fully Remote' }) =>
+    claims({ remoteScope: { kind: 'worldwide', quote }, onsite })
+  const at = (locationText: string | null, title = 'Senior Engineer') => job({ locationText, title })
+  const hybridUs: EligibilityClaims['onsite'] = { kind: 'hybrid', countries: ['US'], quote: 'work in the office 3 days per week' }
+
+  it('asks when company wording says worldwide but the location line names somewhere else', () => {
+    const result = verdictOf(profile(), worldwide('We hire globally.'), at('Remote, EMEA'))
+    expect(result.verdict).toBe('needs_review')
+    if (result.verdict !== 'needs_review') return
+    expect(result.unresolvedRules).toContain('remote-scope-excludes-country')
+    expect(result.openQuestions.join(' ')).toContain('Remote, EMEA')
+  })
+
+  it('asks, never rejects, when a travel perk sits beside a hybrid office abroad', () => {
+    const result = verdictOf(profile(), worldwide('work from anywhere for up to 4 weeks per year', hybridUs), at('Seattle, WA'))
+    expect(result.verdict).toBe('needs_review')
+  })
+
+  it('asks when the location line names no place but the text states office work', () => {
+    expect(verdictOf(profile(), worldwide('work from anywhere for up to 4 weeks per year', hybridUs), at(null)).verdict).toBe('needs_review')
+  })
+
+  it('does not infer an authorization requirement from the contested office work', () => {
+    const refused = claims({
+      remoteScope: { kind: 'worldwide', quote: 'work from anywhere for up to 4 weeks per year' }, onsite: hybridUs,
+      authorization: { required: 'unspecified', sponsorshipOffered: false, quote: 'We do not sponsor visas.' },
+    })
+    expect(verdictOf(profile({ willingToRelocate: true }), refused, at('Chicago')).verdict).toBe('needs_review')
+  })
+
+  it('still rejects on a stated authorization requirement with sponsorship refused', () => {
+    const stated = claims({
+      remoteScope: { kind: 'worldwide', quote: 'work from anywhere for up to 4 weeks per year' }, onsite: hybridUs,
+      authorization: { required: true, countries: ['US'], sponsorshipOffered: false, quote: 'without the need for new visa sponsorship' },
+    })
+    expect(verdictOf(profile({ willingToRelocate: true }), stated, at('Chicago')).verdict).toBe('not_eligible')
+  })
+
+  it('trusts a worldwide statement made by the location line or the title', () => {
+    const taipei = worldwide('Home based - Worldwide', { kind: 'hybrid', countries: ['TW'], quote: 'Office Based - Taipei, Taiwan' })
+    expect(verdictOf(profile(), taipei, at('Home based - Worldwide; Office Based - Taipei, Taiwan')).verdict).toBe('eligible')
+    expect(verdictOf(profile(), worldwide('Remote, Worldwide'), at('London', 'Senior Engineer (Remote, Worldwide)')).verdict).toBe('eligible')
+  })
+
+  it('trusts it when the location line includes the candidate: everywhere, their region, or their country', () => {
+    const anywhere = worldwide('you can be located anywhere in the world')
+    expect(verdictOf(profile(), anywhere, at('Americas; Sao Paulo; Buenos Aires; Montevideo')).verdict).toBe('eligible')
+    expect(verdictOf(profile(), anywhere, at('NAMER and LatAm')).verdict).toBe('eligible')
+    expect(verdictOf(profile(), anywhere, at('Anywhere; United States')).verdict).toBe('eligible')
+    expect(verdictOf(profile(), anywhere, at('San Salvador, El Salvador')).verdict).toBe('eligible')
+    expect(verdictOf(profile({ country: 'US', allowedRegions: ['namer'] }), anywhere, at('Remote, US')).verdict).toBe('eligible')
+  })
+
+  it('trusts it when the location line names no place at all', () => {
+    expect(verdictOf(profile(), worldwide('We hire globally.'), at('Remote')).verdict).toBe('eligible')
+    expect(verdictOf(profile(), worldwide('We hire globally.'), at(null)).verdict).toBe('eligible')
+  })
+})
+
 describe('onsite abroad implies a work authorization requirement (D4)', () => {
   const relocating = profile({ willingToRelocate: true })
   const inIreland = (authorization: EligibilityClaims['authorization']) =>

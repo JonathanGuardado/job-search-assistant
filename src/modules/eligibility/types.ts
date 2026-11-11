@@ -205,4 +205,5 @@ export type AssessmentReasons =
 // v2: a remote scope the candidate fits outranks office options listed beside it.
 // v3: needs_review records whether the posting names only a place. Verdicts are unchanged.
 // v4: needs_review records which rules could not decide. Verdicts are unchanged.
-export const ENGINE_VERSION = 4
+// v5: a worldwide claim the title and location line do not support is an open question.
+export const ENGINE_VERSION = 5

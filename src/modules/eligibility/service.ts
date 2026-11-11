@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto'
-import { and, eq, inArray, sql } from 'drizzle-orm'
+import { and, desc, eq, inArray, isNotNull, sql } from 'drizzle-orm'
 import type { Db } from '@/lib/db/client'
 import { withTenant, type TenantScope } from '@/lib/db/tenancy'
 import { domainError, err, ok, type Result } from '@/lib/result'
@@ -139,6 +139,8 @@ export async function assessJobForUser(
     }
   }
 
+  // A new engine version starts a new row: the user's own verdict from the last one carries over.
+  const carried = existing ? {} : await withTenant(db, userId, (scope) => priorOverride(scope, jobId))
   const { verdict, stage } = assessed
   const fields = {
     // Only a posting the model read can be said to name nothing but a place.
@@ -149,7 +151,7 @@ export async function assessJobForUser(
     jobFingerprint: job.value.fingerprint, profileHash, assessedAt: new Date(),
   }
   await withTenant(db, userId, (scope) => scope.db.insert(eligibilityAssessments)
-    .values({ userId, jobId, engineVersion: ENGINE_VERSION, ...fields })
+    .values({ userId, jobId, engineVersion: ENGINE_VERSION, ...carried, ...fields })
     // The user's override is theirs: re-assessment replaces the engine's verdict, never theirs.
     .onConflictDoUpdate({ target: [eligibilityAssessments.userId, eligibilityAssessments.jobId, eligibilityAssessments.engineVersion], set: fields }))
   return ok({ kind: 'assessed', verdict: verdict.verdict })
@@ -261,6 +263,15 @@ export async function workplaceClaimsFor(db: Db, claimsIds: readonly string[]): 
     }
   }
   return byJob
+}
+
+/** The user's override on the latest earlier engine version's verdict, if they made one. */
+async function priorOverride(scope: TenantScope, jobId: string): Promise<Pick<Assessment, 'userOverride' | 'overrideReason'> | Record<string, never>> {
+  const [row] = await scope.db.select({ userOverride: eligibilityAssessments.userOverride, overrideReason: eligibilityAssessments.overrideReason })
+    .from(eligibilityAssessments)
+    .where(and(eq(eligibilityAssessments.jobId, jobId), isNotNull(eligibilityAssessments.userOverride)))
+    .orderBy(desc(eligibilityAssessments.engineVersion)).limit(1)
+  return row ?? {}
 }
 
 export async function getAssessment(scope: TenantScope, jobId: string): Promise<Assessment | null> {

@@ -1,4 +1,4 @@
-import { countryInAnyRegion } from './regions.js'
+import { countryInAnyRegion, countryInRegion } from './regions.js'
 import { achievableOverlapHours, OVERLAP_TOLERANCE_HOURS } from './timezone.js'
 import type { Rule, RuleInput, RuleOutcome, HardConstraintKey, Region } from './types.js'
 import { ALWAYS_HARD, RegionSchema } from './types.js'
@@ -50,15 +50,70 @@ function authorizedCountries(input: RuleInput): Set<string> {
   return new Set([input.profile.country, ...input.profile.workAuthorizations.map((a) => a.country)].map((c) => c.toUpperCase()))
 }
 
+/** Location-line words for everywhere, and for each region. */
+const EVERYWHERE = /\b(worldwide|global|globally|anywhere|international)\b/i
+const REGION_WORDS: Readonly<Record<Exclude<Region, 'worldwide'>, RegExp>> = {
+  latam: /\b(latam|latin america|south america|central america|americas|amer)\b/i,
+  namer: /\b(namer|north america|americas|amer)\b/i,
+  emea: /\b(emea|europe)\b/i,
+  apac: /\b(apac|apj|asia)\b/i,
+}
+/** Location-line words that name no place: arrangements, not where. */
+const NO_PLACE = /\b(remote|home[ -]based|office[ -]based|hybrid|on-?site|in-office|fully|full[ -]time|flexible|distributed)\b/gi
+const COUNTRY_NAMES = ['en', 'es'].map((locale) => new Intl.DisplayNames([locale], { type: 'region' }))
+
+/**
+ * Whether the location line includes somewhere the candidate can work: everywhere, a region
+ * they live in or selected, or one of their countries by name or ISO code.
+ */
+function lineIncludesCandidate(input: RuleInput, line: string): boolean {
+  if (EVERYWHERE.test(line)) return true
+  const countries = [...acceptableCountries(input)]
+  const regions = new Set([...selectedRegions(input), ...RegionSchema.options.filter((r) => countries.some((c) => countryInRegion(c, r) === 'in'))])
+  if ([...regions].some((r) => r !== 'worldwide' && REGION_WORDS[r].test(line))) return true
+  const lower = line.toLowerCase()
+  return countries.some((code) => new RegExp(`\\b${code}\\b`).test(line)
+    || COUNTRY_NAMES.some((names) => { const name = names.of(code); return name !== undefined && name !== code && lower.includes(name.toLowerCase()) }))
+}
+
+const claimsWorldwide = (scope: RuleInput['claims']['remoteScope']): boolean =>
+  scope.kind === 'worldwide' || (scope.kind === 'regions' && (scope.regions ?? []).includes('worldwide'))
+
+/**
+ * A worldwide claim the role's own words do not support (engine v5). Company wording ("We hire
+ * globally", "a globally distributed company") and perks ("work from anywhere for up to 4 weeks
+ * per year") read as the role's scope. The title and location line describe this role: a
+ * worldwide quote from either stands. One from the description is contested when the location
+ * line names only places outside where the candidate can work, or the posting states office work.
+ * Contested is contradictory, so it is an open question, never a rejection.
+ */
+function contestedWorldwide(input: RuleInput): boolean {
+  const scope = input.claims.remoteScope
+  if (!claimsWorldwide(scope)) return false
+  const line = input.job.locationText ?? ''
+  if (scope.quote !== undefined && (line.includes(scope.quote) || input.job.title.includes(scope.quote))) return false
+  if (lineIncludesCandidate(input, line)) return false
+  const namesAPlace = /\p{L}/u.test(line.replace(NO_PLACE, ''))
+  return namesAPlace || input.claims.onsite.kind === 'hybrid' || input.claims.onsite.kind === 'onsite'
+}
+
+function contestedQuestion(input: RuleInput): string {
+  const said = `The posting says "${input.claims.remoteScope.quote ?? 'worldwide'}"`
+  const line = input.job.locationText?.trim()
+  return line
+    ? `${said}, but it is listed in ${line}: it does not say the role is open where you are.`
+    : `${said}, but also describes ${input.claims.onsite.kind} work: it does not say the role is open where you are.`
+}
+
 /** Whether the posting states a remote scope that includes somewhere the candidate can work. */
 function fitsRemoteScope(input: RuleInput): boolean {
   const scope = input.claims.remoteScope
-  if (scope.kind === 'worldwide') return true
+  if (claimsWorldwide(scope) && !contestedWorldwide(input)) return true
   const countries = acceptableCountries(input)
   if (scope.kind === 'countries') return (scope.countries ?? []).some((c) => countries.has(c.toUpperCase()))
   if (scope.kind !== 'regions') return false
-  const regions = scope.regions ?? []
-  return regions.some((r) => r === 'worldwide' || selectedRegions(input).includes(r))
+  const regions = (scope.regions ?? []).filter((r) => r !== 'worldwide')
+  return regions.some((r) => selectedRegions(input).includes(r))
     || [...countries].some((c) => countryInAnyRegion(c, regions) === 'in')
 }
 
@@ -94,6 +149,7 @@ const onsiteRequiresRelocation: Rule = {
     }
     if (countries.includes(i.profile.country.toUpperCase())) return pass()
     if (i.profile.willingToRelocate) return pass()
+    if (contestedWorldwide(i)) return unknown(contestedQuestion(i))
     return fail(
       `The role is ${policy} in ${countries.join(', ')} and you are not open to relocating.`,
       i.claims.onsite.quote,
@@ -110,7 +166,7 @@ const remoteScopeExcludesCountry: Rule = {
 
     switch (scope.kind) {
       case 'worldwide':
-        return pass()
+        return contestedWorldwide(i) ? unknown(contestedQuestion(i)) : pass()
 
       case 'none':
         // Not a remote role at all — onsiteRequiresRelocation owns this case.
@@ -134,9 +190,11 @@ const remoteScopeExcludesCountry: Rule = {
         if (regions.length === 0) {
           return unknown('The posting restricts hiring by region but does not name one.')
         }
-        if (regions.some((r) => r === 'worldwide' || selectedRegions(i).includes(r))) return pass()
-        const memberships = [...countries].map((c) => countryInAnyRegion(c, regions))
+        const named = regions.filter((r) => r !== 'worldwide')
+        if (named.some((r) => selectedRegions(i).includes(r))) return pass()
+        const memberships = [...countries].map((c) => countryInAnyRegion(c, named))
         if (memberships.includes('in')) return pass()
+        if (regions.includes('worldwide')) return contestedWorldwide(i) ? unknown(contestedQuestion(i)) : pass()
         if (memberships.includes('unknown')) {
           return unknown(
             `The posting hires in ${regions.join(', ')}; whether ${[...countries].join(', ')} qualifies is unclear.`,
@@ -173,7 +231,8 @@ const authorizationMissing: Rule = {
 
     // D4: working onsite abroad needs authorization there, whether or not the posting
     // says so. Silence about a remote role is still not evidence of a requirement.
-    const onsiteAbroad = workplace(i) === 'onsite' || workplace(i) === 'hybrid'
+    // A contested worldwide claim leaves the arrangement unclear: it implies nothing (engine v5).
+    const onsiteAbroad = !contestedWorldwide(i) && (workplace(i) === 'onsite' || workplace(i) === 'hybrid')
       ? workplaceCountries(i)
       : []
     const implied = onsiteAbroad.length > 0 && !onsiteAbroad.some((c) => held.has(c)) ? onsiteAbroad : []

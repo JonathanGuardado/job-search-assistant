@@ -47,7 +47,8 @@ export function evaluateRules(
     const outcome = rule.evaluate(input)
 
     if (outcome.kind === 'unknown') {
-      openQuestions.push(outcome.question)
+      // Two rules can hinge on one contradiction (engine v5): ask it once, keep both rule ids.
+      if (!openQuestions.includes(outcome.question)) openQuestions.push(outcome.question)
       unresolvedRules.push(rule.id)
       continue
     }
