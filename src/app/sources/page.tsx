@@ -1,6 +1,5 @@
 import { getDb } from '@/lib/db/client'
 import { ADAPTER_KEYS, listSources, type AdapterKey } from '@/modules/job-sources'
-import { AppNavigation } from '../_components/AppNavigation'
 import styles from '../resumes/resumes.module.css'
 import { addSourceAction, pollSourceAction, toggleSourceAction } from './actions'
 
@@ -14,7 +13,6 @@ export default async function SourcesPage({ searchParams }: { readonly searchPar
   const sources = await listSources(getDb())
   return (
     <main className={styles.page}>
-      <AppNavigation currentPath="/sources" />
       <header className={styles.pageHeader}>
         <div><p className={styles.eyebrow}>Job Seeker Assistant · Discovery</p><h1>Job sources</h1><p className={styles.subtitle}>Connect company boards to capture their postings. Enabled sources are polled every six hours.</p></div>
         <span className={styles.count}>{sources.length} sources</span>

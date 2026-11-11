@@ -5,7 +5,6 @@ import { withTenant } from '@/lib/db/tenancy'
 import { DEV_USER } from '@/lib/dev-user'
 import { APPLICATION_STATUSES, listApplications } from '@/modules/applications'
 import { getJobs } from '@/modules/jobs'
-import { AppNavigation } from '../_components/AppNavigation'
 import { ApplicationStatusBadge, STATUS_LABELS } from './_components/ApplicationStatus'
 import styles from './applications.module.css'
 
@@ -26,7 +25,6 @@ export default async function ApplicationsPage({ searchParams }: {
   const filtered = applications.filter((application) => query.status === 'all' || application.status === query.status)
   return (
     <main className={styles.page}>
-      <AppNavigation currentPath="/applications" />
       <header><p className={styles.eyebrow}>Job Seeker Assistant · Your search</p><h1>Applications</h1></header>
       {query.error && <p role="alert" className={styles.error}>{query.error}</p>}
       <nav aria-label="Applications by stage" className={styles.tabs}>

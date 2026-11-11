@@ -1,5 +1,6 @@
 'use server'
 
+import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { z } from 'zod'
 import { getDb } from '@/lib/db/client'
@@ -39,6 +40,7 @@ async function refreshSuggestions(back: string): Promise<never> {
 }
 
 export async function saveAnswerAction(form: FormData): Promise<void> {
+  revalidatePath('/', 'layout')
   const back = BackSchema.parse(form.get('back'))
   const answer = parseAnswer(form)
   if (!answer.ok) redirect(errorUrl(back, answer.error.message))
@@ -56,6 +58,7 @@ export async function saveAnswerAction(form: FormData): Promise<void> {
 }
 
 export async function acceptDraftAction(form: FormData): Promise<void> {
+  revalidatePath('/', 'layout')
   const back = BackSchema.parse(form.get('back'))
   const draftId = z.uuid().safeParse(form.get('draftId'))
   if (!draftId.success) redirect(errorUrl(back, 'Choose a draft to use.'))
@@ -69,6 +72,7 @@ export async function acceptDraftAction(form: FormData): Promise<void> {
 }
 
 export async function acceptSuggestionAction(form: FormData): Promise<void> {
+  revalidatePath('/', 'layout')
   const back = BackSchema.parse(form.get('back'))
   const parsed = SuggestionSchema.safeParse({ label: form.get('label'), savedQuestionKey: form.get('savedQuestionKey') })
   if (!parsed.success) redirect(errorUrl(back, parsed.error.issues[0]?.message ?? 'Check the suggested answer.'))
@@ -78,6 +82,7 @@ export async function acceptSuggestionAction(form: FormData): Promise<void> {
 }
 
 export async function deleteAnswerAction(form: FormData): Promise<void> {
+  revalidatePath('/', 'layout')
   const back = BackSchema.parse(form.get('back'))
   const parsed = z.string().min(1).safeParse(form.get('questionKey'))
   if (!parsed.success) redirect(errorUrl(back, 'Choose a saved answer to delete.'))
@@ -89,6 +94,7 @@ export async function deleteAnswerAction(form: FormData): Promise<void> {
 }
 
 export async function draftNowAction(form: FormData): Promise<void> {
+  revalidatePath('/', 'layout')
   const back = BackSchema.parse(form.get('back'))
   const questionKey = z.string().trim().min(1).safeParse(form.get('questionKey'))
   if (!questionKey.success) redirect(errorUrl(back, 'Choose a question to draft.'))

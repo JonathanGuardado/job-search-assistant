@@ -1,5 +1,6 @@
 'use server'
 
+import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { z } from 'zod'
 import { getDb } from '@/lib/db/client'
@@ -30,6 +31,7 @@ function parseFill(form: FormData) {
 }
 
 export async function prepareFillAction(form: FormData): Promise<void> {
+  revalidatePath('/', 'layout')
   const jobId = parseJobId(form)
   const result = await prepareFill(getDb(), DEV_USER.id, jobId)
   if (!result.ok) redirect(messageUrl(`/jobs/${jobId}`, { error: result.error.message }))
@@ -37,6 +39,7 @@ export async function prepareFillAction(form: FormData): Promise<void> {
 }
 
 export async function startFillAction(form: FormData): Promise<void> {
+  revalidatePath('/', 'layout')
   const { fillId, back } = parseFill(form)
   const packetHash = z.string().min(1).safeParse(form.get('packetHash'))
   if (!packetHash.success) redirect(messageUrl(back, { error: 'Review the application again.' }))
@@ -55,12 +58,14 @@ export async function startFillAction(form: FormData): Promise<void> {
 }
 
 export async function cancelFillAction(form: FormData): Promise<void> {
+  revalidatePath('/', 'layout')
   const { fillId, back } = parseFill(form)
   const result = await withTenant(getDb(), DEV_USER.id, (scope) => cancelFill(scope, fillId))
   redirect(messageUrl(back, result.ok ? { notice: 'Stopped. Nothing was sent.' } : { error: result.error.message }))
 }
 
 export async function settleFillAction(form: FormData): Promise<void> {
+  revalidatePath('/', 'layout')
   const { fillId, back } = parseFill(form)
   const said = z.enum(['submitted', 'not_submitted']).safeParse(form.get('said'))
   if (!said.success) redirect(messageUrl(back, { error: 'Say whether you submitted the application.' }))

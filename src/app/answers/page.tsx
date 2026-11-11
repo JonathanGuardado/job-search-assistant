@@ -7,7 +7,6 @@ import {
   jobsToApplyTo, listSavedAnswers, openQuestions, queueAnswerDrafts, queueQuestionMatch, readinessForJobs,
 } from '@/modules/application-answers'
 import { getJobs } from '@/modules/jobs'
-import { AppNavigation } from '../_components/AppNavigation'
 import { BlockingQuestion } from './_components/BlockingQuestion'
 import { SavedAnswers } from './_components/SavedAnswers'
 import styles from './answers.module.css'
@@ -37,7 +36,6 @@ export default async function AnswersPage({ searchParams }: {
 
   return (
     <main className={styles.page}>
-      <AppNavigation currentPath="/answers" />
       <header><p className={styles.eyebrow}>Job Seeker Assistant · Your applications</p><h1>Answers</h1></header>
       {error && <p role="alert" className={styles.error}>{error}</p>}
       {notice && <p role="status" className={styles.notice}>{notice}</p>}

@@ -46,7 +46,7 @@ const rejection: Pick<Assessment, 'verdict' | 'reasons'> = {
 function list(input: Partial<JobListInput> = {}) {
   return buildJobList({
     assessments: [], jobs: [], matches: [], userStates: [], tab: 'can_apply', page: 1, company: '',
-    work: '', region: '', location: '', workplace: new Map(), ...input,
+    work: '', region: '', location: '', posted: '', now, workplace: new Map(), ...input,
   })
 }
 
@@ -125,6 +125,21 @@ describe('buildJobList', () => {
     expect(ids('namer')).toEqual([id(1), id(2), id(3)])
     expect(ids('emea')).toEqual([id(1), id(4)])
     expect(ids('')).toHaveLength(5)
+  })
+
+  it('filters by how recently the job was posted; a job with no date matches only "any time"', () => {
+    const daysAgo = (days: number) => new Date(now.getTime() - days * 86_400_000)
+    const jobs = [job(1, { postedAt: daysAgo(0.5) }), job(2, { postedAt: daysAgo(2) }), job(3, { postedAt: daysAgo(6.9) }),
+      job(4, { postedAt: daysAgo(10) }), job(5, { postedAt: daysAgo(45) }), job(6, { postedAt: null })]
+    const assessments = jobs.map((_, index) => assessment(index + 1))
+    const ids = (posted: JobListInput['posted']) => list({ jobs, assessments, posted }).rows.map((row) => row.job.id).sort()
+
+    expect(ids('')).toEqual([id(1), id(2), id(3), id(4), id(5), id(6)])
+    expect(ids('1')).toEqual([id(1)])
+    expect(ids('3')).toEqual([id(1), id(2)])
+    expect(ids('7')).toEqual([id(1), id(2), id(3)])
+    expect(ids('14')).toEqual([id(1), id(2), id(3), id(4)])
+    expect(ids('30')).toEqual([id(1), id(2), id(3), id(4)])
   })
 
   it('filters by work type from either the posting\'s own field or its text', () => {

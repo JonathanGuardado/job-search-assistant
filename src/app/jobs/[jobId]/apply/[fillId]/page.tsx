@@ -6,7 +6,6 @@ import { withTenant } from '@/lib/db/tenancy'
 import { DEV_USER } from '@/lib/dev-user'
 import { expireFills, finishPending, getFill } from '@/modules/automation'
 import { getJob } from '@/modules/jobs'
-import { AppNavigation } from '@/app/_components/AppNavigation'
 import { FillStatus } from '../_components/FillStatus'
 import styles from '../../../jobs.module.css'
 
@@ -40,7 +39,6 @@ export default async function FillPage({ params, searchParams }: {
     <main className={styles.page}>
       {/* Refreshes to the bare address, so a one-time notice is not shown again. */}
       {refreshing && <meta httpEquiv="refresh" content={`5;url=/jobs/${jobId}/apply/${fillId}`} />}
-      <AppNavigation currentPath={`/jobs/${jobId}`} />
       <nav aria-label="Fill navigation"><Link href={`/jobs/${jobId}`}>← Back to job</Link></nav>
       <header>
         <p className={styles.eyebrow}>{job.companyName}</p>

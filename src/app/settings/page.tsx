@@ -4,7 +4,6 @@ import { DEV_USER } from '@/lib/dev-user'
 import { getApplicantDetails } from '@/modules/application-answers'
 import { REGION_COUNTRIES } from '@/modules/eligibility'
 import { getCandidateProfile } from '@/modules/profiles'
-import { AppNavigation } from '../_components/AppNavigation'
 import { DetailsForm } from './_components/DetailsForm'
 import { ProfileForm } from './_components/ProfileForm'
 import styles from './settings.module.css'
@@ -19,7 +18,6 @@ export default async function SettingsPage({ searchParams }: {
   }))
   return (
     <main className={styles.page}>
-      <AppNavigation currentPath="/settings" />
       <header>
         <p className={styles.eyebrow}>Job Seeker Assistant · Your preferences</p>
         <h1>Candidate settings</h1>

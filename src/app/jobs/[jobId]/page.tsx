@@ -12,14 +12,16 @@ import { getJob, getJobUserState } from '@/modules/jobs'
 import { getMatchCard } from '@/modules/matching'
 import { getCandidateProfile } from '@/modules/profiles'
 import { listResumes } from '@/modules/resumes'
-import { AppNavigation } from '../../_components/AppNavigation'
 import { ApplicationReadiness } from '../../answers/_components/ApplicationReadiness'
 import { LogApplicationForm } from '../../applications/_components/ApplicationForms'
 import { STATUS_LABELS } from '../../applications/_components/ApplicationStatus'
+import { CompanyMark } from '../_components/CompanyMark'
 import { EligibilityDetails } from '../_components/EligibilityDetails'
+import { BackIcon, CashIcon, ExternalIcon, PinIcon } from '../_components/icons'
 import { JobActions } from '../_components/JobActions'
 import { MatchDetails } from '../_components/MatchDetails'
-import { formatLocation, formatSalary } from '../_lib/format'
+import { listFrom } from '../_lib/back'
+import { formatLocation, formatPosted, formatSalary } from '../_lib/format'
 import styles from '../jobs.module.css'
 import { FillApplication } from './apply/_components/FillApplication'
 
@@ -34,6 +36,9 @@ export default async function JobPage({ params, searchParams }: {
   const jobId = parsed.data
   const error = z.string().catch('').parse(searchParams.error)
   const notice = z.string().catch('').parse(searchParams.notice)
+  const from = listFrom(searchParams.from)
+  // Actions on this page come back here, still knowing which list to return to.
+  const self = from.href === '/jobs' ? `/jobs/${jobId}` : `/jobs/${jobId}?${new URLSearchParams({ from: from.href })}`
   const db = getDb()
   const assessment = await withTenant(db, DEV_USER.id, (scope) => getAssessment(scope, jobId))
   if (assessment === null) notFound()
@@ -51,27 +56,37 @@ export default async function JobPage({ params, searchParams }: {
     resumes: await listResumes(scope), profile: await getCandidateProfile(scope),
   }))
   const application = applicationContext.application
+  const posted = formatPosted(job.postedAt, new Date())
 
   return (
     <main className={styles.page}>
-      <AppNavigation currentPath={`/jobs/${jobId}`} />
-      <nav aria-label="Job navigation"><Link href="/jobs">← Jobs</Link></nav>
-      <header>
-        <p className={styles.eyebrow}>{job.companyName}</p>
-        <h1>{job.title}</h1>
-        <p>{formatLocation(job.locationText)}</p>
-        <p>{formatSalary(job.salary) ?? 'Salary not stated'}</p>
-        {job.salaryQuote !== null && <div><p>From the posting</p><blockquote>“{job.salaryQuote}”</blockquote></div>}
-        <a href={job.applyUrl} target="_blank" rel="noopener noreferrer">View original posting</a>
-      </header>
+      <Link href={from.href} className={styles.backLink}><BackIcon />Back to {from.label}</Link>
       {error && <p role="alert" className={styles.error}>{error}</p>}
       {notice && <p role="status" className={styles.notice}>{notice}</p>}
-      <div className={styles.badges}>
-        {userState?.state === 'saved' && <span className={styles.badge}>Saved</span>}
-        {userState?.state === 'applied' && <span className={styles.badge}>Applied</span>}
-        {assessment.userOverride !== null && <span className={styles.badge}>Your verdict</span>}
-      </div>
-      <JobActions assessment={assessment} userState={userState} tab={tab} back={`/jobs/${jobId}`} offerReason />
+      <header className={styles.jobHeader}>
+        <CompanyMark name={job.companyName} large />
+        <div>
+          <div className={styles.cardTop}>
+            <span className={styles.company}>{job.companyName}</span>
+            {posted !== null && <span>· {posted}</span>}
+          </div>
+          <h1>{job.title}</h1>
+          <ul className={styles.meta}>
+            <li><PinIcon />{formatLocation(job.locationText)}</li>
+            <li><CashIcon />{formatSalary(job.salary) ?? 'Salary not stated'}</li>
+          </ul>
+          {job.salaryQuote !== null && <p className={styles.salaryQuote}>From the posting: “{job.salaryQuote}”</p>}
+          <div className={styles.badges}>
+            {userState?.state === 'saved' && <span className={styles.pill}>Saved</span>}
+            {userState?.state === 'applied' && <span className={styles.pill}>Applied</span>}
+            {assessment.userOverride !== null && <span className={styles.pill}>Your verdict</span>}
+          </div>
+          <div className={styles.headerActions}>
+            <a href={job.applyUrl} target="_blank" rel="noopener noreferrer" className={`${styles.button} ${styles.primary}`}>View original posting<ExternalIcon /></a>
+            <JobActions assessment={assessment} userState={userState} tab={tab} back={self} offerReason />
+          </div>
+        </div>
+      </header>
       <EligibilityDetails assessment={assessment} />
       <MatchDetails card={card} />
       {readiness !== null && <ApplicationReadiness readiness={readiness} jobId={jobId} back={`/jobs/${jobId}`} />}

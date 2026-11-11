@@ -74,6 +74,8 @@ export const JobSchema = z.object({
   closedAt: z.date().nullable(),
 })
 export type Job = z.infer<typeof JobSchema>
+/** A job without its description: what a list needs. */
+export type JobSummary = Omit<Job, 'description'>
 
 export const JobUserStateSchema = z.object({
   userId: z.uuid(),

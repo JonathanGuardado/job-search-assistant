@@ -1,5 +1,5 @@
 import { openToRegion, REVIEW_GROUPS, reviewGroup, type Assessment, type Region, type ReviewGroup, type WorkplaceClaims } from '@/modules/eligibility'
-import type { Job, JobUserState } from '@/modules/jobs'
+import type { JobSummary, JobUserState } from '@/modules/jobs'
 import { compareForReview, type Match } from '@/modules/matching'
 
 export type JobTab = ReviewGroup | 'hidden'
@@ -29,8 +29,16 @@ export const REGION_LABELS: Record<(typeof REGION_FILTERS)[number], string> = {
   apac: 'Open to Asia-Pacific', worldwide: 'Worldwide only',
 }
 
+/** How recently a job was posted, in days. */
+export const POSTED_FILTERS = ['1', '3', '7', '14', '30'] as const
+export type PostedFilter = (typeof POSTED_FILTERS)[number]
+export const POSTED_LABELS: Record<PostedFilter, string> = {
+  1: 'Last 24 hours', 3: 'Last 3 days', 7: 'Last week', 14: 'Last 2 weeks', 30: 'Last month',
+}
+const DAY_MS = 86_400_000
+
 export type Row = {
-  readonly job: Job
+  readonly job: JobSummary
   readonly assessment: Assessment
   readonly match: Match | null
   readonly userState: JobUserState | null
@@ -38,7 +46,7 @@ export type Row = {
 
 export type JobListInput = {
   readonly assessments: readonly Assessment[]
-  readonly jobs: readonly Job[]
+  readonly jobs: readonly JobSummary[]
   readonly matches: readonly Match[]
   readonly userStates: readonly JobUserState[]
   readonly tab: JobTab
@@ -48,6 +56,10 @@ export type JobListInput = {
   readonly work: WorkFilter | ''
   readonly region: Region | ''
   readonly location: string
+  /** '' for any time; a job without a posting date matches only that. */
+  readonly posted: PostedFilter | ''
+  /** What "posted in the last N days" counts back from. */
+  readonly now: Date
   /** Where each posting says the work happens, by job; a job missing here matches only the "any" filters. */
   readonly workplace: ReadonlyMap<string, WorkplaceClaims>
 }
@@ -71,13 +83,13 @@ function compareRows(a: Row, b: Row): number {
 }
 
 /** A job is remote, hybrid or onsite if its own field or its text says so; not stated if neither does. */
-function worksAs(job: Job, workplace: WorkplaceClaims | undefined, work: WorkFilter): boolean {
+function worksAs(job: JobSummary, workplace: WorkplaceClaims | undefined, work: WorkFilter): boolean {
   const claimed = workplace?.onsite.kind ?? 'unspecified'
   if (work === 'not_stated') return job.locationPolicy === 'unknown' && claimed === 'unspecified'
   return job.locationPolicy === work || claimed === work
 }
 
-function passesFilters(job: Job, input: JobListInput): boolean {
+function passesFilters(job: JobSummary, input: JobListInput): boolean {
   const company = input.company.trim().toLowerCase()
   const location = input.location.trim().toLowerCase()
   const workplace = input.workplace.get(job.id)
@@ -85,6 +97,7 @@ function passesFilters(job: Job, input: JobListInput): boolean {
   if (location !== '' && !(job.locationText ?? '').toLowerCase().includes(location)) return false
   if (input.work !== '' && !worksAs(job, workplace, input.work)) return false
   if (input.region !== '' && !(workplace && openToRegion(workplace.remoteScope, input.region))) return false
+  if (input.posted !== '' && !(job.postedAt && input.now.getTime() - job.postedAt.getTime() <= Number(input.posted) * DAY_MS)) return false
   return true
 }
 

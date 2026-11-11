@@ -1,4 +1,4 @@
-import { and, asc, eq, gte, inArray, isNull, lt, ne, or, sql } from 'drizzle-orm'
+import { and, asc, eq, getTableColumns, gte, inArray, isNull, lt, ne, or, sql } from 'drizzle-orm'
 import type { Db } from '@/lib/db/client'
 import type { TenantScope } from '@/lib/db/tenancy'
 import { domainError, err, ok, type Result } from '@/lib/result'
@@ -8,9 +8,10 @@ import { normalizeCompany } from './normalize-company.js'
 import { normalizeTitle } from './normalize-title.js'
 import { salaryFromText } from './salary-text.js'
 import { jobs, jobUserStates } from './schema.js'
-import type { Job, JobUserState, JobUserStateValue, Salary } from './types.js'
+import type { Job, JobSummary, JobUserState, JobUserStateValue, Salary } from './types.js'
 
 type JobRow = typeof jobs.$inferSelect
+type JobSummaryRow = Omit<JobRow, 'description'>
 type JobUserStateRow = typeof jobUserStates.$inferSelect
 
 function salaryColumns(salary: Salary) {
@@ -24,7 +25,7 @@ function salaryColumns(salary: Salary) {
       }
 }
 
-function toSalary(row: JobRow): Salary {
+function toSalary(row: JobSummaryRow): Salary {
   if (row.salarySource === 'unknown') return { source: 'unknown' }
   if (row.salaryCurrency === null) {
     throw new Error(`job ${row.id}: posted salary without currency; jobs_salary_check is missing`)
@@ -37,7 +38,7 @@ function toSalary(row: JobRow): Salary {
   }
 }
 
-function toJob(row: JobRow): Job {
+function toJobSummary(row: JobSummaryRow): JobSummary {
   return {
     id: row.id,
     sourceId: row.sourceId,
@@ -48,7 +49,6 @@ function toJob(row: JobRow): Job {
     title: row.title,
     titleNormalized: row.titleNormalized,
     seniority: row.seniority,
-    description: row.description,
     locationPolicy: row.locationPolicy,
     locationText: row.locationText,
     locationCountry: row.locationCountry,
@@ -62,6 +62,10 @@ function toJob(row: JobRow): Job {
     lastSeenAt: row.lastSeenAt,
     closedAt: row.closedAt,
   }
+}
+
+function toJob(row: JobRow): Job {
+  return { ...toJobSummary(row), description: row.description }
 }
 
 function toJobUserState(row: JobUserStateRow): JobUserState {
@@ -79,6 +83,16 @@ export async function getJobs(db: Db, ids: readonly string[]): Promise<Job[]> {
   if (ids.length === 0) return []
   const rows = await db.select().from(jobs).where(inArray(jobs.id, [...ids]))
   return rows.map(toJob)
+}
+
+// The list views read thousands of jobs; descriptions are ~6 KB each and only the job page shows one.
+const { description: _description, ...summaryColumns } = getTableColumns(jobs)
+
+/** Jobs without their descriptions, for lists. */
+export async function getJobSummaries(db: Db, ids: readonly string[]): Promise<JobSummary[]> {
+  if (ids.length === 0) return []
+  const rows = await db.select(summaryColumns).from(jobs).where(inArray(jobs.id, [...ids]))
+  return rows.map(toJobSummary)
 }
 
 /** The raw version a job was last normalized from: what an application records it applied to. */

@@ -1,5 +1,6 @@
 'use server'
 
+import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { z } from 'zod'
 import { getDb } from '@/lib/db/client'
@@ -10,12 +11,7 @@ import { queueFormFetchNow } from '@/modules/application-answers'
 import { setUserOverride } from '@/modules/eligibility'
 import { setJobUserState, type JobUserStateValue } from '@/modules/jobs'
 import { queueMatchNow } from '@/modules/matching'
-
-const BackSchema = z.string().refine((value) => {
-  if (!value.startsWith('/jobs')) return false
-  const url = new URL(value, 'http://localhost')
-  return url.origin === 'http://localhost' && (url.pathname === '/jobs' || url.pathname.startsWith('/jobs/'))
-}).catch('/jobs')
+import { BackSchema } from './_lib/back'
 
 const ActionSchema = z.object({
   jobId: z.uuid(), back: BackSchema,
@@ -44,22 +40,27 @@ async function changeState(form: FormData, state: Exclude<JobUserStateValue, 'ap
 }
 
 export async function saveJob(form: FormData): Promise<void> {
+  revalidatePath('/', 'layout')
   await changeState(form, 'saved')
 }
 
 export async function unsaveJob(form: FormData): Promise<void> {
+  revalidatePath('/', 'layout')
   await changeState(form, 'new')
 }
 
 export async function hideJob(form: FormData): Promise<void> {
+  revalidatePath('/', 'layout')
   await changeState(form, 'ignored')
 }
 
 export async function unhideJob(form: FormData): Promise<void> {
+  revalidatePath('/', 'layout')
   await changeState(form, 'new')
 }
 
 export async function markEligible(form: FormData): Promise<void> {
+  revalidatePath('/', 'layout')
   const { jobId, back, reason } = parseAction(form)
   const db = getDb()
   const result = await withTenant(db, DEV_USER.id, (scope) =>
@@ -72,6 +73,7 @@ export async function markEligible(form: FormData): Promise<void> {
 }
 
 export async function undoVerdict(form: FormData): Promise<void> {
+  revalidatePath('/', 'layout')
   const { jobId, back } = parseAction(form)
   const result = await withTenant(getDb(), DEV_USER.id, (scope) =>
     setUserOverride(scope, { jobId, verdict: null, reason: null }))

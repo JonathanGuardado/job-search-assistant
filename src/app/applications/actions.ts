@@ -1,5 +1,6 @@
 'use server'
 
+import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { z } from 'zod'
 import { getDb } from '@/lib/db/client'
@@ -52,6 +53,7 @@ function detailInput(form: FormData, back: string) {
 }
 
 export async function logApplication(form: FormData): Promise<void> {
+  revalidatePath('/', 'layout')
   const jobId = formId(form, 'jobId', '/jobs')
   const back = `/jobs/${jobId}`
   const sourceUrl = nullableText.safeParse(form.get('sourceUrl'))
@@ -66,6 +68,7 @@ export async function logApplication(form: FormData): Promise<void> {
 }
 
 export async function changeApplicationStatus(form: FormData): Promise<void> {
+  revalidatePath('/', 'layout')
   const applicationId = formId(form, 'applicationId', '/applications')
   const back = `/applications/${applicationId}`
   const parsed = StatusChangeSchema.safeParse({
@@ -78,6 +81,7 @@ export async function changeApplicationStatus(form: FormData): Promise<void> {
 }
 
 export async function editApplication(form: FormData): Promise<void> {
+  revalidatePath('/', 'layout')
   const applicationId = formId(form, 'applicationId', '/applications')
   const back = `/applications/${applicationId}`
   const parsed = ApplicationEditSchema.safeParse({ ...detailInput(form, back), outcomeReason: form.get('outcomeReason') })

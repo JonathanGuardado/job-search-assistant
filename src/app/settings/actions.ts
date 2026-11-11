@@ -1,5 +1,6 @@
 'use server'
 
+import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { getDb } from '@/lib/db/client'
 import { withTenant } from '@/lib/db/tenancy'
@@ -11,6 +12,7 @@ import { enqueueRematchUser } from '@/modules/matching'
 import { CandidateProfileFormSchema, profileFormInput, saveCandidateProfile } from '@/modules/profiles'
 
 export async function saveProfileAction(form: FormData): Promise<void> {
+  revalidatePath('/', 'layout')
   const parsed = CandidateProfileFormSchema.safeParse(profileFormInput(form))
   if (!parsed.success) redirect(`/settings?error=${encodeURIComponent(parsed.error.issues[0]?.message ?? 'Check your profile.')}`)
   const saved = await withTenant(getDb(), DEV_USER.id, (scope) => saveCandidateProfile(scope, parsed.data))
@@ -30,6 +32,7 @@ const OPTIONAL_DETAILS = ['phone', 'linkedinUrl', 'githubUrl', 'websiteUrl']
 
 /** Contact details feed application forms only: saving them re-checks nothing. */
 export async function saveDetailsAction(form: FormData): Promise<void> {
+  revalidatePath('/', 'layout')
   const input: Record<string, FormDataEntryValue | null> = {}
   for (const name of ['firstName', 'lastName', 'email', ...OPTIONAL_DETAILS]) {
     const value = form.get(name)

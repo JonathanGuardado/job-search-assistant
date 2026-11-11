@@ -3,7 +3,6 @@ import { getDb } from '@/lib/db/client'
 import { withTenant } from '@/lib/db/tenancy'
 import { DEV_USER } from '@/lib/dev-user'
 import { isParseStalled, listResumes, type ResumeSummary } from '@/modules/resumes'
-import { AppNavigation } from '../_components/AppNavigation'
 import { retryParseAction, uploadResumeAction } from './actions'
 import { AutoRefresh } from './_components/AutoRefresh'
 import { DeleteResumeButton } from './_components/DeleteResumeButton'
@@ -33,7 +32,6 @@ export default async function ResumesPage({
 
   return (
     <main className={styles.page}>
-      <AppNavigation currentPath="/resumes" />
       {isWaiting && <AutoRefresh seconds={3} />}
       <header className={styles.pageHeader}>
         <div>
