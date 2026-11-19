@@ -5,11 +5,13 @@ import { withTenant } from '@/lib/db/tenancy'
 import { DEV_USER } from '@/lib/dev-user'
 import { readinessForJobs, type JobReadiness } from '@/modules/application-answers'
 import { listAssessments, REVIEW_GROUPS, workplaceClaimsFor } from '@/modules/eligibility'
+import { listFormSourceIds } from '@/modules/job-sources'
 import { getJobSummaries, listJobUserStates } from '@/modules/jobs'
 import { listMatches, REVIEW_ORDER } from '@/modules/matching'
 import { JobRow } from './_components/JobRow'
 import {
-  buildJobList, POSTED_FILTERS, POSTED_LABELS, REGION_FILTERS, REGION_LABELS, TAB_DESCRIPTIONS, WORK_FILTERS, WORK_LABELS, type JobTab,
+  APPLY_FILTERS, APPLY_LABELS, buildJobList, fillableJobs, POSTED_FILTERS, POSTED_LABELS, REGION_FILTERS, REGION_LABELS, TAB_DESCRIPTIONS,
+  WORK_FILTERS, WORK_LABELS, type JobTab,
 } from './_lib/job-list'
 import styles from './jobs.module.css'
 
@@ -23,10 +25,11 @@ const SearchSchema = z.object({
   region: z.enum([...REGION_FILTERS, '']).catch(''),
   location: z.string().catch(''),
   posted: z.enum([...POSTED_FILTERS, '']).catch(''),
+  apply: z.enum([...APPLY_FILTERS, '']).catch(''),
   error: z.string().catch(''),
 })
 
-type Filters = Pick<z.infer<typeof SearchSchema>, 'company' | 'work' | 'region' | 'location' | 'posted'>
+type Filters = Pick<z.infer<typeof SearchSchema>, 'company' | 'work' | 'region' | 'location' | 'posted' | 'apply'>
 
 /** The list's address; filters that are not set stay out of it. */
 function jobsUrl(tab: JobTab, filters: Filters, page = 1): string {
@@ -34,27 +37,37 @@ function jobsUrl(tab: JobTab, filters: Filters, page = 1): string {
   return `/jobs?${new URLSearchParams([['tab', tab], ...set, ['page', String(page)]])}`
 }
 
+const isReady = (application: JobReadiness | undefined): boolean =>
+  application?.kind === 'assessed' && application.readiness.status === 'ready'
+
 export default async function JobsPage({ searchParams }: {
   readonly searchParams: Record<string, string | string[] | undefined>
 }) {
   const query = SearchSchema.parse(searchParams)
   const db = getDb()
   // Independent reads run together; jobs come without descriptions (the list never shows one).
-  const [assessments, userStates, matches] = await Promise.all([
+  const [assessments, userStates, matches, fillableSources] = await Promise.all([
     withTenant(db, DEV_USER.id, listAssessments),
     withTenant(db, DEV_USER.id, listJobUserStates),
     withTenant(db, DEV_USER.id, listMatches),
+    listFormSourceIds(db).then((ids) => new Set(ids)),
   ])
   const [jobs, workplace] = await Promise.all([
     getJobSummaries(db, assessments.map((assessment) => assessment.jobId)),
     workplaceClaimsFor(db, assessments.flatMap((assessment) => assessment.claimsId ?? [])),
   ])
   const now = new Date()
-  const list = buildJobList({ assessments, userStates, matches, jobs, workplace, now, ...query })
-  const filters: Filters = { company: query.company, work: query.work, region: query.region, location: query.location, posted: query.posted }
+  // "Ready to send" is known only after reading every fillable job's form against the owner's answers, so it is read only when asked for.
+  const everyFillable = query.apply === 'ready'
+    ? await readinessForJobs(db, DEV_USER.id, fillableJobs({ assessments, userStates, jobs, fillableSources })) : null
+  const readyJobs = new Set([...everyFillable ?? []].flatMap(([jobId, application]) => (isReady(application) ? [jobId] : [])))
+  const list = buildJobList({ assessments, userStates, matches, jobs, workplace, now, fillableSources, readyJobs, ...query })
+  const filters: Filters = {
+    company: query.company, work: query.work, region: query.region, location: query.location, posted: query.posted, apply: query.apply,
+  }
   const filtered = Object.values(filters).some((value) => value.trim() !== '')
-  const readiness = query.tab === 'can_apply'
-    ? await readinessForJobs(db, DEV_USER.id, list.rows.map((row) => row.job)) : new Map<string, JobReadiness>()
+  const readiness = everyFillable ?? (query.tab === 'can_apply'
+    ? await readinessForJobs(db, DEV_USER.id, list.rows.map((row) => row.job)) : new Map<string, JobReadiness>())
   const back = jobsUrl(query.tab, filters, list.page)
 
   return (
@@ -89,10 +102,16 @@ export default async function JobsPage({ searchParams }: {
             {POSTED_FILTERS.map((days) => <option key={days} value={days}>{POSTED_LABELS[days]}</option>)}
           </select>
         </label>
+        <label htmlFor="apply">Apply
+          <select id="apply" name="apply" defaultValue={query.apply}>
+            <option value="">Any way</option>
+            {APPLY_FILTERS.map((apply) => <option key={apply} value={apply}>{APPLY_LABELS[apply]}</option>)}
+          </select>
+        </label>
         <label htmlFor="location">Location contains<input id="location" name="location" type="text" defaultValue={query.location} placeholder="e.g. LATAM, Mexico" /></label>
         <div className={styles.filterButtons}>
           <button type="submit" className={styles.primary}>Filter</button>
-          {filtered && <Link href={jobsUrl(query.tab, { company: '', work: '', region: '', location: '', posted: '' })}>Clear</Link>}
+          {filtered && <Link href={jobsUrl(query.tab, { company: '', work: '', region: '', location: '', posted: '', apply: '' })}>Clear</Link>}
         </div>
       </form>
       <div className={styles.listMeta}>
@@ -105,9 +124,9 @@ export default async function JobsPage({ searchParams }: {
       <section aria-label="Jobs" className={styles.list}>
         {list.rows.length === 0 ? <p className={styles.empty}>No jobs in this tab match your filter.</p>
           : list.rows.map((row) => {
-            const application = readiness.get(row.job.id)
-            return <JobRow key={row.job.id} row={row} tab={query.tab} back={back} now={now}
-              readyToSend={application?.kind === 'assessed' && application.readiness.status === 'ready'} />
+            const readyToSend = query.tab === 'can_apply' && isReady(readiness.get(row.job.id))
+            return <JobRow key={row.job.id} row={row} tab={query.tab} back={back} now={now} readyToSend={readyToSend}
+              assistantFills={query.tab === 'can_apply' && fillableSources.has(row.job.sourceId)} />
           })}
       </section>
       {list.pageCount > 1 && <nav aria-label="Pagination" className={styles.pagination}>

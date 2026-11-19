@@ -9,14 +9,15 @@ function FillInputs({ fill }: { readonly fill: Fill }) {
   </>
 }
 
-export function PrepareFillForm({ jobId, label = 'Review and fill' }: {
+export function PrepareFillForm({ jobId, label = 'Review and fill', primary = false }: {
   readonly jobId: string
   readonly label?: string
+  readonly primary?: boolean
 }) {
   return (
     <form action={prepareFillAction}>
       <input type="hidden" name="jobId" value={jobId} />
-      <button type="submit">{label}</button>
+      <button type="submit" className={primary ? styles.primary : undefined}>{label}</button>
     </form>
   )
 }

@@ -29,8 +29,12 @@ function fitOf(row: Row) {
   return { pill, text: text(verdict === 'needs_review' && 'openQuestions' in reasons ? reasons.openQuestions.at(0) : null, styles.warn) }
 }
 
-export function JobRow({ row, tab, back, readyToSend, now }: {
-  readonly row: Row; readonly tab: JobTab; readonly back: string; readonly readyToSend: boolean; readonly now: Date
+export function JobRow({ row, tab, back, readyToSend, assistantFills, now }: {
+  readonly row: Row; readonly tab: JobTab; readonly back: string; readonly now: Date
+  /** Nothing on the job's form still waits for the owner. */
+  readonly readyToSend: boolean
+  /** The assistant can fill this job's form; shown unless the job is already marked ready to send. */
+  readonly assistantFills: boolean
 }) {
   const { job } = row
   const href = `/jobs/${job.id}?${new URLSearchParams({ from: `${back}#job-${job.id}` })}`
@@ -52,7 +56,8 @@ export function JobRow({ row, tab, back, readyToSend, now }: {
         </ul>
         <div className={styles.signals}>
           {fit.pill}
-          {readyToSend && <span className={`${styles.pill} ${styles.ok}`}>Ready to send</span>}
+          {readyToSend ? <span className={`${styles.pill} ${styles.ok}`}>Ready to send</span>
+            : assistantFills && <span className={`${styles.pill} ${styles.neutral}`}>Assistant fills the form</span>}
           {row.userState?.state === 'saved' && <span className={styles.pill}>Saved</span>}
           {row.userState?.state === 'applied' && <span className={styles.pill}>Applied</span>}
           {row.assessment.userOverride !== null && <span className={styles.pill}>Your verdict</span>}

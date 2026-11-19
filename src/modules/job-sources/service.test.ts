@@ -9,7 +9,7 @@ import type { AdapterKey, Fetcher } from './adapter.js'
 import { POLL_INTERVAL_MS } from './queues.js'
 import { applicationForms, jobSources, rawJobs } from './schema.js'
 import {
-  addSource, checkNormalization, dispatchSourcePolls, getApplicationForms, listLatestRawJobIds, listSources, pollSourcePage, postingKey,
+  addSource, checkNormalization, dispatchSourcePolls, getApplicationForms, listFormSourceIds, listLatestRawJobIds, listSources, pollSourcePage, postingKey,
   readNormalizedPosting, refreshApplicationForm, rereadApplicationForms, setSourceEnabled, sourcePublishesForms,
 } from './service.js'
 import { greenhouseFixture, leverFixture } from './test-fixtures.js'
@@ -266,6 +266,9 @@ describe('application forms (decision 0013)', () => {
     expect(await sourcePublishesForms(db, lever.id)).toBe(false)
     const board = await source(db)
     expect(await sourcePublishesForms(db, board.id)).toBe(true)
+    const formSources = await listFormSourceIds(db)
+    expect(formSources).toContain(board.id)
+    expect(formSources).not.toContain(lever.id)
     expect(await refreshApplicationForm(db, { sourceId: board.id, externalId: '42' }, async () => new Response('', { status: 404 })))
       .toMatchObject({ ok: false, error: { code: 'not_found' } })
   })

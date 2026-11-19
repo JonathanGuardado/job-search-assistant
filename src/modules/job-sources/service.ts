@@ -245,6 +245,12 @@ export async function getStoredApplicationForm(db: Db, posting: PostingRef): Pro
   return row ? { form: row.form, fetchedAt: row.fetchedAt, fingerprint: contentHash(row.payload) } : null
 }
 
+/** The sources that publish a structured application form: the ones whose jobs the assistant can fill. */
+export async function listFormSourceIds(db: Db): Promise<string[]> {
+  const sources = await db.select({ id: jobSources.id, adapterKey: jobSources.adapterKey }).from(jobSources)
+  return sources.filter((source) => getAdapter(source.adapterKey).fetchApplicationForm !== undefined).map((source) => source.id)
+}
+
 export const postingKey = (posting: PostingRef): string => `${posting.sourceId}:${posting.externalId}`
 
 /** Whether the posting's source publishes a structured application form at all. */

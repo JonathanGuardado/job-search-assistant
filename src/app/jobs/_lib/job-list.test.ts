@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { REVIEW_GROUPS, type Assessment, type WorkplaceClaims } from '@/modules/eligibility'
 import type { Job, JobUserState } from '@/modules/jobs'
 import type { Dimension, DimensionStatus, Match } from '@/modules/matching'
-import { buildJobList, type JobListInput, type JobTab } from './job-list'
+import { buildJobList, fillableJobs, type JobListInput, type JobTab } from './job-list'
 
 const now = new Date('2026-10-22T12:00:00Z')
 const userId = '00000000-0000-4000-8000-000000000001'
@@ -46,7 +46,7 @@ const rejection: Pick<Assessment, 'verdict' | 'reasons'> = {
 function list(input: Partial<JobListInput> = {}) {
   return buildJobList({
     assessments: [], jobs: [], matches: [], userStates: [], tab: 'can_apply', page: 1, company: '',
-    work: '', region: '', location: '', posted: '', now, workplace: new Map(), ...input,
+    work: '', region: '', location: '', posted: '', apply: '', fillableSources: new Set(), readyJobs: new Set(), now, workplace: new Map(), ...input,
   })
 }
 
@@ -165,6 +165,26 @@ describe('buildJobList', () => {
     expect(result.rows.map((row) => row.job.id)).toEqual([id(1)])
     expect(result.matching).toBe(1)
     expect(result.tabs[0]?.count).toBe(3)
+  })
+
+  it('filters to jobs the assistant can fill, and to those ready to send', () => {
+    const jobs = [job(1, { sourceId: id(901) }), job(2, { sourceId: id(901) }), job(3)]
+    const assessments = [assessment(1), assessment(2), assessment(3)]
+    const base = { jobs, assessments, fillableSources: new Set([id(901)]), readyJobs: new Set([id(2)]) }
+    expect(list(base).rows).toHaveLength(3)
+    expect(list({ ...base, apply: 'assistant' }).rows.map((row) => row.job.id).sort()).toEqual([id(1), id(2)])
+    expect(list({ ...base, apply: 'ready' }).rows.map((row) => row.job.id)).toEqual([id(2)])
+    expect(list({ ...base, apply: 'ready' }).tabs.find((tab) => tab.key === 'can_apply')?.count).toBe(3)
+  })
+
+  it('lists the fillable jobs in "Can apply" for the readiness check, leaving out other tabs, hidden and closed jobs', () => {
+    const jobs = [
+      job(1, { sourceId: id(901) }), job(2, { sourceId: id(901) }), job(3, { sourceId: id(901) }),
+      job(4, { sourceId: id(901), closedAt: now }), job(5),
+    ]
+    const assessments = [assessment(1), assessment(2, rejection), assessment(3), assessment(4), assessment(5)]
+    const userStates: JobUserState[] = [{ userId, jobId: id(3), state: 'ignored', updatedAt: now }]
+    expect(fillableJobs({ jobs, assessments, userStates, fillableSources: new Set([id(901)]) }).map((found) => found.id)).toEqual([id(1)])
   })
 
   it('orders role meets before partial before unmatched, regardless of posting date', () => {

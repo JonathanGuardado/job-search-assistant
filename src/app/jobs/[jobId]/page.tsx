@@ -23,7 +23,7 @@ import { MatchDetails } from '../_components/MatchDetails'
 import { listFrom } from '../_lib/back'
 import { formatLocation, formatPosted, formatSalary } from '../_lib/format'
 import styles from '../jobs.module.css'
-import { FillApplication } from './apply/_components/FillApplication'
+import { FillApplication, offersFill } from './apply/_components/FillApplication'
 
 export const dynamic = 'force-dynamic'
 
@@ -56,6 +56,9 @@ export default async function JobPage({ params, searchParams }: {
     resumes: await listResumes(scope), profile: await getCandidateProfile(scope),
   }))
   const application = applicationContext.application
+  // Filling is the page's main action wherever the assistant can do it; the posting's link is then secondary.
+  const canPrepareFill = tab === 'can_apply' && application === null && readiness?.kind === 'assessed'
+  const fillOffered = tab === 'can_apply' && application === null && offersFill(applicationContext.fill, canPrepareFill)
   const posted = formatPosted(job.postedAt, new Date())
 
   return (
@@ -82,15 +85,20 @@ export default async function JobPage({ params, searchParams }: {
             {assessment.userOverride !== null && <span className={styles.pill}>Your verdict</span>}
           </div>
           <div className={styles.headerActions}>
-            <a href={job.applyUrl} target="_blank" rel="noopener noreferrer" className={`${styles.button} ${styles.primary}`}>View original posting<ExternalIcon /></a>
+            {fillOffered && <FillApplication jobId={jobId} fill={applicationContext.fill} canPrepare={canPrepareFill} />}
+            <a href={job.applyUrl} target="_blank" rel="noopener noreferrer" className={fillOffered ? styles.button : `${styles.button} ${styles.primary}`}>View original posting<ExternalIcon /></a>
             <JobActions assessment={assessment} userState={userState} tab={tab} back={self} offerReason />
           </div>
+          {tab === 'can_apply' && application === null && !fillOffered && (
+            <p className={styles.fillNote}>{readiness?.kind === 'not_fetched'
+              ? 'The assistant has not read this job\'s application form yet, so it cannot fill it.'
+              : 'The assistant fills Greenhouse forms only, and this job is on another site. Apply from the original posting, then log it under "Your application".'}</p>
+          )}
         </div>
       </header>
       <EligibilityDetails assessment={assessment} />
       <MatchDetails card={card} />
       {readiness !== null && <ApplicationReadiness readiness={readiness} jobId={jobId} back={`/jobs/${jobId}`} />}
-      {tab === 'can_apply' && application === null && <FillApplication jobId={jobId} fill={applicationContext.fill} />}
       <section className={styles.section} aria-labelledby="application-heading">
         <h2 id="application-heading">Your application</h2>
         {application !== null ? <>
