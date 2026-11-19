@@ -52,6 +52,7 @@ function toJobSummary(row: JobSummaryRow): JobSummary {
     locationPolicy: row.locationPolicy,
     locationText: row.locationText,
     locationCountry: row.locationCountry,
+    remoteCountries: row.remoteCountries,
     employmentType: row.employmentType,
     salary: toSalary(row),
     salaryQuote: row.salaryQuote,
@@ -173,12 +174,12 @@ export async function upsertJobFromRaw(db: Db, rawJobId: string): Promise<Result
     rawJobId, rawFetchedAt: fetchedAt,
     companyName: job.companyName, companyNormalized, title: job.title, titleNormalized, seniority,
     description: job.description, locationPolicy: job.locationPolicy, locationText: job.locationText,
-    locationCountry: job.locationCountry, employmentType: job.employmentType,
+    locationCountry: job.locationCountry, remoteCountries: job.remoteCountries, employmentType: job.employmentType,
     ...salaryColumns(stated?.salary ?? job.salary), salaryQuote: stated?.quote ?? null,
     applyUrl: job.applyUrl, postedAt: job.postedAt,
     fingerprint: fingerprint({
       companyNormalized, titleNormalized, seniority, locationPolicy: job.locationPolicy,
-      locationKey: locationKey(job.locationText), description: job.description,
+      locationKey: locationKey(job.locationText), description: job.description, remoteCountries: job.remoteCountries,
     }),
   }
   return db.transaction(async (tx) => {

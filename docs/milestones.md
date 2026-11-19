@@ -3,7 +3,9 @@
 Phase 1 only. Later phases are listed at the bottom so their scope stays visible, but
 nothing from them gets built yet.
 
-**No milestone is active.** 2.4 is not started.
+**Active: S.2, Himalayas** (sources track, decision 0017). Engine v6, which reads a job
+board's country list, is built and measured; the adapter is with Codex
+(`prompts/codex/s2-himalayas-adapter.md`). 2.4 is not started.
 
 **2.3 form filling, approval mode** (decision 0016) is closed: on 2026-11-13 the owner
 submitted a Fivetran application the system filled, and Greenhouse confirmed it. It was
@@ -109,8 +111,10 @@ gates close; 2.1 can be planned before then.
 | 2.4 | Automatic submission | Claude Code + Codex | Applications go out under the owner's rules with a stored confirmation; blocked jobs show "Apply yourself" and the reason |
 | 2.5 | Read-only email | Claude Code | A real follow-up email becomes a suggested stage change the owner confirms |
 
-Sources track, alongside (Codex): **S.1** We Work Remotely; **S.2** one remote-job API
-plus cross-source duplicate detection; **S.3** adding a job by pasting its link; **S.4** Ashby
+Sources track, alongside (Codex): **S.1** We Work Remotely; **S.2** one remote-job API:
+Himalayas, with its country lists read by eligibility (engine v6) and a board's copy of a
+followed company's job left out instead of cross-source duplicate detection (decision 0017;
+brief `prompts/codex/s2-himalayas-adapter.md`; terms checked 2026-11-12); **S.3** adding a job by pasting its link; **S.4** Ashby
 job boards (brief `prompts/codex/s4-ashby-adapter.md`; terms checked 2026-10-29: Ashby's terms
 bind its customers only and its job-postings API is public). LinkedIn is out of scope. Each
 site's terms are checked before it is added. On 2026-10-29, 131 remote-friendly Greenhouse

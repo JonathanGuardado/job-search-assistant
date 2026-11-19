@@ -148,6 +148,13 @@
       "when": 1793318583866,
       "tag": "0020_ashby-adapter",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1794527781157,
+      "tag": "0021_remote-countries",
+      "breakpoints": true
     }
   ]
 }

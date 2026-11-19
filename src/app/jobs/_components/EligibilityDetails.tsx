@@ -22,7 +22,11 @@ export function EligibilityDetails({ assessment }: { readonly assessment: Assess
           <ul>{reasons.openQuestions.map((question, index) => <li key={index}>{question}</li>)}</ul>
         </>}
       </div>
-      {assessment.evidence.map((evidence, index) => <blockquote key={index}>“{evidence.quote}”</blockquote>)}
+      {assessment.evidence.map((evidence, index) => ('quote' in evidence
+        ? <blockquote key={index}>“{evidence.quote}”</blockquote>
+        // The job board's reading, not the employer's words: said so, and never shown as a quote.
+        : <p key={index}>The posting's text does not say where it hires. The job board it came from lists {evidence.sourceCountries.length === 1
+          ? '1 country' : `${evidence.sourceCountries.length} countries`} for this role, including one where you can work.</p>))}
       <p className={styles.muted}>Engine verdict: {VERDICT_LABELS[assessment.verdict]}</p>
       {assessment.userOverride !== null && <div className={styles.override}>
         <p>You marked this: <strong>{VERDICT_LABELS[assessment.userOverride]}</strong></p>

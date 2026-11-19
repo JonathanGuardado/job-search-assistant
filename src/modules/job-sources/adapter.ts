@@ -36,7 +36,10 @@ export type NormalizedSalary = z.infer<typeof NormalizedSalarySchema>
 
 export const NormalizedJobSchema = z.object({
   externalId: z.string().min(1),
-  /** The configured source name, not the payload's: boards label themselves inconsistently. */
+  /**
+   * For a company's own board, the configured source name, not the payload's: boards label
+   * themselves inconsistently. For a job board listing many companies, the payload's.
+   */
   companyName: z.string().min(1),
   /** Verbatim from the posting. Decorations like "(Remote)" are stripped in M1.5, not here. */
   title: z.string().min(1),
@@ -50,6 +53,12 @@ export const NormalizedJobSchema = z.object({
   locationText: z.string().nullable(),
   /** ISO 3166-1 alpha-2 from a structured field only; null rather than parsed from free text. */
   locationCountry: z.string().regex(/^[A-Z]{2}$/).nullable(),
+  /**
+   * ISO 3166-1 alpha-2 codes of where a structured field says a remote worker may live. Null
+   * when the source has no such field or lists nothing: an empty list is silence, never
+   * "worldwide" (decision 0017).
+   */
+  remoteCountries: z.array(z.string().regex(/^[A-Z]{2}$/)).min(1).nullable(),
   employmentType: z.enum(['employee', 'contractor', 'eor', 'unknown']),
   salary: NormalizedSalarySchema,
   /** http(s) only: the jobs UI renders it as a link, and a javascript: URL would run. */

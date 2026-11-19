@@ -28,6 +28,7 @@ const job = (overrides: Partial<EligibilityJob> = {}): EligibilityJob => ({
   description: 'We are hiring a senior engineer.',
   locationPolicy: 'remote',
   locationCountry: null,
+  remoteCountries: null,
   salaryMinMinor: null,
   salaryMaxMinor: null,
   salaryCurrency: null,
@@ -259,5 +260,169 @@ describe('stage 1 can only reject (D1)', () => {
     const result = await assessEligibility(profile(), job({ locationPolicy: 'hybrid', locationCountry: 'MT' }), extract)
     expect(extract).not.toHaveBeenCalled()
     expect(result).toMatchObject({ stage: 'structured', verdict: { verdict: 'not_eligible', ruleId: 'onsite-requires-relocation' } })
+  })
+})
+
+describe("the source's country list stands in for a scope the text never states (engine v6, decision 0017)", () => {
+  const listed = (remoteCountries: string[] | null, overrides: Partial<EligibilityJob> = {}) => job({ remoteCountries, ...overrides })
+
+  it('accepts a role the text is silent on when the list includes the candidate\'s country, and stores the list', () => {
+    const result = verdictOf(profile(), claims(), listed(['US', 'SV', 'MX']))
+    expect(result).toMatchObject({
+      verdict: 'eligible',
+      evidence: [{ ruleId: 'remote-scope-excludes-country', sourceCountries: ['US', 'SV', 'MX'] }],
+    })
+  })
+
+  it('accepts a country the candidate selected', () => {
+    expect(verdictOf(profile({ allowedRegions: ['ES'] }), claims(), listed(['ES', 'PT'])).verdict).toBe('eligible')
+  })
+
+  it('does not treat a selected region as residence in a listed country of it', () => {
+    const result = verdictOf(profile(), claims(), listed(['CO', 'MX']))
+    expect(result.verdict).toBe('needs_review')
+  })
+
+  it('never rejects on the list: a list without the candidate is an open question, at either stage', () => {
+    for (const stage of ['structured', 'extracted'] as const) {
+      const result = evaluateRules(profile(), listed(['US', 'CA']), claims(), stage)
+      expect(result).toMatchObject({ verdict: 'needs_review', unresolvedRules: ['remote-scope-excludes-country'] })
+      if (result.verdict === 'needs_review') expect(result.openQuestions[0]).toContain('job board lists this role for US, CA')
+    }
+  })
+
+  it('names a long list by its size', () => {
+    const many = ['AR', 'BO', 'BR', 'CL', 'CO', 'CR', 'MX', 'PE']
+    const result = verdictOf(profile(), claims(), listed(many))
+    if (result.verdict !== 'needs_review') throw new Error('expected needs_review')
+    expect(result.openQuestions[0]).toContain('8 countries')
+  })
+
+  it('rejects on a stated scope that excludes the candidate when the list leaves them out too', () => {
+    const usOnly = claims({ remoteScope: { kind: 'countries', countries: ['US'], quote: 'U.S. Based' } })
+    for (const list of [['US', 'CA'], null]) {
+      expect(verdictOf(profile(), usOnly, listed(list)))
+        .toMatchObject({ verdict: 'not_eligible', ruleId: 'remote-scope-excludes-country', evidence: [{ quote: 'U.S. Based' }] })
+    }
+  })
+
+  // The model misreads long place lists ("Canada, Latin America, or Ukraine" → CA, UA): a second reading that disagrees is a question.
+  it('asks instead of rejecting when the stated scope excludes the candidate but the list includes them', () => {
+    const misread = claims({ remoteScope: { kind: 'countries', countries: ['CA', 'UA'], quote: 'work from Canada, Latin America, or Ukraine' } })
+    const result = verdictOf(profile(), misread, listed(['CA', 'UA', 'SV', 'MX']))
+    expect(result).toMatchObject({ verdict: 'needs_review', unresolvedRules: ['remote-scope-excludes-country'] })
+    if (result.verdict === 'needs_review') expect(result.openQuestions).toEqual([
+      'The posting says "work from Canada, Latin America, or Ukraine", which leaves out where you can work, but the job board lists the role as open there.',
+    ])
+    const europe = claims({ remoteScope: { kind: 'regions', regions: ['emea'], quote: 'Remote in Europe' } })
+    expect(verdictOf(profile(), europe, listed(['DE', 'SV'])).verdict).toBe('needs_review')
+    expect(verdictOf(profile(), europe, listed(['DE', 'FR'])).verdict).toBe('not_eligible')
+  })
+
+  it('lets the text win when it states a scope that includes the candidate', () => {
+    const result = verdictOf(profile(), claims({ remoteScope: { kind: 'regions', regions: ['latam'], quote: 'Remote in LATAM' } }), listed(['US', 'CA']))
+    expect(result).toMatchObject({ verdict: 'eligible', evidence: [] })
+  })
+
+  it('treats a missing or empty list as silence, never as worldwide', () => {
+    for (const none of [null, []]) {
+      const result = verdictOf(profile(), claims(), listed(none))
+      expect(result).toMatchObject({ verdict: 'needs_review', openQuestions: ['The posting says remote but does not say which countries it accepts.'] })
+    }
+  })
+
+  it('compares codes whatever their case', () => {
+    expect(verdictOf(profile(), claims(), listed(['sv'])).verdict).toBe('eligible')
+  })
+
+  it('asks instead of rejecting when the text describes office work abroad but the list includes the candidate', () => {
+    const office = claims({ onsite: { kind: 'hybrid', countries: ['GB'], quote: 'three days a week in our London office' } })
+    const result = verdictOf(profile(), office, listed(['GB', 'SV']))
+    expect(result).toMatchObject({ verdict: 'needs_review', unresolvedRules: ['onsite-requires-relocation'] })
+    if (result.verdict === 'needs_review') expect(result.openQuestions).toEqual([
+      'The posting describes hybrid work in GB, but the job board lists the role as open to remote workers where you are.',
+    ])
+  })
+
+  it('still rejects office work abroad when the list does not include the candidate', () => {
+    const office = claims({ onsite: { kind: 'hybrid', countries: ['GB'], quote: 'three days a week in our London office' } })
+    expect(verdictOf(profile(), office, listed(['GB', 'IE']))).toMatchObject({ verdict: 'not_eligible', ruleId: 'onsite-requires-relocation' })
+  })
+
+  // Job boards expand "North America" to the continent (UN M49): Northern America, Mexico, Central America, the Caribbean.
+  const northAmerica = ['AI', 'AG', 'AW', 'BS', 'BB', 'BZ', 'BM', 'BQ', 'CA', 'KY', 'CR', 'CU', 'CW', 'DM', 'DO', 'SV', 'GL', 'GD', 'GP', 'GT', 'HT',
+    'HN', 'JM', 'MQ', 'MX', 'MS', 'NI', 'PA', 'PR', 'BL', 'KN', 'LC', 'MF', 'PM', 'VC', 'SX', 'TT', 'TC', 'US', 'UM', 'VG', 'VI']
+  const southAmerica = ['AR', 'BO', 'BR', 'CL', 'CO', 'EC', 'PY', 'PE', 'UY', 'VE']
+
+  it('does not take a "North America" list as naming Central America: employers usually mean the US and Canada', () => {
+    const result = verdictOf(profile(), claims(), listed(northAmerica))
+    expect(result).toMatchObject({ verdict: 'needs_review', unresolvedRules: ['remote-scope-excludes-country'] })
+    if (result.verdict === 'needs_review') expect(result.openQuestions).toEqual([
+      'The job board lists this role for North America, which it stretches to Central America and the Caribbean; employers usually mean the United States and Canada. The posting itself does not say where it hires.',
+    ])
+  })
+
+  it('still takes a "North America" list as naming the US and Canada, with other regions listed beside it', () => {
+    const inNewYork = profile({ country: 'US', allowedRegions: [] })
+    expect(verdictOf(inNewYork, claims(), listed(northAmerica)).verdict).toBe('eligible')
+    expect(verdictOf(profile({ country: 'DE', allowedRegions: [] }), claims(), listed([...northAmerica, 'DE', 'FR'])).verdict).toBe('eligible')
+    expect(verdictOf(profile(), claims(), listed([...northAmerica, 'DE', 'FR'])).verdict).toBe('needs_review')
+  })
+
+  it('takes the Americas, and a short list picked by hand, at their word', () => {
+    expect(verdictOf(profile(), claims(), listed([...northAmerica, ...southAmerica])).verdict).toBe('eligible')
+    expect(verdictOf(profile(), claims(), listed(['US', 'CA', 'MX', 'SV'])).verdict).toBe('eligible')
+  })
+
+  it('contests a worldwide claim from the description when the list leaves the candidate out, like a location line would (v5)', () => {
+    const globally = claims({ remoteScope: { kind: 'worldwide', quote: 'globally distributed members' } })
+    const text = { description: 'We are a team of 400+ globally distributed members.' }
+    const result = verdictOf(profile(), globally, listed(northAmerica, text))
+    expect(result).toMatchObject({ verdict: 'needs_review', unresolvedRules: ['remote-scope-excludes-country'] })
+    if (result.verdict === 'needs_review') expect(result.openQuestions).toEqual([
+      'The posting says "globally distributed members", but the job board lists it for North America: it does not say the role is open where you are.',
+    ])
+    expect(verdictOf(profile(), globally, listed(['US', 'GB'], text)).verdict).toBe('needs_review')
+    // A list with the candidate in it, or no list, leaves the claim standing.
+    expect(verdictOf(profile(), globally, listed(['US', 'SV'], text)).verdict).toBe('eligible')
+    expect(verdictOf(profile(), globally, listed(null, text)).verdict).toBe('eligible')
+  })
+
+  it('lets a worldwide claim in the title stand against the list', () => {
+    const titled = claims({ remoteScope: { kind: 'worldwide', quote: 'Remote (Worldwide)' } })
+    expect(verdictOf(profile(), titled, listed(['US', 'GB'], { title: 'Engineer, Remote (Worldwide)' })).verdict).toBe('eligible')
+  })
+
+  it('does not let a "North America" list contradict a stated North America scope', () => {
+    const stated = claims({ remoteScope: { kind: 'regions', regions: ['namer'], quote: 'open to any candidate in North America' } })
+    expect(verdictOf(profile(), stated, listed(northAmerica))).toMatchObject({ verdict: 'not_eligible', ruleId: 'remote-scope-excludes-country' })
+  })
+
+  it('asks about office work abroad that the list contradicts, whatever scope the text states', () => {
+    const office = claims({
+      remoteScope: { kind: 'countries', countries: ['GB'], quote: 'UK only' },
+      onsite: { kind: 'hybrid', countries: ['GB'], quote: 'three days a week in our London office' },
+    })
+    expect(verdictOf(profile(), office, listed(['GB', 'SV'])).verdict).toBe('needs_review')
+    expect(verdictOf(profile(), office, listed(['GB', 'IE'])).verdict).toBe('not_eligible')
+  })
+
+  it('does not let a "North America" list contradict office work abroad', () => {
+    const office = claims({ onsite: { kind: 'hybrid', countries: ['US'], quote: 'three days a week in our Austin office' } })
+    expect(verdictOf(profile(), office, listed(northAmerica))).toMatchObject({ verdict: 'not_eligible', ruleId: 'onsite-requires-relocation' })
+  })
+
+  it('still rejects on a stated authorization requirement with sponsorship refused', () => {
+    const auth = claims({ authorization: { required: true, countries: ['US'], sponsorshipOffered: false, quote: 'We do not sponsor visas.' } })
+    expect(verdictOf(profile(), auth, listed(['US', 'SV']))).toMatchObject({ verdict: 'not_eligible', ruleId: 'authorization-missing' })
+  })
+})
+
+describe('stage 1 and the source list (engine v6)', () => {
+  it('reads the posting even when the list excludes the candidate: the list proves nothing', async () => {
+    const extract = vi.fn(async () => claims({ remoteScope: { kind: 'worldwide', quote: 'Senior Engineer' } }))
+    const result = await assessEligibility(profile(), job({ remoteCountries: ['US'] }), extract)
+    expect(extract).toHaveBeenCalledOnce()
+    expect(result.verdict.verdict).toBe('eligible')
   })
 })

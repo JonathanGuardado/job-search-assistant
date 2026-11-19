@@ -88,7 +88,8 @@ export const RULE_IDS = [
 export type RuleId = (typeof RULE_IDS)[number]
 
 export type RuleOutcome =
-  | { kind: 'pass' }
+  /** sourceCountries: the pass rests on the source's country list, not on the posting's words (engine v6). */
+  | { kind: 'pass'; sourceCountries?: readonly string[] }
   | { kind: 'fail'; reason: string; quote?: string }
   | { kind: 'unknown'; question: string }
 
@@ -147,6 +148,12 @@ export type EligibilityJob = {
   readonly description: string
   readonly locationPolicy: 'onsite' | 'hybrid' | 'remote' | 'unknown'
   readonly locationCountry: string | null
+  /**
+   * Where the source's structured field says a remote worker may live (ISO 3166-1 alpha-2), or
+   * null when it gives none. A job board's reading, not the employer's words: it can stand in
+   * for a scope the text never states, and it never rejects (decision 0017).
+   */
+  readonly remoteCountries: readonly string[] | null
   readonly salaryMinMinor: number | null
   readonly salaryMaxMinor: number | null
   readonly salaryCurrency: string | null
@@ -155,7 +162,10 @@ export type EligibilityJob = {
 
 /** Verdicts */
 
-export type Evidence = { readonly ruleId: RuleId; readonly quote: string }
+export type Evidence =
+  | { readonly ruleId: RuleId; readonly quote: string }
+  /** The source's country list a pass rested on, whole (engine v6). Never behind a rejection. */
+  | { readonly ruleId: RuleId; readonly sourceCountries: readonly string[] }
 
 export type EligibilityVerdict =
   | {
@@ -206,4 +216,5 @@ export type AssessmentReasons =
 // v3: needs_review records whether the posting names only a place. Verdicts are unchanged.
 // v4: needs_review records which rules could not decide. Verdicts are unchanged.
 // v5: a worldwide claim the title and location line do not support is an open question.
-export const ENGINE_VERSION = 5
+// v6: a job board's country list stands in for a scope the text never states, and never rejects (decision 0017).
+export const ENGINE_VERSION = 6

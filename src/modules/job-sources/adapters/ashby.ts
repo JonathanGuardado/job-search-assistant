@@ -65,6 +65,7 @@ export const ashbyAdapter: JobSourceAdapter = {
       description: posting.descriptionHtml ? htmlToPlainText(posting.descriptionHtml) : posting.descriptionPlain?.trim() ?? '',
       locationPolicy: workplacePolicy(posting.workplaceType), locationText: [...new Set(locations)].join('; ') || null,
       locationCountry: country && /^[A-Z]{2}$/.test(country) && posting.secondaryLocations?.length === 0 ? country : null,
+      remoteCountries: null,
       employmentType: posting.employmentType === 'Contract' ? 'contractor' : 'unknown',
       salary: salaryFromCompensation(posting.compensation), applyUrl: posting.applyUrl ?? posting.jobUrl,
       postedAt: published && Number.isFinite(published.getTime()) ? published : null,

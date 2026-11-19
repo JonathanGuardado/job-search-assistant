@@ -1,0 +1,2 @@
+ALTER TABLE "jobs" ADD COLUMN "remote_countries" text[];--> statement-breakpoint
+ALTER TABLE "jobs" ADD CONSTRAINT "jobs_remote_countries_check" CHECK ("jobs"."remote_countries" is null or cardinality("jobs"."remote_countries") > 0);

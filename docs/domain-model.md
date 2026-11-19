@@ -152,6 +152,8 @@ external_id)` and normalized from the newest raw version of that posting.
 `title_normalized`, `seniority` (`intern` | `junior` | `senior` | `lead` | `staff` |
 `principal`, nullable), `description`, `location_policy` (`onsite` | `hybrid` | `remote`
 | `unknown`), `location_text`, `location_country` (ISO alpha-2, structured sources only),
+`remote_countries` (text[] of ISO alpha-2, nullable: a job board's structured list of where a
+remote worker may live; never empty, null when the source says nothing; decision 0017),
 `remote_scope` (jsonb, nullable, unused until 1.6), `employment_type`,
 `salary_min_minor`, `salary_max_minor`, `salary_currency`, `salary_source` (`posted` |
 `unknown`), `salary_quote` (the description's line when the salary was read from text,

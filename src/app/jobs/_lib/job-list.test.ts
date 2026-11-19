@@ -12,7 +12,7 @@ function job(n: number, overrides: Partial<Job> = {}): Job {
   return {
     id: id(n), sourceId: id(900), externalId: String(n), canonicalJobId: null,
     companyName: 'Example Company', companyNormalized: 'example company', title: 'Engineer', titleNormalized: 'engineer',
-    seniority: null, description: 'Posting text', locationPolicy: 'remote', locationText: null, locationCountry: null,
+    seniority: null, description: 'Posting text', locationPolicy: 'remote', locationText: null, locationCountry: null, remoteCountries: null,
     employmentType: 'unknown', salary: { source: 'unknown' }, salaryQuote: null, applyUrl: 'https://example.com/jobs',
     postedAt: now, fingerprint: 'fingerprint', firstSeenAt: now, lastSeenAt: now, closedAt: null, ...overrides,
   }
@@ -125,6 +125,17 @@ describe('buildJobList', () => {
     expect(ids('namer')).toEqual([id(1), id(2), id(3)])
     expect(ids('emea')).toEqual([id(1), id(4)])
     expect(ids('')).toHaveLength(5)
+  })
+
+  it('filters a job the text is silent on by the countries its job board lists (decision 0017)', () => {
+    const jobs = [job(1, { remoteCountries: ['SV', 'MX'] }), job(2, { remoteCountries: ['SV', 'MX'] }), job(3, { remoteCountries: ['SV', 'MX'] })]
+    const assessments = [1, 2, 3].map((n) => assessment(n))
+    // Job 2's text states a scope, which wins; job 3 was never read.
+    const workplace = new Map<string, Workplace>([[id(1), remote({ kind: 'unspecified' })], [id(2), remote({ kind: 'regions', regions: ['emea'] })]])
+    const ids = (region: JobListInput['region']) => list({ jobs, assessments, workplace, region }).rows.map((row) => row.job.id).sort()
+    expect(ids('latam')).toEqual([id(1)])
+    expect(ids('emea')).toEqual([id(2)])
+    expect(ids('worldwide')).toEqual([])
   })
 
   it('filters by how recently the job was posted; a job with no date matches only "any time"', () => {

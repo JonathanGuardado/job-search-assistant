@@ -8,3 +8,5 @@ next-env.d.ts
 .data
 # Eval extraction cache and last report (pnpm eval:eligibility)
 evals/.cache/
+# Eval postings whose source does not allow republishing them (Himalayas API terms); read when present
+evals/local/

@@ -23,6 +23,7 @@ const job = (overrides: Partial<EligibilityJob> = {}): EligibilityJob => ({
   description: 'We are hiring a senior engineer.',
   locationPolicy: 'remote',
   locationCountry: null,
+  remoteCountries: null,
   salaryMinMinor: null,
   salaryMaxMinor: null,
   salaryCurrency: null,
@@ -67,7 +68,7 @@ describe('the third state', () => {
     expect(result.verdict).toBe('not_eligible')
     if (result.verdict === 'not_eligible') {
       expect(result.ruleId).toBe('remote-scope-excludes-country')
-      expect(result.evidence[0]?.quote).toContain('US residents only')
+      expect(result.evidence[0]).toMatchObject({ quote: expect.stringContaining('US residents only') })
     }
   })
 })

@@ -39,7 +39,7 @@ function eligibilityJobOf(job: Job): EligibilityJob {
   const posted = job.salary.source === 'posted' && job.salaryQuote === null ? job.salary : null
   return {
     id: job.id, title: job.title, locationText: job.locationText, description: job.description,
-    locationPolicy: job.locationPolicy, locationCountry: job.locationCountry,
+    locationPolicy: job.locationPolicy, locationCountry: job.locationCountry, remoteCountries: job.remoteCountries,
     salaryMinMinor: posted?.minMinor ?? null, salaryMaxMinor: posted?.maxMinor ?? null,
     salaryCurrency: posted?.currency ?? null, salarySource: posted ? 'posted' : 'unknown',
   }

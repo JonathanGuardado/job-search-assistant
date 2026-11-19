@@ -138,6 +138,23 @@ return `unknown` instead of passing or failing, and no authorization requirement
 from the office work. It never produces a rejection. A stated authorization requirement with
 sponsorship refused still rejects.
 
+**The source's country list (engine v6, decision 0017).** A job board can say where a remote
+worker may live in a structured list (`jobs.remote_countries`) instead of in the text. It is
+the board's reading of the posting, not the employer's words, so:
+
+- It never rejects, at any stage. Stage 1 still reads the posting.
+- When the text states no remote scope, a list that includes somewhere the candidate can work
+  passes `remote-scope-excludes-country`, and the whole list is stored as evidence
+  (`sourceCountries`, never shown as a quote). A list without them is `unknown`.
+- When the text and the list disagree, the answer is `unknown`. A list with the candidate in
+  it holds back the rejection a stated scope or office work abroad would make. A list without
+  them contests a worldwide claim quoted from the description, like a location line does.
+- A list holding all of Northern America and nothing of South America is the words "North
+  America" expanded to the continent. The countries the region table puts in LATAM are not
+  taken as listed in it.
+- An empty list is silence, never "worldwide". The list is never part of the text the model
+  reads, so it can never be quoted.
+
 Rules return `unknown` when the claim they depend on is `unspecified`. If any rule
 returns `unknown` and no rule returns `fail`, the verdict is `needs_review` with those
 questions attached. When the posting was read and names a place but never states an arrangement
@@ -178,7 +195,8 @@ Confidence is computed by code from stage provenance, never asked of the model.
 
 ## Recomputation
 
-An assessment is recomputed when: the job's fingerprint changes (its text changed), the
+An assessment is recomputed when: the job's fingerprint changes (its text or its source's
+country list changed), the
 digest of the profile fields the rules read changes, or `engine_version` increments.
 Nothing else. Both inputs are stored on the assessment, so an unchanged pair is a no-op.
 Claims are re-extracted only when the job's text changes or the prompt version does.
@@ -189,7 +207,9 @@ reprocessing is the difference between negligible and painful monthly spend.
 
 The engine is not "done" — it is measured.
 
-`evals/dataset.jsonl` holds hand-labeled postings, each snapshotted with its full text
+`evals/dataset.jsonl` holds hand-labeled postings (plus `evals/local/dataset.jsonl`, kept
+out of the repository, for postings a source's terms do not let us republish: decision 0017),
+each snapshotted with its full text
 and labeled for one or more reference profiles (`evals/profiles.json`) with an expected
 verdict, the reason, and the verbatim sentence it rests on. A label marked
 `location-only` was inferred from a bare city or country line. Aim for ~200 cases weighted

@@ -50,6 +50,7 @@ export const leverAdapter: JobSourceAdapter = {
         .map((part) => part.trim()).filter(Boolean).join('\n\n'),
       locationPolicy: workplacePolicy(posting.workplaceType), locationText: posting.categories?.location?.trim() || null,
       locationCountry: posting.country && /^[A-Z]{2}$/.test(posting.country) ? posting.country : null,
+      remoteCountries: null,
       employmentType: /\bcontract(or)?\b/i.test(commitment) && !/fixed[\s-]term/i.test(commitment) ? 'contractor' : 'unknown',
       salary: salaryFromRange(posting.salaryRange), applyUrl: posting.applyUrl ?? posting.hostedUrl,
       postedAt: published && Number.isFinite(published.getTime()) ? published : null,

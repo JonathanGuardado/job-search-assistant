@@ -31,9 +31,10 @@ const LabelSchema = z.object({
   acceptableRules: z.array(z.enum(RULE_IDS)),
   reason: z.string(),
   quote: z.string(),
-  basis: z.enum(['stated', 'location-only']),
+  /** source-list: the text is silent and the label rests on the source's country list (decision 0017). */
+  basis: z.enum(['stated', 'location-only', 'source-list']),
 })
-const SPLITS = ['tuning', 'holdout', 'holdout-2', 'misreads'] as const
+const SPLITS = ['tuning', 'holdout', 'holdout-2', 'misreads', 'source-lists'] as const
 const CaseSchema = z.object({
   id: z.string(),
   jobId: z.uuid(),
@@ -43,6 +44,9 @@ const CaseSchema = z.object({
    * holdout-2: labeled before any run after engine v2 was fitted to a holdout miss.
    * misreads: live postings the engine called eligible on company wording or a travel perk
    * (2026-11-10), labeled before engine v5 was written; tuned on, so never an unseen measurement.
+   * source-lists: Himalayas postings with the board's country list (2026-11-12), an evenly spaced
+   * sample labeled from the full text before engine v6 ran on them; tuned on since (a "North
+   * America" list shaped the rule). Kept in evals/local, outside the repository.
    */
   split: z.enum(SPLITS),
   posting: z.object({
@@ -51,6 +55,8 @@ const CaseSchema = z.object({
     locationText: z.string().nullable(),
     locationPolicy: z.enum(['onsite', 'hybrid', 'remote', 'unknown']),
     locationCountry: z.string().nullable(),
+    /** The source's country list (decision 0017); absent on postings from sources that give none. */
+    remoteCountries: z.array(z.string().length(2)).min(1).optional(),
     employmentType: z.string(),
     salary: z.discriminatedUnion('source', [
       z.object({ source: z.literal('unknown') }),
@@ -78,7 +84,10 @@ const profiles = ProfilesSchema.parse(JSON.parse(readFileSync('evals/profiles.js
 // `pnpm eval:eligibility -- --split=holdout` runs one split; the default runs all of them.
 const splitArg = process.argv.find((arg) => arg.startsWith('--split='))?.slice('--split='.length)
 const split = splitArg === undefined ? null : z.enum(SPLITS).parse(splitArg)
-const cases = readFileSync('evals/dataset.jsonl', 'utf8').trim().split('\n').map((line) => CaseSchema.parse(JSON.parse(line)))
+// Himalayas' API terms do not allow republishing its postings, and this repository is public:
+// those cases live in a gitignored file and are measured when it is there.
+const DATASETS = ['evals/dataset.jsonl', 'evals/local/dataset.jsonl'].filter((path) => existsSync(path))
+const cases = DATASETS.flatMap((path) => readFileSync(path, 'utf8').trim().split('\n')).map((line) => CaseSchema.parse(JSON.parse(line)))
   .filter((c) => split === null || c.split === split)
 const cache: Record<string, CacheEntry> = existsSync(CACHE_PATH) ? CacheSchema.parse(JSON.parse(readFileSync(CACHE_PATH, 'utf8'))) : {}
 
@@ -87,7 +96,7 @@ function jobOf(c: Case): EligibilityJob {
   const posted = posting.salary.source === 'posted' ? posting.salary : null
   return {
     id: c.jobId, title: posting.title, locationText: posting.locationText, description: posting.description,
-    locationPolicy: posting.locationPolicy, locationCountry: posting.locationCountry,
+    locationPolicy: posting.locationPolicy, locationCountry: posting.locationCountry, remoteCountries: posting.remoteCountries ?? null,
     salaryMinMinor: posted?.minMinor ?? null, salaryMaxMinor: posted?.maxMinor ?? null,
     salaryCurrency: posted?.currency ?? null, salarySource: posting.salary.source,
   }

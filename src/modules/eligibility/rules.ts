@@ -20,6 +20,7 @@ import { ALWAYS_HARD, RegionSchema } from './types.js'
  */
 
 const pass = (): RuleOutcome => ({ kind: 'pass' })
+const passOnSourceList = (sourceCountries: readonly string[]): RuleOutcome => ({ kind: 'pass', sourceCountries })
 const fail = (reason: string, quote?: string): RuleOutcome =>
   quote === undefined ? { kind: 'fail', reason } : { kind: 'fail', reason, quote }
 const unknown = (question: string): RuleOutcome => ({ kind: 'unknown', question })
@@ -79,12 +80,68 @@ function lineIncludesCandidate(input: RuleInput, line: string): boolean {
 const claimsWorldwide = (scope: RuleInput['claims']['remoteScope']): boolean =>
   scope.kind === 'worldwide' || (scope.kind === 'regions' && (scope.regions ?? []).includes('worldwide'))
 
+// UN M49: Northern America, and South America's states. A list with all of the first and none of the second is a "North America" label.
+const NORTHERN_AMERICA = ['BM', 'CA', 'GL', 'PM', 'US']
+const SOUTH_AMERICA = ['AR', 'BO', 'BR', 'CL', 'CO', 'EC', 'GY', 'PE', 'PY', 'SR', 'UY', 'VE']
+
+/**
+ * Job boards expand "North America" to the whole continent: Mexico, Central America and the
+ * Caribbean with it. An employer who writes "North America" usually means the United States
+ * and Canada, which is all `namer` holds here. So in such a list the countries this table puts
+ * in LATAM are the expansion's doing, not the employer's word. A short list picked by hand
+ * ("US, Canada, Mexico, El Salvador") lacks Greenland and Bermuda and is taken at its word.
+ */
+function readsAsNorthAmerica(list: readonly string[]): boolean {
+  return NORTHERN_AMERICA.every((c) => list.includes(c)) && !SOUTH_AMERICA.some((c) => list.includes(c))
+}
+
+/**
+ * The source's structured list of where a remote worker may live (engine v6, decision 0017).
+ * A job board's reading of the posting, so it never rejects. It shows a role is open to the
+ * candidate when the text states no scope. Where it and the text disagree, that is a question:
+ * a list with the candidate in it holds back a rejection the text alone would make, and one
+ * without them contests a worldwide claim like a location line does. An empty list is silence.
+ */
+function listedCountries(input: RuleInput): readonly string[] {
+  return (input.job.remoteCountries ?? []).map((c) => c.toUpperCase())
+}
+
+/** Whether the list, as far as it can be trusted, names somewhere the candidate can work. */
+function listIncludesCandidate(input: RuleInput): boolean {
+  const list = listedCountries(input)
+  const meant = readsAsNorthAmerica(list) ? list.filter((c) => countryInRegion(c, 'latam') !== 'in') : list
+  const countries = acceptableCountries(input)
+  return meant.some((c) => countries.has(c))
+}
+
+/** A list too long to read is named by its size. */
+const LISTED_IN_FULL = 6
+function describeList(list: readonly string[]): string {
+  if (readsAsNorthAmerica(list)) return 'North America'
+  return list.length <= LISTED_IN_FULL ? list.join(', ') : `${list.length} countries`
+}
+
+/** The text's scope leaves the candidate out and the list has them in: one of the two readings is wrong. */
+function excludedButListedQuestion(input: RuleInput): string {
+  return `The posting says "${input.claims.remoteScope.quote ?? 'a limited hiring area'}", which leaves out where you can work, but the job board lists the role as open there.`
+}
+
+function sourceListQuestion(input: RuleInput): string {
+  const list = listedCountries(input)
+  const mine = [...acceptableCountries(input)]
+  if (readsAsNorthAmerica(list) && list.some((c) => mine.includes(c))) {
+    return 'The job board lists this role for North America, which it stretches to Central America and the Caribbean; employers usually mean the United States and Canada. The posting itself does not say where it hires.'
+  }
+  return `The job board lists this role for ${describeList(list)}, not for where you can work (${mine.join(', ')}); the posting itself does not say where it hires.`
+}
+
 /**
  * A worldwide claim the role's own words do not support (engine v5). Company wording ("We hire
  * globally", "a globally distributed company") and perks ("work from anywhere for up to 4 weeks
  * per year") read as the role's scope. The title and location line describe this role: a
  * worldwide quote from either stands. One from the description is contested when the location
  * line names only places outside where the candidate can work, or the posting states office work.
+ * The source's country list contests it the same way when it leaves the candidate out (engine v6).
  * Contested is contradictory, so it is an open question, never a rejection.
  */
 function contestedWorldwide(input: RuleInput): boolean {
@@ -93,6 +150,7 @@ function contestedWorldwide(input: RuleInput): boolean {
   const line = input.job.locationText ?? ''
   if (scope.quote !== undefined && (line.includes(scope.quote) || input.job.title.includes(scope.quote))) return false
   if (lineIncludesCandidate(input, line)) return false
+  if (listedCountries(input).length > 0 && !listIncludesCandidate(input)) return true
   const namesAPlace = /\p{L}/u.test(line.replace(NO_PLACE, ''))
   return namesAPlace || input.claims.onsite.kind === 'hybrid' || input.claims.onsite.kind === 'onsite'
 }
@@ -100,8 +158,10 @@ function contestedWorldwide(input: RuleInput): boolean {
 function contestedQuestion(input: RuleInput): string {
   const said = `The posting says "${input.claims.remoteScope.quote ?? 'worldwide'}"`
   const line = input.job.locationText?.trim()
-  return line
-    ? `${said}, but it is listed in ${line}: it does not say the role is open where you are.`
+  if (line) return `${said}, but it is listed in ${line}: it does not say the role is open where you are.`
+  const listed = listedCountries(input)
+  return listed.length > 0 && !listIncludesCandidate(input)
+    ? `${said}, but the job board lists it for ${describeList(listed)}: it does not say the role is open where you are.`
     : `${said}, but also describes ${input.claims.onsite.kind} work: it does not say the role is open where you are.`
 }
 
@@ -150,6 +210,10 @@ const onsiteRequiresRelocation: Rule = {
     if (countries.includes(i.profile.country.toUpperCase())) return pass()
     if (i.profile.willingToRelocate) return pass()
     if (contestedWorldwide(i)) return unknown(contestedQuestion(i))
+    // The text and the source's list contradict each other: an open question, not a rejection.
+    if (listIncludesCandidate(i)) {
+      return unknown(`The posting describes ${policy} work in ${countries.join(', ')}, but the job board lists the role as open to remote workers where you are.`)
+    }
     return fail(
       `The role is ${policy} in ${countries.join(', ')} and you are not open to relocating.`,
       i.claims.onsite.quote,
@@ -177,12 +241,12 @@ const remoteScopeExcludesCountry: Rule = {
         if (list.length === 0) {
           return unknown('The posting restricts hiring by country but does not list them.')
         }
-        return list.some((c) => countries.has(c))
-          ? pass()
-          : fail(
-              `Hiring is limited to ${list.join(', ')}, outside where you can work (${[...countries].join(', ')}).`,
-              scope.quote,
-            )
+        if (list.some((c) => countries.has(c))) return pass()
+        if (listIncludesCandidate(i)) return unknown(excludedButListedQuestion(i))
+        return fail(
+          `Hiring is limited to ${list.join(', ')}, outside where you can work (${[...countries].join(', ')}).`,
+          scope.quote,
+        )
       }
 
       case 'regions': {
@@ -200,17 +264,23 @@ const remoteScopeExcludesCountry: Rule = {
             `The posting hires in ${regions.join(', ')}; whether ${[...countries].join(', ')} qualifies is unclear.`,
           )
         }
+        if (listIncludesCandidate(i)) return unknown(excludedButListedQuestion(i))
         return fail(
           `Hiring is limited to ${regions.join(', ')}, outside where you can work.`,
           scope.quote,
         )
       }
 
-      case 'unspecified':
+      case 'unspecified': {
+        const listed = listedCountries(i)
+        if (listed.length > 0) {
+          return listIncludesCandidate(i) ? passOnSourceList(listed) : unknown(sourceListQuestion(i))
+        }
         // The ambiguous case the product exists for.
         return workplace(i) === 'remote'
           ? unknown('The posting says remote but does not say which countries it accepts.')
           : pass()
+      }
     }
   },
 }
@@ -232,7 +302,8 @@ const authorizationMissing: Rule = {
     // D4: working onsite abroad needs authorization there, whether or not the posting
     // says so. Silence about a remote role is still not evidence of a requirement.
     // A contested worldwide claim leaves the arrangement unclear: it implies nothing (engine v5).
-    const onsiteAbroad = !contestedWorldwide(i) && (workplace(i) === 'onsite' || workplace(i) === 'hybrid')
+    // So does office work the source's list contradicts (engine v6).
+    const onsiteAbroad = !contestedWorldwide(i) && !listIncludesCandidate(i) && (workplace(i) === 'onsite' || workplace(i) === 'hybrid')
       ? workplaceCountries(i)
       : []
     const implied = onsiteAbroad.length > 0 && !onsiteAbroad.some((c) => held.has(c)) ? onsiteAbroad : []

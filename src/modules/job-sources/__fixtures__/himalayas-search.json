@@ -1,0 +1,269 @@
+{
+  "comments": "Search results come 20 to a page. Pass ?page=2, ?page=3 and so on for more; there is no cursor on search.",
+  "updatedAt": 1794526249,
+  "offset": 0,
+  "limit": 20,
+  "totalCount": 6,
+  "jobs": [
+    {
+      "title": " Senior Backend Engineer ",
+      "excerpt": "Invented posting for adapter tests.",
+      "companyName": "Ejemplo Digital",
+      "companySlug": "ejemplo-digital",
+      "companyLogo": "https://cdn-images.himalayas.app/fixture",
+      "seniority": [
+        "Senior"
+      ],
+      "timezoneRestrictions": [
+        -6,
+        -5,
+        -4,
+        -3
+      ],
+      "categories": [
+        "Fixture-Category"
+      ],
+      "parentCategories": [
+        "Fixture"
+      ],
+      "expiryDate": 1797000000,
+      "employmentType": "Full Time",
+      "minSalary": 70000,
+      "maxSalary": 90000,
+      "salaryPeriod": "annual",
+      "currency": "USD",
+      "locationRestrictions": [
+        "Anguilla",
+        "Antigua and Barbuda",
+        "Argentina",
+        "Aruba",
+        "Bahamas",
+        "Barbados",
+        "Belize",
+        "Bermuda",
+        "Bolivia",
+        "Bonaire, Sint Eustatius and Saba",
+        "Brazil",
+        "Cayman Islands",
+        "Chile",
+        "Colombia",
+        "Costa Rica",
+        "Cuba",
+        "Dominica",
+        "Dominican Republic",
+        "Ecuador",
+        "El Salvador",
+        "Falkland Islands (Malvinas)",
+        "Grenada",
+        "Guatemala",
+        "Guyana",
+        "Haiti",
+        "Honduras",
+        "Jamaica",
+        "Mexico",
+        "Montserrat",
+        "Nicaragua",
+        "Panama",
+        "Paraguay",
+        "Peru",
+        "Puerto Rico",
+        "Saint Kitts and Nevis",
+        "Saint Lucia",
+        "Saint Vincent and the Grenadines",
+        "South Georgia and the South Sandwich Islands",
+        "Suriname",
+        "Trinidad and Tobago",
+        "Turks and Caicos Islands",
+        "Uruguay",
+        "Venezuela",
+        "Virgin Islands, British",
+        "Virgin Islands, U.S."
+      ],
+      "description": "<p>Ejemplo Digital builds billing tools for clinics &amp; labs.</p><h2>What you will do</h2><ul><li>Design <strong>Node.js</strong> services</li><li>Review code</li></ul><p>Location: Remote, LATAM</p><p>Originally posted on <a href=\"https://himalayas.app\">Himalayas</a></p>",
+      "pubDate": 1794400000,
+      "applicationLink": "https://himalayas.app/companies/ejemplo-digital/jobs/senior-backend-engineer?utm_source=api",
+      "guid": "https://himalayas.app/companies/ejemplo-digital/jobs/senior-backend-engineer"
+    },
+    {
+      "title": "Data Labeling Contractor",
+      "excerpt": "Invented posting for adapter tests.",
+      "companyName": "Fixture Annotations",
+      "companySlug": "fixture-annotations",
+      "companyLogo": "https://cdn-images.himalayas.app/fixture",
+      "seniority": [
+        "Senior"
+      ],
+      "timezoneRestrictions": [
+        -6,
+        -5,
+        -4,
+        -3
+      ],
+      "categories": [
+        "Fixture-Category"
+      ],
+      "parentCategories": [
+        "Fixture"
+      ],
+      "expiryDate": 1797000000,
+      "employmentType": "Contractor",
+      "minSalary": 15,
+      "maxSalary": 40,
+      "salaryPeriod": "hourly",
+      "currency": "USD",
+      "locationRestrictions": [],
+      "description": "<p>Role type: Contractor</p><p>Location: Remote</p><p>Originally posted on <a href=\"https://himalayas.app\">Himalayas</a></p>",
+      "pubDate": 1794300000,
+      "applicationLink": "https://himalayas.app/companies/fixture-annotations/jobs/data-labeling-contractor?utm_source=api",
+      "guid": "https://himalayas.app/companies/fixture-annotations/jobs/data-labeling-contractor"
+    },
+    {
+      "title": "Support Engineer",
+      "excerpt": "Invented posting for adapter tests.",
+      "companyName": "Nombres Raros",
+      "companySlug": "nombres-raros",
+      "companyLogo": "https://cdn-images.himalayas.app/fixture",
+      "seniority": [
+        "Senior"
+      ],
+      "timezoneRestrictions": [
+        -6,
+        -5,
+        -4,
+        -3
+      ],
+      "categories": [
+        "Fixture-Category"
+      ],
+      "parentCategories": [
+        "Fixture"
+      ],
+      "expiryDate": 1797000000,
+      "employmentType": "Full Time",
+      "minSalary": null,
+      "maxSalary": null,
+      "salaryPeriod": "annual",
+      "currency": "USD",
+      "locationRestrictions": [
+        "Turkey",
+        "Russian Federation",
+        "Congo, The Democratic Republic of the",
+        "Hong Kong",
+        "El Salvador",
+        "Atlantis",
+        "El Salvador",
+        "Côte d'Ivoire"
+      ],
+      "description": "<p>Support customers by email.</p><p>Originally posted on <a href=\"https://himalayas.app\">Himalayas</a></p>",
+      "pubDate": 1794200000,
+      "applicationLink": "https://himalayas.app/companies/nombres-raros/jobs/support-engineer?utm_source=api",
+      "guid": "https://himalayas.app/companies/nombres-raros/jobs/support-engineer"
+    },
+    {
+      "title": "Field Engineer",
+      "excerpt": "Invented posting for adapter tests.",
+      "companyName": "Solo País S.A. de C.V.",
+      "companySlug": "solo-pais",
+      "companyLogo": "https://cdn-images.himalayas.app/fixture",
+      "seniority": [
+        "Senior"
+      ],
+      "timezoneRestrictions": [
+        -6,
+        -5,
+        -4,
+        -3
+      ],
+      "categories": [
+        "Fixture-Category"
+      ],
+      "parentCategories": [
+        "Fixture"
+      ],
+      "expiryDate": 1797000000,
+      "employmentType": "Part Time",
+      "minSalary": null,
+      "maxSalary": null,
+      "salaryPeriod": "annual",
+      "currency": "USD",
+      "locationRestrictions": [
+        "El Salvador"
+      ],
+      "description": null,
+      "pubDate": null,
+      "applicationLink": "https://himalayas.app/companies/solo-pais/jobs/field-engineer?utm_source=api",
+      "guid": "https://himalayas.app/companies/solo-pais/jobs/field-engineer"
+    },
+    {
+      "title": "Platform Engineer",
+      "excerpt": "Invented posting for adapter tests.",
+      "companyName": "Followed Co, Inc.",
+      "companySlug": "followed-co",
+      "companyLogo": "https://cdn-images.himalayas.app/fixture",
+      "seniority": [
+        "Senior"
+      ],
+      "timezoneRestrictions": [
+        -6,
+        -5,
+        -4,
+        -3
+      ],
+      "categories": [
+        "Fixture-Category"
+      ],
+      "parentCategories": [
+        "Fixture"
+      ],
+      "expiryDate": 1797000000,
+      "employmentType": "Full Time",
+      "minSalary": 3000,
+      "maxSalary": 4500,
+      "salaryPeriod": "monthly",
+      "currency": "USD",
+      "locationRestrictions": [
+        "United States",
+        "El Salvador"
+      ],
+      "description": "<p>The same job the company lists on its own board.</p><p>Originally posted on <a href=\"https://himalayas.app\">Himalayas</a></p>",
+      "pubDate": 1794100000,
+      "applicationLink": "https://himalayas.app/companies/followed-co/jobs/platform-engineer?utm_source=api",
+      "guid": "https://himalayas.app/companies/followed-co/jobs/platform-engineer"
+    },
+    {
+      "title": "Design Intern",
+      "excerpt": "Invented posting for adapter tests.",
+      "companyName": "Lugar Desconocido",
+      "companySlug": "lugar-desconocido",
+      "companyLogo": "https://cdn-images.himalayas.app/fixture",
+      "seniority": [
+        "Senior"
+      ],
+      "timezoneRestrictions": [
+        -6,
+        -5,
+        -4,
+        -3
+      ],
+      "categories": [
+        "Fixture-Category"
+      ],
+      "parentCategories": [
+        "Fixture"
+      ],
+      "expiryDate": 1797000000,
+      "employmentType": "Intern",
+      "minSalary": null,
+      "maxSalary": null,
+      "salaryPeriod": "annual",
+      "currency": "USD",
+      "locationRestrictions": [
+        "Atlantis"
+      ],
+      "description": "<p>Design things.</p><p>Originally posted on <a href=\"https://himalayas.app\">Himalayas</a></p>",
+      "pubDate": 1794000000,
+      "applicationLink": "https://himalayas.app/companies/lugar-desconocido/jobs/design-intern?utm_source=api",
+      "guid": "https://himalayas.app/companies/lugar-desconocido/jobs/design-intern"
+    }
+  ]
+}

@@ -17,6 +17,8 @@ export type FingerprintInput = {
   readonly locationPolicy: LocationPolicy
   readonly locationKey: string
   readonly description: string
+  /** The source's country list, when it gives one: eligibility reads it, so a changed list is a changed posting (decision 0017). */
+  readonly remoteCountries: readonly string[] | null
 }
 
 // Requisition and posting numbers (MongoDB embeds two per posting). Short numbers like
@@ -33,8 +35,11 @@ const IDENTIFIER = /^\d{5,}$/
 export function fingerprint(input: FingerprintInput): string {
   const description = wordsOf(input.description).filter((word) => !IDENTIFIER.test(word)).join(' ')
   // JSON array encoding, so no text can move from one component into another.
-  const key = JSON.stringify([
+  const components: unknown[] = [
     input.companyNormalized, input.titleNormalized, input.seniority, input.locationPolicy, input.locationKey, description,
-  ])
+  ]
+  // Added only when there is a list, so every posting without one keeps the fingerprint it had.
+  if (input.remoteCountries !== null) components.push([...new Set(input.remoteCountries)].sort())
+  const key = JSON.stringify(components)
   return createHash('sha256').update(key).digest('hex')
 }

@@ -44,6 +44,8 @@ export const jobs = pgTable(
     locationPolicy: text('location_policy', { enum: LOCATION_POLICIES }).notNull(),
     locationText: text('location_text'),
     locationCountry: text('location_country'),
+    /** ISO alpha-2 codes from the source's structured list of where a remote worker may live (decision 0017). */
+    remoteCountries: text('remote_countries').array(),
     // TODO(M1.6): decide whether extracted remote scope lives here or only on eligibility_assessments.
     remoteScope: jsonb('remote_scope'),
     employmentType: text('employment_type', { enum: EMPLOYMENT_TYPES }).notNull(),
@@ -71,6 +73,8 @@ export const jobs = pgTable(
     check('jobs_employment_type_check', oneOf(t.employmentType, EMPLOYMENT_TYPES)),
     check('jobs_seniority_check', oneOf(t.seniority, SENIORITIES)),
     check('jobs_location_country_check', sql`${t.locationCountry} ~ '^[A-Z]{2}$'`),
+    // An empty list would read as "open nowhere" or "open everywhere"; it is neither, so it is null.
+    check('jobs_remote_countries_check', sql`${t.remoteCountries} is null or cardinality(${t.remoteCountries}) > 0`),
     check('jobs_salary_quote_check', sql`${t.salaryQuote} is null or ${t.salarySource} = 'posted'`),
     // The database refuses an "unknown" salary that carries numbers, and a "posted" one without them.
     check(

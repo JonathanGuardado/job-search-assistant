@@ -225,6 +225,32 @@ cannot see the conflict. A prompt that tells the model company wording and perks
 scope would catch it and turn the cautious reviews into rejections, at the cost of
 re-extracting every open posting (about $7); deferred.
 
+## Engine v6: a job board's country list (2026-11-12)
+
+Himalayas states where a remote worker may live in a structured list, not in the text
+(decision 0017). The rule was written test-first, then measured on 180 real postings and on
+30 of them labeled by hand from the full text before v6 ran (split `source-lists`, kept in
+`evals/local/` because Himalayas' terms do not allow republishing its postings). One label, a
+"North America" list that includes El Salvador, shaped the rule, so the split is tuned on.
+Prompt v3 is unchanged; the 30 new extractions cost about $0.013.
+
+| | Lists ignored (engine v5) | With lists (engine v6) |
+| --- | --- | --- |
+| earlier splits (297 labels) | 99.4% precision, 85.6% recall, 17.8% needs_review | identical: no verdict changed |
+| source-lists: labels matched | 24 of 30 | **29 of 30** |
+| source-lists: eligible found | 12 of 17 | 16 of 17 |
+| source-lists: wrongly eligible | 1 | 0 |
+| source-lists: rejections | 3 of 3 correct | 3 of 3 correct |
+| 180 postings: needs_review | 87 (48%) | 45 (25%) |
+| 180 postings: rejections | 9, two of them wrong | 7, all correct |
+
+All 327 labels: precision 99.4% (163/164), recall 85.8%, needs_review 19.6%, quotes 99.8%.
+
+The one miss is cautious: "You must be authorized to work in the country in which you
+reside" was read as a requirement with no country, so the engine asks. The two wrong
+rejections the list removed were one sentence, "work from Canada, Latin America, or Ukraine",
+read as Canada and Ukraine.
+
 ## Caveats before the phase gate
 
 

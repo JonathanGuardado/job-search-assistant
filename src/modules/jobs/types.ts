@@ -59,6 +59,8 @@ export const JobSchema = z.object({
   locationPolicy: LocationPolicySchema,
   locationText: z.string().nullable(),
   locationCountry: z.string().regex(/^[A-Z]{2}$/).nullable(),
+  /** Where the source's structured field says a remote worker may live; null when it says nothing (decision 0017). */
+  remoteCountries: z.array(z.string().regex(/^[A-Z]{2}$/)).min(1).nullable(),
   employmentType: EmploymentTypeSchema,
   salary: SalarySchema,
   /**

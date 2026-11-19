@@ -91,7 +91,7 @@ describe('locationKey', () => {
 describe('fingerprint', () => {
   const base = {
     companyNormalized: 'datadog', titleNormalized: 'account executive', seniority: null, locationPolicy: 'remote',
-    locationKey: 'chile remote', description: 'Sell to enterprises across LATAM. Requisition 3273525921.',
+    locationKey: 'chile remote', description: 'Sell to enterprises across LATAM. Requisition 3273525921.', remoteCountries: null,
   } as const
 
   it('is a stable sha256 hex digest', () => {
@@ -109,6 +109,17 @@ describe('fingerprint', () => {
       { ...base, locationKey: 'texas usa remote' },
     ] as const
     for (const variant of variants) expect(fingerprint(variant)).not.toBe(fingerprint(base))
+  })
+
+  // Decision 0017: the list is what eligibility reads, so a changed list is a changed posting.
+  it('changes with the source\'s country list, whatever its order', () => {
+    expect(fingerprint({ ...base, remoteCountries: ['SV', 'US'] })).not.toBe(fingerprint(base))
+    expect(fingerprint({ ...base, remoteCountries: ['SV', 'US'] })).not.toBe(fingerprint({ ...base, remoteCountries: ['SV'] }))
+    expect(fingerprint({ ...base, remoteCountries: ['US', 'SV'] })).toBe(fingerprint({ ...base, remoteCountries: ['SV', 'US'] }))
+  })
+
+  it('keeps the fingerprint of every posting without a list as it was before lists existed', () => {
+    expect(fingerprint(base)).toBe('2301a5718f53723da31544700cd95ca9642123eaaafde5c5fd4d8df8caab2fc4')
   })
 
   it('cannot be forged by moving text between components', () => {

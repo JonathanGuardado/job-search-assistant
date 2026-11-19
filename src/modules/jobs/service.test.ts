@@ -28,7 +28,7 @@ describe('normalizing a raw posting into a job', () => {
     expect(job).toMatchObject({
       title: 'Senior Backend Engineer (Remote - LATAM)', titleNormalized: 'backend engineer', seniority: 'senior',
       description: 'We hire anywhere in LATAM.', locationPolicy: 'remote', locationText: 'Remote - LATAM',
-      locationCountry: null, employmentType: 'unknown', salary: { source: 'unknown' }, canonicalJobId: null, closedAt: null,
+      locationCountry: null, remoteCountries: null, employmentType: 'unknown', salary: { source: 'unknown' }, canonicalJobId: null, closedAt: null,
       postedAt: new Date('2026-09-01T12:00:00Z'),
     })
     expect(job).toMatchObject({ companyName: 'Acme, Inc.', companyNormalized: 'acme' })

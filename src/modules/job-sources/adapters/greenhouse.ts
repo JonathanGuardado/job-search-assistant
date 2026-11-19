@@ -126,7 +126,7 @@ export const greenhouseAdapter: JobSourceAdapter = {
       externalId: String(posting.id), companyName: source.name, title: posting.title,
       // The first pass decodes escaped tags; the second renders the decoded HTML.
       description: htmlToPlainText(htmlToPlainText(posting.content)),
-      locationPolicy: classifyLocationText(locationText), locationText, locationCountry: null,
+      locationPolicy: classifyLocationText(locationText), locationText, locationCountry: null, remoteCountries: null,
       employmentType: 'unknown', salary: { source: 'unknown' }, applyUrl: posting.absolute_url,
       postedAt: published && Number.isFinite(published.getTime()) ? published : null,
     })

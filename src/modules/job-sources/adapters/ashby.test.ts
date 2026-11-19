@@ -62,7 +62,7 @@ describe('Ashby normalization', () => {
     const posting = { id: 'minimal', title: ' Engineer (Remote) ', jobUrl: 'https://jobs.ashbyhq.com/fixture/minimal' }
     expect(unwrap(ashbyAdapter.normalize(rawFixture(posting), fixtureSource))).toEqual({
       externalId: 'minimal', companyName: 'Fixture Co', title: 'Engineer (Remote)', description: '',
-      applyUrl: posting.jobUrl, locationPolicy: 'unknown', locationCountry: null, locationText: null,
+      applyUrl: posting.jobUrl, locationPolicy: 'unknown', locationCountry: null, remoteCountries: null, locationText: null,
       employmentType: 'unknown', salary: { source: 'unknown' }, postedAt: null,
     })
   })

@@ -103,6 +103,13 @@ function worksAs(job: JobSummary, workplace: WorkplaceClaims | undefined, work: 
   return job.locationPolicy === work || claimed === work
 }
 
+/** Open to the region by the posting's own scope; where the text states none, by the countries its job board lists (decision 0017). */
+function openTo(job: JobSummary, workplace: WorkplaceClaims | undefined, region: Region): boolean {
+  if (workplace === undefined) return false
+  if (workplace.remoteScope.kind !== 'unspecified') return openToRegion(workplace.remoteScope, region)
+  return openToRegion({ kind: 'countries', countries: [...job.remoteCountries ?? []] }, region)
+}
+
 function passesFilters(job: JobSummary, input: JobListInput): boolean {
   const company = input.company.trim().toLowerCase()
   const location = input.location.trim().toLowerCase()
@@ -110,7 +117,7 @@ function passesFilters(job: JobSummary, input: JobListInput): boolean {
   if (!job.companyName.toLowerCase().includes(company)) return false
   if (location !== '' && !(job.locationText ?? '').toLowerCase().includes(location)) return false
   if (input.work !== '' && !worksAs(job, workplace, input.work)) return false
-  if (input.region !== '' && !(workplace && openToRegion(workplace.remoteScope, input.region))) return false
+  if (input.region !== '' && !openTo(job, workplace, input.region)) return false
   if (input.posted !== '' && !(job.postedAt && input.now.getTime() - job.postedAt.getTime() <= Number(input.posted) * DAY_MS)) return false
   if (input.apply === 'assistant' && !input.fillableSources.has(job.sourceId)) return false
   if (input.apply === 'ready' && !input.readyJobs.has(job.id)) return false

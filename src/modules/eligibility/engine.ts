@@ -46,6 +46,10 @@ export function evaluateRules(
     if (!rule.appliesWhen(input)) continue
     const outcome = rule.evaluate(input)
 
+    if (outcome.kind === 'pass' && outcome.sourceCountries !== undefined) {
+      evidence.push({ ruleId: rule.id, sourceCountries: outcome.sourceCountries })
+    }
+
     if (outcome.kind === 'unknown') {
       // Two rules can hinge on one contradiction (engine v5): ask it once, keep both rule ids.
       if (!openQuestions.includes(outcome.question)) openQuestions.push(outcome.question)
