@@ -8,6 +8,7 @@ import { readinessForJobs } from '@/modules/application-answers'
 import { getApplicationForJob } from '@/modules/applications'
 import { expireFills, latestFillForJob } from '@/modules/automation'
 import { getAssessment, reviewGroup } from '@/modules/eligibility'
+import { listSourceCredits } from '@/modules/job-sources'
 import { getJob, getJobUserState } from '@/modules/jobs'
 import { getMatchCard } from '@/modules/matching'
 import { getCandidateProfile } from '@/modules/profiles'
@@ -42,9 +43,10 @@ export default async function JobPage({ params, searchParams }: {
   const db = getDb()
   const assessment = await withTenant(db, DEV_USER.id, (scope) => getAssessment(scope, jobId))
   if (assessment === null) notFound()
-  const result = await getJob(db, jobId)
+  const [result, credits] = await Promise.all([getJob(db, jobId), listSourceCredits(db)])
   if (!result.ok) notFound()
   const job = result.value
+  const credit = credits.get(job.sourceId) ?? null
   const state = await withTenant(db, DEV_USER.id, (scope) => getJobUserState(scope, jobId))
   const userState = state.ok ? state.value : null
   const card = await getMatchCard(db, DEV_USER.id, jobId)
@@ -72,10 +74,11 @@ export default async function JobPage({ params, searchParams }: {
           <div className={styles.cardTop}>
             <span className={styles.company}>{job.companyName}</span>
             {posted !== null && <span>· {posted}</span>}
+            {credit !== null && <span>· via <a href={credit.url} target="_blank" rel="noopener noreferrer">{credit.name}</a></span>}
           </div>
           <h1>{job.title}</h1>
           <ul className={styles.meta}>
-            <li><PinIcon />{formatLocation(job.locationText)}</li>
+            <li><PinIcon />{formatLocation(job)}</li>
             <li><CashIcon />{formatSalary(job.salary) ?? 'Salary not stated'}</li>
           </ul>
           {job.salaryQuote !== null && <p className={styles.salaryQuote}>From the posting: “{job.salaryQuote}”</p>}

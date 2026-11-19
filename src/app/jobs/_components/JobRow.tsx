@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { effectiveVerdict } from '@/modules/eligibility'
+import type { SourceCredit } from '@/modules/job-sources'
 import { summarizeMatch } from '@/modules/matching'
 import { formatLocation, formatPosted, formatSalary } from '../_lib/format'
 import type { JobTab, Row } from '../_lib/job-list'
@@ -29,8 +30,9 @@ function fitOf(row: Row) {
   return { pill, text: text(verdict === 'needs_review' && 'openQuestions' in reasons ? reasons.openQuestions.at(0) : null, styles.warn) }
 }
 
-export function JobRow({ row, tab, back, readyToSend, assistantFills, now }: {
+export function JobRow({ row, tab, back, readyToSend, assistantFills, now, credit }: {
   readonly row: Row; readonly tab: JobTab; readonly back: string; readonly now: Date
+  readonly credit: SourceCredit | null
   /** Nothing on the job's form still waits for the owner. */
   readonly readyToSend: boolean
   /** The assistant can fill this job's form; shown unless the job is already marked ready to send. */
@@ -48,10 +50,11 @@ export function JobRow({ row, tab, back, readyToSend, assistantFills, now }: {
         <div className={styles.cardTop}>
           <span className={styles.company}>{job.companyName}</span>
           {posted !== null && <span>· {posted}</span>}
+          {credit !== null && <span>· via <a href={credit.url} target="_blank" rel="noopener noreferrer">{credit.name}</a></span>}
         </div>
         <h2 className={styles.cardTitle}><Link href={href}>{job.title}</Link></h2>
         <ul className={styles.meta}>
-          <li><PinIcon />{formatLocation(job.locationText)}</li>
+          <li><PinIcon />{formatLocation(job)}</li>
           {salary !== null && <li><CashIcon />{salary}</li>}
         </ul>
         <div className={styles.signals}>

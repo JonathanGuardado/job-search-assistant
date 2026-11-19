@@ -11,7 +11,7 @@ import type { Result } from '@/lib/result'
  * The M1.5 mapping into NewJob is type-checked, so drift fails to compile.
  */
 
-export const ADAPTER_KEYS = ['greenhouse', 'lever', 'ashby'] as const
+export const ADAPTER_KEYS = ['greenhouse', 'lever', 'ashby', 'himalayas'] as const
 export const AdapterKeySchema = z.enum(ADAPTER_KEYS)
 export type AdapterKey = z.infer<typeof AdapterKeySchema>
 
@@ -126,7 +126,7 @@ export type SourceHealth = {
   readonly message?: string
 }
 
-/** Every adapter needs only a board token (Greenhouse), site name (Lever), or job board name (Ashby). */
+/** Every adapter needs only a board token (Greenhouse), site name (Lever), or job board name (Ashby), or, for Himalayas, a two-letter country code. */
 export const AdapterConfigSchema = z.object({ token: z.string().trim().regex(/^[A-Za-z0-9_-]{1,100}$/) })
 export type AdapterConfig = z.infer<typeof AdapterConfigSchema>
 
@@ -148,6 +148,10 @@ export type JobSourceAdapter = {
    * versions; the stored payload still contains them.
    */
   readonly volatileKeys: readonly string[]
+  /** How often the source is polled, when not the default (POLL_INTERVAL_MS). */
+  readonly pollEveryMs?: number
+  /** The credit a source's terms require wherever its jobs are shown. */
+  readonly credit?: { readonly name: string; readonly url: string }
   /**
    * One page. Network failures and non-2xx responses are `upstream_failed`; a
    * response whose envelope does not match the expected shape is `validation_failed`.

@@ -5,7 +5,7 @@ import { addSourceAction, pollSourceAction, toggleSourceAction } from './actions
 
 export const dynamic = 'force-dynamic'
 
-const ADAPTER_LABELS: Record<AdapterKey, string> = { greenhouse: 'Greenhouse', lever: 'Lever', ashby: 'Ashby' }
+const ADAPTER_LABELS: Record<AdapterKey, string> = { greenhouse: 'Greenhouse', lever: 'Lever', ashby: 'Ashby', himalayas: 'Himalayas' }
 
 const date = (value: Date | null) => value?.toLocaleString('en-US', { timeZone: 'America/El_Salvador' }) ?? 'Not yet'
 
@@ -14,12 +14,12 @@ export default async function SourcesPage({ searchParams }: { readonly searchPar
   return (
     <main className={styles.page}>
       <header className={styles.pageHeader}>
-        <div><p className={styles.eyebrow}>Job Seeker Assistant · Discovery</p><h1>Job sources</h1><p className={styles.subtitle}>Connect company boards to capture their postings. Enabled sources are polled every six hours.</p></div>
+        <div><p className={styles.eyebrow}>Job Seeker Assistant · Discovery</p><h1>Job sources</h1><p className={styles.subtitle}>Connect company boards and job boards to capture their postings. Enabled sources are polled every six hours, job boards once a day.</p></div>
         <span className={styles.count}>{sources.length} sources</span>
       </header>
       {searchParams.error && <p role="alert" className={styles.error}>{searchParams.error}</p>}
       <form action={addSourceAction} className={styles.upload}>
-        <div><h2>Add a job board</h2><p className={styles.muted}>Use the company name and its Greenhouse board token, Lever site name, or Ashby job board name.</p></div>
+        <div><h2>Add a job board</h2><p className={styles.muted}>Use the company name and its Greenhouse board token, Lever site name, or Ashby job board name. For Himalayas, use a two-letter country code.</p></div>
         <div className={styles.fields}>
           <label>Adapter<select name="adapterKey" required>{ADAPTER_KEYS.map((key) => <option key={key} value={key}>{ADAPTER_LABELS[key]}</option>)}</select></label>
           <label>Company name<input name="name" maxLength={100} required /></label>

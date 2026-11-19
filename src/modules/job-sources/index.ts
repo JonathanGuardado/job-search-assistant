@@ -49,6 +49,7 @@ export type {
 export { POLL_INTERVAL_MS, DISPATCH_EVERY_MS, sourcePollQueue, sourcePollDispatchQueue, sourcePollKey, enqueueSourcePoll, applicationFormFetchQueue, applicationFormFetchKey } from './queues.js'
 export {
   addSource, checkNormalization, dispatchSourcePolls, getApplicationForms, listFormSourceIds, listLatestRawJobIds, listSources, pollSourcePage, postingKey,
+  isCompanyBoard, listFollowedCompanyNames, listSourceCredits,
   applicationPages, getStoredApplicationForm, readNormalizedPosting, refreshApplicationForm, rereadApplicationForms, setSourceEnabled, sourcePublishesForms,
 } from './service.js'
-export type { PostingRef, StoredApplicationForm } from './service.js'
+export type { PostingRef, SourceCredit, StoredApplicationForm } from './service.js'

@@ -1,16 +1,21 @@
 import { randomUUID } from 'node:crypto'
+import { readFileSync } from 'node:fs'
 import { eq, inArray, sql } from 'drizzle-orm'
 import { describe, expect } from 'vitest'
+import { z } from 'zod'
 import type { Db } from '@/lib/db/client'
 import { withTenant } from '@/lib/db/tenancy'
 import { dbErrorFrom, dbTest as test } from '@/lib/db/testing'
 import { ensureUser } from '@/modules/profiles'
-import { unwrap } from '@/lib/result'
-import { readNormalizedPosting } from '@/modules/job-sources'
+import { ok, unwrap } from '@/lib/result'
+import { addSource, pollSourcePage, readNormalizedPosting, setSourceEnabled } from '@/modules/job-sources'
 import { jobs } from './schema.js'
-import { closeUnseenJobs, getJob, getJobRawVersion, getJobs, listJobUserStates, recordSightings, setJobUserState, upsertJobFromRaw } from './service.js'
+import { closeUnseenJobs, getJob, getJobRawVersion, getJobs, listJobUserStates, recordSightings, setJobUserState, upsertJobFromRaw, withoutFollowedCompanies } from './service.js'
 import { aBoard, aPosting, aStoredJob, dedupeCases, poll, storedJobs, type GreenhousePosting } from './test-fixtures.js'
 import type { Job } from './types.js'
+
+const himalayasJson: unknown = JSON.parse(readFileSync(new URL('../job-sources/__fixtures__/himalayas-search.json', import.meta.url), 'utf8'))
+const himalayasFixture = z.object({ jobs: z.array(z.looseObject({ guid: z.string() })) }).parse(himalayasJson)
 
 const reread = async (db: Db, written: readonly Job[]) =>
   (await db.select().from(jobs).where(inArray(jobs.id, written.map((j) => j.id)))).sort((a, b) => a.externalId.localeCompare(b.externalId))
@@ -20,6 +25,67 @@ async function links(db: Db, written: readonly Job[]) {
   const rows = await reread(db, written)
   return { canonicals: rows.filter((r) => r.canonicalJobId === null), linked: rows.filter((r) => r.canonicalJobId !== null) }
 }
+
+async function himalayasPage(db: Db, jobs = himalayasFixture.jobs) {
+  const fetcher = async () => Response.json({ jobs })
+  const board = unwrap(await addSource(db, { adapterKey: 'himalayas', name: 'Himalayas', token: 'XT' }, fetcher))
+  const page = unwrap(await pollSourcePage(db, { sourceId: board.id, pollId: 'test', cursor: null, startedAt: new Date() }, {
+    fetcher, enqueueNextPage: async () => ok(undefined),
+  }))
+  if (page.kind !== 'page') throw new Error('expected an enabled board')
+  return page
+}
+
+describe('job board postings from followed companies', () => {
+  test('leaves out only enabled company boards, comparing normalized company names', async ({ db }) => {
+    const page = await himalayasPage(db)
+    expect(await withoutFollowedCompanies(db, page)).toEqual(page.postings)
+    const followed = await aBoard(db, 'Followed Co')
+    const kept = await withoutFollowedCompanies(db, page)
+    expect(kept).toHaveLength(5)
+    expect(kept.map((posting) => posting.externalId)).not.toContain('followed-co/platform-engineer')
+    await setSourceEnabled(db, followed.id, false)
+    expect(await withoutFollowedCompanies(db, page)).toEqual(page.postings)
+  })
+
+  test('returns a company board page unchanged without trying to read its raw postings', async ({ db }) => {
+    const board = await aBoard(db, 'Followed Co')
+    const postings = [{ externalId: 'unreadable', rawJobId: 'not-a-uuid' }]
+    expect(await withoutFollowedCompanies(db, { sourceId: board.id, postings })).toBe(postings)
+  })
+
+  test('keeps a posting that fails normalization so the normalization stage can report it', async ({ db }) => {
+    const page = await himalayasPage(db, himalayasFixture.jobs.map((posting) => ({ ...posting, title: '' })))
+    await aBoard(db, 'Followed Co')
+    expect(await withoutFollowedCompanies(db, page)).toEqual(page.postings)
+  })
+
+  test('stores the payload company name and country list without synthesizing a location or salary', async ({ db }) => {
+    const page = await himalayasPage(db)
+    const posting = page.postings.find((posting) => posting.externalId === 'solo-pais/field-engineer')
+    if (!posting) throw new Error('expected the single-country posting')
+    const job = unwrap(await upsertJobFromRaw(db, posting.rawJobId))
+    expect(unwrap(await getJob(db, job.id))).toMatchObject({
+      remoteCountries: ['SV'], locationText: null, locationPolicy: 'remote',
+      salary: { source: 'unknown' }, companyName: 'Solo País S.A. de C.V.',
+    })
+  })
+
+  test('closes a board copy after following the company on its own board', async ({ db }) => {
+    const page = await himalayasPage(db)
+    await recordSightings(db, { ...page, seenAt: page.fetchedAt })
+    for (const posting of page.postings) unwrap(await upsertJobFromRaw(db, posting.rawJobId))
+    await aBoard(db, 'Followed Co')
+    const postings = await withoutFollowedCompanies(db, page)
+    expect(postings).toHaveLength(5)
+    const pollStartedAt = new Date(page.fetchedAt.getTime() + 1_000)
+    await recordSightings(db, { sourceId: page.sourceId, postings, seenAt: new Date(pollStartedAt.getTime() + 1_000) })
+    expect(await closeUnseenJobs(db, { sourceId: page.sourceId, pollStartedAt })).toEqual({ closed: 1, skipped: false })
+    const stored = await db.select().from(jobs).where(eq(jobs.sourceId, page.sourceId))
+    expect(stored.find((job) => job.externalId === 'followed-co/platform-engineer')?.closedAt).toBeInstanceOf(Date)
+    expect(stored.filter((job) => job.closedAt === null)).toHaveLength(5)
+  })
+})
 
 describe('normalizing a raw posting into a job', () => {
   test('writes normalized keys alongside the verbatim posting', async ({ db }) => {

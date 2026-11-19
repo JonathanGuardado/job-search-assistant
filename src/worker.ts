@@ -13,7 +13,7 @@ import { resumeParseQueue, runResumeParse } from '@/modules/career-knowledge'
 import {
   assessEligibilityQueue, assessJobForUser, enqueueAssessmentsForJob, enqueueAssessmentsForUser, extractClaimsWithModel, reassessUserQueue,
 } from '@/modules/eligibility'
-import { closeUnseenJobs, jobNormalizeKey, jobNormalizeQueue, recordSightings, upsertJobFromRaw } from '@/modules/jobs'
+import { closeUnseenJobs, jobNormalizeKey, jobNormalizeQueue, recordSightings, upsertJobFromRaw, withoutFollowedCompanies } from '@/modules/jobs'
 import {
   assessMatchForUser, assessMatchQueue, enqueueMatch, enqueueMatchesForUser, extractRequirementsWithModel, rematchUserQueue,
 } from '@/modules/matching'
@@ -132,7 +132,8 @@ async function handlePollPage(payload: SourcePollPayload): Promise<Result<void>>
   if (!polled.ok) return polled
   if (polled.value.kind === 'disabled') return ok(undefined)
   const page = polled.value
-  const { rawJobIdsToNormalize } = await recordSightings(db, { sourceId: page.sourceId, postings: page.postings, seenAt: page.fetchedAt })
+  const postings = await withoutFollowedCompanies(db, { sourceId: page.sourceId, postings: page.postings })
+  const { rawJobIdsToNormalize } = await recordSightings(db, { sourceId: page.sourceId, postings, seenAt: page.fetchedAt })
   try {
     for (const rawJobId of rawJobIdsToNormalize) await normalizeProducer.enqueue({ rawJobId }, jobNormalizeKey(rawJobId))
   } catch {

@@ -11,8 +11,9 @@ import { applicationForms, jobSources, rawJobs } from './schema.js'
 import {
   addSource, checkNormalization, dispatchSourcePolls, getApplicationForms, listFormSourceIds, listLatestRawJobIds, listSources, pollSourcePage, postingKey,
   readNormalizedPosting, refreshApplicationForm, rereadApplicationForms, setSourceEnabled, sourcePublishesForms,
+  isCompanyBoard, listFollowedCompanyNames, listSourceCredits,
 } from './service.js'
-import { greenhouseFixture, leverFixture } from './test-fixtures.js'
+import { greenhouseFixture, himalayasFixture, leverFixture } from './test-fixtures.js'
 
 async function source(db: Db, adapterKey: AdapterKey = 'greenhouse') {
   return unwrap(await addSource(db, { adapterKey, name: `Fixture Co ${randomUUID()}`, token: randomUUID() }, async () => Response.json(adapterKey === 'greenhouse' ? { name: 'Fixture' } : [])))
@@ -22,6 +23,47 @@ const fixtureFetcher: Fetcher = async () => Response.json(greenhouseFixture)
 const nextPage = async () => ok(undefined)
 const startedAt = new Date('2026-10-21T00:00:00Z')
 const payload = (sourceId: string) => ({ sourceId, pollId: 'test-poll', cursor: null, startedAt })
+
+const himalayasSource = async (db: Db) => unwrap(await addSource(db,
+  { adapterKey: 'himalayas', name: 'Himalayas', token: 'XT' }, async () => Response.json(himalayasFixture)))
+
+describe('company boards and source credits', () => {
+  test('follows enabled company boards only and distinguishes their adapter kind', async ({ db }) => {
+    const enabled = await source(db)
+    const disabled = await source(db)
+    const board = await himalayasSource(db)
+    await setSourceEnabled(db, disabled.id, false)
+    const followed = await listFollowedCompanyNames(db)
+    expect(followed).toContain(enabled.name)
+    expect(followed).not.toContain(disabled.name)
+    expect(followed).not.toContain(board.name)
+    expect(await isCompanyBoard(db, enabled.id)).toBe(true)
+    expect(await isCompanyBoard(db, board.id)).toBe(false)
+    expect(await isCompanyBoard(db, randomUUID())).toBe(false)
+    expect(await isCompanyBoard(db, disabled.id)).toBe(true)
+  })
+
+  test('credits job boards even after disabling the source', async ({ db }) => {
+    const company = await source(db)
+    const board = await himalayasSource(db)
+    await setSourceEnabled(db, board.id, false)
+    const credits = await listSourceCredits(db)
+    expect(credits.get(board.id)).toEqual({ name: 'Himalayas', url: 'https://himalayas.app' })
+    expect(credits.has(company.id)).toBe(false)
+  })
+
+  test('dispatches Himalayas once a day using its daily poll window', async ({ db }) => {
+    const board = await himalayasSource(db)
+    const now = new Date('2026-11-12T13:15:00Z')
+    const enqueue = vi.fn().mockResolvedValue(ok(undefined))
+    await db.update(jobSources).set({ lastPolledAt: new Date(now.getTime() - 7 * 60 * 60_000) }).where(eq(jobSources.id, board.id))
+    expect(unwrap(await dispatchSourcePolls(db, now, enqueue))).toEqual({ enqueued: 0 })
+    expect(enqueue).not.toHaveBeenCalled()
+    await db.update(jobSources).set({ lastPolledAt: new Date(now.getTime() - 25 * 60 * 60_000) }).where(eq(jobSources.id, board.id))
+    expect(unwrap(await dispatchSourcePolls(db, now, enqueue))).toEqual({ enqueued: 1 })
+    expect(enqueue).toHaveBeenCalledWith({ sourceId: board.id, cursor: null, startedAt: now, pollId: `w${Math.floor(now.getTime() / 86_400_000) * 86_400_000}` })
+  })
+})
 
 describe('source registration and controls', () => {
   test('registers only healthy sources and rejects duplicate tokens without aborting the transaction', async ({ db }) => {

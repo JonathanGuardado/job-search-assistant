@@ -1,4 +1,4 @@
-import { and, asc, count, eq, getTableColumns, inArray, lte, min, or, isNull, sql } from 'drizzle-orm'
+import { and, asc, count, eq, getTableColumns, inArray, min, or, sql } from 'drizzle-orm'
 import type { Db } from '@/lib/db/client'
 import { domainError, err, ok, type Result } from '@/lib/result'
 import { AdapterConfigSchema, type ApplicationForm, type ApplicationPages, type Fetcher, type FetchResult } from './adapter.js'
@@ -38,6 +38,31 @@ export async function listSources(db: Db): Promise<JobSourceSummary[]> {
     .from(jobSources).leftJoin(rawJobs, eq(rawJobs.sourceId, jobSources.id))
     .groupBy(jobSources.id).orderBy(asc(jobSources.name), asc(jobSources.id))
   return rows.map(({ rawJobCount, ...row }) => ({ ...toJobSource(row), rawJobCount }))
+}
+
+/** Whether the source is one company's own board, not a job board listing many. */
+export async function isCompanyBoard(db: Db, sourceId: string): Promise<boolean> {
+  const [source] = await db.select({ adapterKey: jobSources.adapterKey }).from(jobSources).where(eq(jobSources.id, sourceId))
+  return source !== undefined && getAdapter(source.adapterKey).kind === 'ats'
+}
+
+/** The names of the enabled sources that are a company's own board. */
+export async function listFollowedCompanyNames(db: Db): Promise<string[]> {
+  const sources = await db.select({ name: jobSources.name, adapterKey: jobSources.adapterKey }).from(jobSources).where(eq(jobSources.enabled, true))
+  return sources.filter((source) => getAdapter(source.adapterKey).kind === 'ats').map((source) => source.name)
+}
+
+export type SourceCredit = { readonly name: string; readonly url: string }
+
+/** The credit each source's terms require wherever its jobs are shown, by source id. Sources without one are absent. */
+export async function listSourceCredits(db: Db): Promise<Map<string, SourceCredit>> {
+  const sources = await db.select({ id: jobSources.id, adapterKey: jobSources.adapterKey }).from(jobSources)
+  const credits = new Map<string, SourceCredit>()
+  for (const source of sources) {
+    const credit = getAdapter(source.adapterKey).credit
+    if (credit) credits.set(source.id, credit)
+  }
+  return credits
 }
 
 export async function setSourceEnabled(db: Db, sourceId: string, enabled: boolean): Promise<Result<void>> {
@@ -112,12 +137,13 @@ export async function dispatchSourcePolls(
   now: Date,
   enqueue: (p: SourcePollPayload) => Promise<Result<void>>,
 ): Promise<Result<{ readonly enqueued: number }>> {
-  const due = await db.select({ id: jobSources.id }).from(jobSources).where(and(
-    eq(jobSources.enabled, true), or(isNull(jobSources.lastPolledAt), lte(jobSources.lastPolledAt, new Date(now.getTime() - POLL_INTERVAL_MS))),
-  )).orderBy(asc(jobSources.id))
-  const windowStart = Math.floor(now.getTime() / POLL_INTERVAL_MS) * POLL_INTERVAL_MS
+  const sources = await db.select({ id: jobSources.id, adapterKey: jobSources.adapterKey, lastPolledAt: jobSources.lastPolledAt })
+    .from(jobSources).where(eq(jobSources.enabled, true)).orderBy(asc(jobSources.id))
   let enqueued = 0
-  for (const source of due) {
+  for (const source of sources) {
+    const interval = getAdapter(source.adapterKey).pollEveryMs ?? POLL_INTERVAL_MS
+    if (source.lastPolledAt !== null && now.getTime() - source.lastPolledAt.getTime() < interval) continue
+    const windowStart = Math.floor(now.getTime() / interval) * interval
     const result = await enqueue({ sourceId: source.id, pollId: `w${windowStart}`, cursor: null, startedAt: now })
     if (!result.ok) return result
     enqueued++

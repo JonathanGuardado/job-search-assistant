@@ -253,5 +253,6 @@
   { "adapterKey": "ashby", "name": "WebFX", "token": "webfx" },
   { "adapterKey": "ashby", "name": "Hubstaff", "token": "hubstaff" },
   { "adapterKey": "ashby", "name": "Luxor Technology", "token": "luxor" },
-  { "adapterKey": "ashby", "name": "Recharge", "token": "recharge" }
+  { "adapterKey": "ashby", "name": "Recharge", "token": "recharge" },
+  { "adapterKey": "himalayas", "name": "Himalayas", "token": "SV" }
 ]

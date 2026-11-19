@@ -123,14 +123,16 @@ Owned by `career-knowledge`.
   CHECK ties `verified_by_user` to `verified_at`.
 
 ### `job_sources`
-Owned by `job-sources`. `id`, `adapter_key` (`greenhouse` | `lever` | `ashby`), `name`, `config`
-(jsonb, `{ token }`: the Greenhouse board token, Lever site name, or Ashby job board name), `enabled`, `cursor`,
+Owned by `job-sources`. `id`, `adapter_key` (`greenhouse` | `lever` | `ashby` | `himalayas`), `name`, `config`
+(jsonb, `{ token }`: the Greenhouse board token, Lever site name, or Ashby job board name;
+for Himalayas, the two-letter country code the board is asked for), `enabled`, `cursor`,
 `last_polled_at`, `health_status` (`unknown` | `ok` | `failing`), `health_message`,
 `health_checked_at`, `created_at`.
 
 - Unique on `(adapter_key, config->>'token')`: a board is registered once.
-- `name` is the company name given to every job from the source. Boards label themselves
-  inconsistently in their payloads (one calls itself "Stone - Linkedin").
+- `name` is the company name given to every job from a company's own board. Boards label
+  themselves inconsistently in their payloads (one calls itself "Stone - Linkedin");
+  a job board's jobs take their company name from the payload.
 - `cursor` is the next page of a poll in progress, null between polls. `last_polled_at`
   is set when a poll fetches its final page.
 

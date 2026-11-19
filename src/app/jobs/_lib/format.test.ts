@@ -29,9 +29,19 @@ describe('formatSalary', () => {
 })
 
 describe('formatLocation', () => {
-  it('shows the stored location and a fallback only when absent', () => {
-    expect(formatLocation('Remote, LATAM')).toBe('Remote, LATAM')
-    expect(formatLocation(null)).toBe('Location not stated')
+  it('prefers the stored location with or without a country list', () => {
+    expect(formatLocation({ locationText: 'Remote, LATAM', remoteCountries: null })).toBe('Remote, LATAM')
+    expect(formatLocation({ locationText: 'Remote, LATAM', remoteCountries: ['SV'] })).toBe('Remote, LATAM')
+  })
+
+  it('names up to three remote countries in their listed order', () => {
+    expect(formatLocation({ locationText: null, remoteCountries: ['SV'] })).toBe('Remote · El Salvador')
+    expect(formatLocation({ locationText: null, remoteCountries: ['US', 'SV', 'MX'] })).toBe('Remote · United States, El Salvador, Mexico')
+  })
+
+  it('counts longer lists and falls back when neither location is present', () => {
+    expect(formatLocation({ locationText: null, remoteCountries: ['US', 'SV', 'MX', 'CA'] })).toBe('Remote · 4 countries')
+    expect(formatLocation({ locationText: null, remoteCountries: null })).toBe('Location not stated')
   })
 })
 

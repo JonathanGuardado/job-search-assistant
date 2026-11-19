@@ -22,6 +22,7 @@ export {
   recordSightings,
   setJobUserState,
   upsertJobFromRaw,
+  withoutFollowedCompanies,
 } from './service.js'
 export { jobNormalizeKey, jobNormalizeQueue } from './queues.js'
 

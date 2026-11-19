@@ -1,4 +1,4 @@
-import type { Job, Salary } from '@/modules/jobs'
+import type { JobSummary, Salary } from '@/modules/jobs'
 
 export function formatSalary(salary: Salary): string | null {
   if (salary.source === 'unknown') return null
@@ -15,8 +15,13 @@ export function formatSalary(salary: Salary): string | null {
   return null
 }
 
-export function formatLocation(location: Job['locationText']): string {
-  return location ?? 'Location not stated'
+export function formatLocation(job: Pick<JobSummary, 'locationText' | 'remoteCountries'>): string {
+  if (job.locationText) return job.locationText
+  const countries = job.remoteCountries
+  if (!countries?.length) return 'Location not stated'
+  if (countries.length > 3) return `Remote · ${countries.length} countries`
+  const names = new Intl.DisplayNames(['en'], { type: 'region' })
+  return `Remote · ${countries.map((country) => names.of(country)).join(', ')}`
 }
 
 const DAY_MS = 86_400_000

@@ -2,7 +2,7 @@ import { and, asc, eq, getTableColumns, gte, inArray, isNull, lt, ne, or, sql } 
 import type { Db } from '@/lib/db/client'
 import type { TenantScope } from '@/lib/db/tenancy'
 import { domainError, err, ok, type Result } from '@/lib/result'
-import { readNormalizedPosting, type PagePosting } from '@/modules/job-sources'
+import { isCompanyBoard, listFollowedCompanyNames, readNormalizedPosting, type PagePosting } from '@/modules/job-sources'
 import { fingerprint, locationKey } from './fingerprint.js'
 import { normalizeCompany } from './normalize-company.js'
 import { normalizeTitle } from './normalize-title.js'
@@ -205,6 +205,23 @@ export async function upsertJobFromRaw(db: Db, rawJobId: string): Promise<Result
 
 // ---------------------------------------------------------------------------
 // Sightings: what a poll saw. A job is open while its source keeps listing it.
+
+/**
+ * The page's postings that may become jobs. A job board's copy of a job from a company
+ * followed on its own board is left out: that board has the same job (decision 0017).
+ */
+export async function withoutFollowedCompanies(
+  db: Db, input: { readonly sourceId: string; readonly postings: readonly PagePosting[] },
+): Promise<readonly PagePosting[]> {
+  if (await isCompanyBoard(db, input.sourceId)) return input.postings
+  const followed = new Set((await listFollowedCompanyNames(db)).map(normalizeCompany))
+  const kept: PagePosting[] = []
+  for (const posting of input.postings) {
+    const normalized = await readNormalizedPosting(db, posting.rawJobId)
+    if (!normalized.ok || !followed.has(normalizeCompany(normalized.value.job.companyName))) kept.push(posting)
+  }
+  return kept
+}
 
 /**
  * Marks the page's postings seen (reopening any that had closed) and returns the raw

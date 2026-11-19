@@ -5,7 +5,7 @@ import { withTenant } from '@/lib/db/tenancy'
 import { DEV_USER } from '@/lib/dev-user'
 import { readinessForJobs, type JobReadiness } from '@/modules/application-answers'
 import { listAssessments, REVIEW_GROUPS, workplaceClaimsFor } from '@/modules/eligibility'
-import { listFormSourceIds } from '@/modules/job-sources'
+import { listFormSourceIds, listSourceCredits } from '@/modules/job-sources'
 import { getJobSummaries, listJobUserStates } from '@/modules/jobs'
 import { listMatches, REVIEW_ORDER } from '@/modules/matching'
 import { JobRow } from './_components/JobRow'
@@ -46,11 +46,12 @@ export default async function JobsPage({ searchParams }: {
   const query = SearchSchema.parse(searchParams)
   const db = getDb()
   // Independent reads run together; jobs come without descriptions (the list never shows one).
-  const [assessments, userStates, matches, fillableSources] = await Promise.all([
+  const [assessments, userStates, matches, fillableSources, credits] = await Promise.all([
     withTenant(db, DEV_USER.id, listAssessments),
     withTenant(db, DEV_USER.id, listJobUserStates),
     withTenant(db, DEV_USER.id, listMatches),
     listFormSourceIds(db).then((ids) => new Set(ids)),
+    listSourceCredits(db),
   ])
   const [jobs, workplace] = await Promise.all([
     getJobSummaries(db, assessments.map((assessment) => assessment.jobId)),
@@ -126,6 +127,7 @@ export default async function JobsPage({ searchParams }: {
           : list.rows.map((row) => {
             const readyToSend = query.tab === 'can_apply' && isReady(readiness.get(row.job.id))
             return <JobRow key={row.job.id} row={row} tab={query.tab} back={back} now={now} readyToSend={readyToSend}
+              credit={credits.get(row.job.sourceId) ?? null}
               assistantFills={query.tab === 'can_apply' && fillableSources.has(row.job.sourceId)} />
           })}
       </section>

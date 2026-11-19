@@ -155,6 +155,13 @@
       "when": 1794527781157,
       "tag": "0021_remote-countries",
       "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1795052227377,
+      "tag": "0022_himalayas-adapter",
+      "breakpoints": true
     }
   ]
 }
