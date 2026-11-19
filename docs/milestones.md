@@ -3,9 +3,12 @@
 Phase 1 only. Later phases are listed at the bottom so their scope stays visible, but
 nothing from them gets built yet.
 
-**Active: S.2, Himalayas** (sources track, decision 0017). Engine v6, which reads a job
-board's country list, is built and measured; the adapter is with Codex
-(`prompts/codex/s2-himalayas-adapter.md`). 2.4 is not started.
+**S.2, Himalayas** (sources track, decision 0017) is built, reviewed and merged: engine v6
+reads a job board's country list, and the adapter (Codex, brief
+`prompts/codex/s2-himalayas-adapter.md`) polls the board once a day for a country, leaving out
+companies already followed. **Pending:** the owner registers the source (token `SV`), and
+whether to leave out gig and AI-training platforms is decided from the first full poll's
+counts. No milestone is active; 2.4 is not started.
 
 **2.3 form filling, approval mode** (decision 0016) is closed: on 2026-11-13 the owner
 submitted a Fivetran application the system filled, and Greenhouse confirmed it. It was
