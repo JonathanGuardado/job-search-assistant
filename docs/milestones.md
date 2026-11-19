@@ -3,14 +3,15 @@
 Phase 1 only. Later phases are listed at the bottom so their scope stays visible, but
 nothing from them gets built yet.
 
-**Active milestone: 2.3 form filling, approval mode** (decision 0016), started on 2026-10-28
-by the owner's exception while 1.8 and 1.9 wait on the owner's checks below. Step 0 is done:
-Greenhouse's terms bind employers only, and the dry run captured what Submit sends on three
-real forms without sending it. The backend is built: the own-words rule enforced in readiness,
-data-protection consent read from forms, the packet, the fill record, the filler, network
-capture and the worker's run, tested against GitLab's recorded page. Next: the review and
-status pages (Codex, brief `prompts/codex/m2.3-fill-ui.md`), then the owner's first real
-submission. 2.1 and 2.2 are built and merged. 2.1: saved
+**No milestone is active.** 2.4 is not started.
+
+**2.3 form filling, approval mode** (decision 0016) is closed: on 2026-11-13 the owner
+submitted a Fivetran application the system filled, and Greenhouse confirmed it. It was
+started on 2026-10-28 by the owner's exception while 1.8 and 1.9 waited on the owner's checks
+below. Built: the own-words rule enforced in readiness, data-protection consent read from
+forms, the packet, the fill record, the filler, network capture, the worker's run, the review
+and status pages (Codex, brief `prompts/codex/m2.3-fill-ui.md`), and filling as the job page's
+main action with an Apply filter on the jobs list. 2.1 and 2.2 are built and merged. 2.1: saved
 answers, readiness and "same question" suggestions on `/answers` and each job page. 2.2
 (decision 0014 and its amendments): the assistant works only on jobs whose role fits; the
 profile records citizenship and English level; profile-fact questions are drafted in code from
